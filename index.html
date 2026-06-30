@@ -1,0 +1,1670 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A股每日交易复盘模板｜焕新版</title>
+<style>
+  :root{
+    --bg1:#0b1020;
+    --bg2:#10182d;
+    --bg3:#121a33;
+    --card:rgba(255,255,255,.88);
+    --line:rgba(255,255,255,.18);
+    --muted:#6b7280;
+    --text:#18212f;
+    --red:#f04452;
+    --red2:#ff6a6a;
+    --green:#00b578;
+    --gold:#f5c96a;
+    --blue:#4a7dff;
+    --shadow:0 18px 60px rgba(14,23,53,.22);
+    --radius:22px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","PingFang SC","Microsoft YaHei",Arial,sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(circle at 15% 20%, rgba(255,106,106,.18), transparent 25%),
+      radial-gradient(circle at 85% 10%, rgba(74,125,255,.16), transparent 22%),
+      radial-gradient(circle at 80% 85%, rgba(0,181,120,.10), transparent 18%),
+      linear-gradient(135deg, var(--bg1), var(--bg2) 46%, var(--bg3));
+    min-height:100vh;
+  }
+  .shell{
+    max-width:1220px;
+    margin:0 auto;
+    padding:22px 16px 40px;
+  }
+  .hero{
+    position:relative;
+    overflow:hidden;
+    padding:28px 24px 22px;
+    border-radius:28px;
+    background:
+      linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.02)),
+      linear-gradient(135deg, rgba(240,68,82,.18), rgba(74,125,255,.16));
+    backdrop-filter: blur(12px);
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow: var(--shadow);
+    color:#fff;
+  }
+  .hero::before{
+    content:"";
+    position:absolute;
+    right:-90px; top:-90px;
+    width:240px; height:240px;
+    background:radial-gradient(circle, rgba(245,201,106,.28), transparent 60%);
+    pointer-events:none;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    left:-80px; bottom:-80px;
+    width:220px; height:220px;
+    background:radial-gradient(circle, rgba(255,106,106,.22), transparent 58%);
+    pointer-events:none;
+  }
+  .hero-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .title-wrap h1{
+    margin:0;
+    font-size:30px;
+    line-height:1.15;
+    letter-spacing:.5px;
+  }
+  .title-wrap p{
+    margin:10px 0 0;
+    max-width:760px;
+    color:rgba(255,255,255,.86);
+    line-height:1.65;
+    font-size:14px;
+  }
+  .tag-group{
+    display:flex; gap:10px; flex-wrap:wrap;
+  }
+  .hero-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:10px 14px; border-radius:999px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.15);
+    color:#fff; font-size:13px; font-weight:600;
+    backdrop-filter:blur(10px);
+  }
+  .quote-card{
+    margin-top:18px;
+    padding:16px 18px;
+    border-radius:20px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.14);
+    display:flex;
+    gap:12px;
+    align-items:flex-start;
+  }
+  .quote-icon{
+    width:38px; height:38px; border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, rgba(245,201,106,.95), rgba(255,255,255,.75));
+    color:#7a4a00; font-size:20px; flex:0 0 auto;
+  }
+  .quote-body .label{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:rgba(255,255,255,.68); margin-bottom:6px; font-weight:700;
+  }
+  .quote-body .text{
+    font-size:16px; line-height:1.7; color:#fff; font-weight:600;
+  }
+  .quote-body .sub{
+    margin-top:6px;
+    color:rgba(255,255,255,.72);
+    font-size:12px;
+  }
+  .dashboard{
+    display:grid; gap:14px; grid-template-columns:repeat(4,minmax(0,1fr));
+    margin-top:16px;
+  }
+  .dash{
+    border-radius:18px;
+    padding:14px 14px 12px;
+    background:rgba(255,255,255,.1);
+    border:1px solid rgba(255,255,255,.14);
+  }
+  .dash .k{font-size:12px;color:rgba(255,255,255,.72)}
+  .dash .v{margin-top:8px;font-size:20px;font-weight:800;color:#fff}
+  @media(max-width:880px){.dashboard{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:560px){.dashboard{grid-template-columns:1fr;}}
+
+  .section{
+    margin-top:16px;
+    border-radius:var(--radius);
+    background:var(--card);
+    backdrop-filter: blur(14px);
+    border:1px solid rgba(255,255,255,.28);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .section-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:18px 18px 12px 18px; flex-wrap:wrap;
+  }
+  .section-title{
+    display:flex; align-items:center; gap:12px;
+  }
+  .section-num{
+    width:36px; height:36px; border-radius:12px;
+    background:linear-gradient(135deg, var(--red), #ff8a63);
+    color:#fff; display:flex; align-items:center; justify-content:center;
+    font-weight:800;
+    box-shadow:0 10px 24px rgba(240,68,82,.24);
+  }
+  .section-title h2{margin:0;font-size:20px}
+  .section-title p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+  .section-body{padding:0 18px 18px}
+  .grid{display:grid; gap:14px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  @media(max-width:900px){.g4,.g3{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:680px){.g2,.g3,.g4{grid-template-columns:1fr;}}
+  .field{
+    background:linear-gradient(180deg, rgba(250,252,255,.96), rgba(247,249,252,.92));
+    border:1px solid #edf0f6;
+    border-radius:18px;
+    padding:14px;
+  }
+  .field label{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:13px; font-weight:700; color:#344054; margin-bottom:8px;
+  }
+  .field .tip{font-weight:500;color:#98a2b3;font-size:11px}
+  input,select,textarea{
+    width:100%; border:1px solid #dde3ee; background:#fff;
+    padding:12px 13px; font-size:14px; color:#18212f;
+    border-radius:14px; outline:none;
+    transition:.18s ease;
+  }
+  input:focus,select:focus,textarea:focus{
+    border-color:#ff8a94;
+    box-shadow:0 0 0 4px rgba(240,68,82,.12);
+    transform:translateY(-1px);
+  }
+  textarea{min-height:84px; resize:vertical; line-height:1.65}
+  .muted{font-size:12px; color:var(--muted); line-height:1.65}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap}
+  button{
+    appearance:none; border:none; cursor:pointer;
+    border-radius:999px; padding:11px 16px; font-size:14px; font-weight:800;
+    transition:transform .14s ease, box-shadow .14s ease, opacity .14s ease;
+  }
+  button:hover{transform:translateY(-1px)}
+  button:active{transform:translateY(0)}
+  .btn-red{
+    background:linear-gradient(135deg, var(--red), var(--red2));
+    color:#fff; box-shadow:0 10px 24px rgba(240,68,82,.24);
+  }
+  .btn-dark{
+    background:#111827; color:#fff;
+    box-shadow:0 8px 18px rgba(17,24,39,.18);
+  }
+  .btn-soft{
+    background:#eef3ff; color:#2948b5;
+  }
+  .btn-light{
+    background:#f4f6f9; color:#334155;
+  }
+  .btn-danger{
+    background:#fff1f2; color:#be123c; border:1px solid #fecdd3;
+  }
+  .table-wrap{
+    border:1px solid #eef0f4;
+    border-radius:18px; overflow:auto;
+    background:linear-gradient(180deg,#fff,#fbfcff);
+  }
+  table{width:100%; border-collapse:separate; border-spacing:0; min-width:1280px;}
+  th,td{
+    padding:10px 10px; border-bottom:1px solid #eef2f7; text-align:left; vertical-align:top;
+  }
+  th{
+    position:sticky; top:0; z-index:2;
+    background:rgba(249,251,254,.96);
+    backdrop-filter:blur(6px);
+    color:#667085; font-size:12px; font-weight:800;
+  }
+  td input,td select,td textarea{
+    border-radius:12px; padding:9px 10px; font-size:13px;
+  }
+  td textarea{min-height:52px}
+  .rowScore{
+    display:inline-flex;
+    min-width:56px; justify-content:center; align-items:center;
+    padding:8px 10px; border-radius:999px;
+    font-weight:800; color:#24324a; background:#f3f6fb;
+  }
+  .scorebar{
+    display:grid; gap:12px; grid-template-columns:repeat(4,minmax(0,1fr)); margin-top:14px;
+  }
+  @media(max-width:840px){.scorebar{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:540px){.scorebar{grid-template-columns:1fr;}}
+  .score-item{
+    position:relative;
+    overflow:hidden;
+    border-radius:18px;
+    padding:14px 14px 12px;
+    background:linear-gradient(180deg,#fff,#f8fbff);
+    border:1px solid #eef2f6;
+  }
+  .score-item::after{
+    content:""; position:absolute; right:-16px; top:-16px; width:68px; height:68px;
+    background:radial-gradient(circle, rgba(74,125,255,.12), transparent 62%);
+  }
+  .score-item .k{font-size:12px;color:#667085}
+  .score-item .v{margin-top:8px;font-size:26px;font-weight:900;color:#172554}
+  .score-item.good .v{color:#0f766e}
+  .score-item.bad .v{color:#b42318}
+  .score-item.warn .v{color:#9a3412}
+  .chips{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{
+    display:inline-flex; align-items:center; gap:7px;
+    padding:8px 11px; border-radius:999px;
+    background:#f6f8fb; border:1px solid #ebeff5; font-size:12px; color:#475467; font-weight:700;
+  }
+  .panel{
+    border-radius:18px; border:1px solid #eef2f6;
+    background:linear-gradient(180deg,#fff,#f9fbff);
+    padding:14px;
+  }
+  .out{
+    min-height:260px;
+    white-space:pre-wrap;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    background:
+      linear-gradient(180deg, rgba(12,19,39,.98), rgba(15,23,42,.98));
+    color:#e5e7eb;
+    padding:16px;
+    border-radius:18px;
+    line-height:1.66;
+    overflow:auto;
+    border:1px solid rgba(255,255,255,.06);
+  }
+  .footer-note{
+    margin-top:16px; text-align:center; color:rgba(255,255,255,.65); font-size:12px; line-height:1.7;
+  }
+  .floating{
+    position:fixed; right:18px; bottom:18px; z-index:10;
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .fab{
+    width:52px; height:52px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, var(--red), #ff8a63); color:#fff;
+    box-shadow:0 14px 28px rgba(240,68,82,.28);
+    font-size:20px; font-weight:900;
+    text-decoration:none;
+  }
+  .section-mini{
+    color:#98a2b3; font-size:12px; font-weight:600;
+  }
+  .status-badge{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 12px; border-radius:999px;
+    background:#fff7ed; color:#9a3412; font-size:12px; font-weight:800;
+    border:1px solid #fed7aa;
+  }
+  .btn-hero{
+    display:inline-flex; align-items:center; gap:8px;
+    border:1px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.14);
+    color:#fff;
+    backdrop-filter:blur(10px);
+  }
+  .quality-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr;
+    gap:12px;
+    margin-top:14px;
+  }
+  @media(max-width:860px){.quality-grid{grid-template-columns:1fr;}}
+  .quality-box{
+    border:1px solid #edf0f6;
+    border-radius:18px;
+    background:linear-gradient(180deg,#fff,#f8fbff);
+    padding:14px;
+    min-height:116px;
+  }
+  .quality-box h3{
+    margin:0 0 8px;
+    font-size:14px;
+    color:#344054;
+  }
+  .quality-box p,.quality-box li{
+    margin:0;
+    color:#5f6b7a;
+    font-size:13px;
+    line-height:1.65;
+  }
+  .quality-box ul{padding-left:18px;margin:0}
+  .history-kpis{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:12px;
+  }
+  @media(max-width:860px){.history-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media(max-width:540px){.history-kpis{grid-template-columns:1fr;}}
+  .history-kpi{
+    border:1px solid #eef2f6;
+    border-radius:18px;
+    padding:14px;
+    background:linear-gradient(180deg,#fff,#f8fbff);
+  }
+  .history-kpi .k{font-size:12px;color:#667085}
+  .history-kpi .v{margin-top:8px;font-size:24px;font-weight:900;color:#172554}
+  .modal-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:30;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(7,12,24,.62);
+    backdrop-filter:blur(8px);
+  }
+  .modal-backdrop.show{display:flex}
+  .modal{
+    width:min(1080px,100%);
+    max-height:92vh;
+    overflow:auto;
+    border-radius:22px;
+    background:#fff;
+    box-shadow:0 30px 90px rgba(0,0,0,.35);
+    border:1px solid rgba(255,255,255,.4);
+  }
+  .modal-head{
+    position:sticky;
+    top:0;
+    z-index:3;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+    padding:18px;
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid #eef2f7;
+  }
+  .modal-head h2{margin:0;font-size:20px}
+  .modal-head p{margin:6px 0 0;color:#667085;font-size:13px;line-height:1.6}
+  .icon-btn{
+    width:38px;height:38px;border-radius:50%;
+    padding:0;
+    display:flex;align-items:center;justify-content:center;
+    background:#f3f6fb;color:#334155;font-size:20px;
+  }
+  .modal-body{padding:18px}
+  .stepper{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .step{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 12px;border-radius:999px;
+    border:1px solid #e5eaf3;background:#f8fafc;
+    color:#64748b;font-size:12px;font-weight:800;
+  }
+  .step.active{background:#fff1f2;color:#be123c;border-color:#fecdd3}
+  .drop-zone{
+    border:1.5px dashed #cbd5e1;
+    border-radius:18px;
+    padding:18px;
+    background:#f8fafc;
+  }
+  .preview-strip{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;
+    margin-top:12px;
+  }
+  .image-preview{
+    border:1px solid #e5eaf3;
+    border-radius:14px;
+    overflow:hidden;
+    background:#fff;
+  }
+  .image-preview img{display:block;width:100%;height:112px;object-fit:cover}
+  .image-preview span{display:block;padding:8px;font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ocr-status{
+    margin-top:12px;
+    padding:12px;
+    border-radius:14px;
+    background:#f8fafc;
+    color:#475569;
+    font-size:13px;
+    line-height:1.6;
+  }
+  .preview-table{min-width:860px}
+  .low-confidence input,.low-confidence select{
+    background:#fff7ed;
+    border-color:#fed7aa;
+  }
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .hidden-file{display:none}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="title-wrap">
+          <h1>A股每日交易复盘模板 · 焕新版</h1>
+          <p>把复盘做成一种仪式感。少一些情绪化后悔，多一些可复制的方法。每天收盘后填写一次，让交易从“凭感觉”走向“有框架、有纪律、有成长”。</p>
+        </div>
+        <div class="tag-group">
+          <div class="hero-tag">📈 趋势波段</div>
+          <div class="hero-tag">⚡ 强势股</div>
+          <div class="hero-tag">🧭 计划交易</div>
+          <div class="hero-tag">🛡 风控优先</div>
+          <button class="btn-hero" onclick="openOcrModal()">📷 截图智能导入</button>
+        </div>
+      </div>
+
+      <div class="quote-card">
+        <div class="quote-icon">✦</div>
+        <div class="quote-body">
+          <div class="label">今日股市箴言</div>
+          <div class="text" id="dailyQuote">会买的是徒弟，会卖的是师傅，会空仓的是祖师爷。</div>
+          <div class="sub" id="quoteSub">每天自动更新一句，不重复循环。</div>
+        </div>
+      </div>
+
+      <div class="dashboard">
+        <div class="dash">
+          <div class="k">今日目标</div>
+          <div class="v">看清市场，而非证明自己</div>
+        </div>
+        <div class="dash">
+          <div class="k">核心原则</div>
+          <div class="v">先判断环境，再决定出手</div>
+        </div>
+        <div class="dash">
+          <div class="k">复盘重点</div>
+          <div class="v">计划性 · 买卖点 · 仓位 · 风控</div>
+        </div>
+        <div class="dash">
+          <div class="k">成长方式</div>
+          <div class="v">抓一个错误，改一个习惯</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">1</div>
+          <div>
+            <h2>当日基本信息</h2>
+            <p>先用一句话定义今天的市场，不要一上来就纠结自己赚了还是亏了。</p>
+          </div>
+        </div>
+        <div class="status-badge">收盘后 10–20 分钟即可完成</div>
+      </div>
+      <div class="section-body">
+        <div class="grid g4">
+          <div class="field"><label>复盘日期 <span class="tip">自动填充</span></label><input id="date" type="date"></div>
+          <div class="field"><label>账户总资金 <span class="tip">例如 200000</span></label><input id="capital" type="number" placeholder="例如 200000"></div>
+          <div class="field"><label>收盘总仓位 <span class="tip">整体仓位</span></label>
+            <select id="position">
+              <option>空仓</option><option>1成</option><option>2成</option><option>3成</option><option>4成</option>
+              <option selected>5成</option><option>6成</option><option>7成</option><option>8成</option><option>满仓</option>
+            </select>
+          </div>
+          <div class="field"><label>今日盈亏 <span class="tip">例如 +1200 / -800</span></label><input id="pnl" placeholder="例如 +1200"></div>
+        </div>
+
+        <div class="grid g3" style="margin-top:14px">
+          <div class="field"><label>今日指数状态</label>
+            <select id="indexState">
+              <option>指数强</option><option>指数弱</option><option>震荡</option><option>冲高回落</option><option>探底回升</option>
+            </select>
+          </div>
+          <div class="field"><label>市场情绪</label>
+            <select id="mood">
+              <option>普涨</option><option selected>分化</option><option>退潮</option><option>抱团核心</option><option>冰点修复</option>
+            </select>
+          </div>
+          <div class="field"><label>适合动作</label>
+            <select id="actionEnv">
+              <option>进攻</option><option selected>只做核心</option><option>防守</option><option>空仓观察</option><option>低吸不追高</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid g2" style="margin-top:14px">
+          <div class="field">
+            <label>今日主线 / 强势方向 <span class="tip">逗号分隔</span></label>
+            <input id="mainLines" placeholder="例如：存储芯片、液冷、CPO、PCB、券商">
+          </div>
+          <div class="field">
+            <label>一句话市场判断 <span class="tip">简洁即可</span></label>
+            <textarea id="marketOne" placeholder="例如：指数强但个股分化，资金抱团科技核心，适合做主线核心，不适合追后排。"></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">2</div>
+          <div>
+            <h2>今日成交记录与交易评分</h2>
+            <p>每笔都要讲清楚：为什么做、做得怎么样。给自己打分，训练“交易质量意识”。</p>
+          </div>
+        </div>
+        <div class="section-mini">8 分以上可复制，6–7 分可优化，5 分以下列入低质量交易</div>
+      </div>
+      <div class="section-body">
+        <div class="toolbar" style="margin-bottom:12px">
+          <button class="btn-dark" onclick="openOcrModal()">📷 截图智能导入</button>
+          <button class="btn-red" onclick="addTrade()">+ 添加一笔交易</button>
+          <button class="btn-soft" onclick="recalc()">重新计算评分</button>
+          <button class="btn-danger" onclick="clearTrades()">清空交易表</button>
+        </div>
+        <div class="table-wrap">
+          <table id="tradeTable">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>股票/ETF</th>
+                <th>买/卖</th>
+                <th>价格</th>
+                <th>数量</th>
+                <th>金额</th>
+                <th>模式</th>
+                <th>理由</th>
+                <th>计划性</th>
+                <th>主线</th>
+                <th>买卖点</th>
+                <th>仓位</th>
+                <th>风控</th>
+                <th>总分</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tradeBody"></tbody>
+          </table>
+        </div>
+
+        <div class="scorebar">
+          <div class="score-item">
+            <div class="k">平均分</div>
+            <div class="v" id="avgScore">0</div>
+          </div>
+          <div class="score-item good">
+            <div class="k">高质量交易</div>
+            <div class="v" id="goodCount">0</div>
+          </div>
+          <div class="score-item bad">
+            <div class="k">低质量交易</div>
+            <div class="v" id="badCount">0</div>
+          </div>
+          <div class="score-item warn">
+            <div class="k">计划外交易</div>
+            <div class="v" id="unplannedCount">0</div>
+          </div>
+        </div>
+
+        <div class="quality-grid" id="qualityPanel">
+          <div class="quality-box">
+            <h3>今日最大风险点</h3>
+            <p id="riskPoint">填写交易后自动生成。</p>
+          </div>
+          <div class="quality-box">
+            <h3>明日纪律建议</h3>
+            <p id="disciplineAdvice">先完成交易记录，再让系统帮你抓一个最该改的习惯。</p>
+          </div>
+          <div class="quality-box">
+            <h3>需要禁止重复</h3>
+            <p id="banAdvice">暂无。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">3</div>
+          <div>
+            <h2>今日反思</h2>
+            <p>复盘不是批判自己，而是提取经验。把“后悔”变成“规则”。</p>
+          </div>
+        </div>
+        <div class="chips">
+          <div class="chip">✅ 今天做对了什么</div>
+          <div class="chip">⚠️ 最大错误</div>
+          <div class="chip">🚫 最不该做的一笔</div>
+          <div class="chip">🧱 明天最重要纪律</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="grid g2">
+          <div class="field"><label>今天做对了什么？</label><textarea id="rightThing" placeholder="例如：提前关注到存储/液冷主线，方向判断不错。"></textarea></div>
+          <div class="field"><label>今天最大的错误是什么？</label><textarea id="bigMistake" placeholder="例如：高价股一手占比过高，开盘确认不足就重仓。"></textarea></div>
+          <div class="field"><label>最不该做的一笔</label><textarea id="worstTrade" placeholder="例如：10点后临时买入某票，属于随手单。"></textarea></div>
+          <div class="field"><label>明天最需要遵守的一条纪律</label><textarea id="discipline" placeholder="例如：开盘前30分钟不新增陌生票；10点后禁止随手开仓。"></textarea></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">4</div>
+          <div>
+            <h2>明日操作计划</h2>
+            <p>区分主线核心仓、随手单和新开仓方向，让明天不是“临盘乱做”，而是“有准备地出手”。</p>
+          </div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="grid g3">
+          <div class="field"><label>主线核心仓怎么处理？</label><textarea id="corePlan" placeholder="例如：江波龙看存储板块强度和自身承接，不追高加仓。"></textarea></div>
+          <div class="field"><label>随手单 / 低质量仓怎么处理？</label><textarea id="noisePlan" placeholder="例如：不补仓，不能证明强就处理。"></textarea></div>
+          <div class="field"><label>明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
+        </div>
+        <div class="grid g2" style="margin-top:14px">
+          <div class="field"><label>明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
+          <div class="field"><label>给明天的自己一句话</label><input id="selfTalk" placeholder="例如：先尊重市场，再表达观点。"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">5</div>
+          <div>
+            <h2>复盘质量与历史追踪</h2>
+            <p>把每天的复盘变成可对比的数据，重点看纪律是否越来越稳定。</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn-red" onclick="saveTodayToHistory()">保存今日复盘</button>
+          <button class="btn-soft" onclick="exportHistoryJson()">导出历史 JSON</button>
+          <button class="btn-light" onclick="document.getElementById('historyImportFile').click()">导入历史 JSON</button>
+          <button class="btn-danger" onclick="clearHistory()">清空历史</button>
+          <input id="historyImportFile" class="hidden-file" type="file" accept="application/json,.json" onchange="importHistoryJson(this)">
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="history-kpis">
+          <div class="history-kpi"><div class="k">累计复盘</div><div class="v" id="historyCount">0</div></div>
+          <div class="history-kpi"><div class="k">近 7 次平均分</div><div class="v" id="historyAvg7">0</div></div>
+          <div class="history-kpi"><div class="k">近 30 次低质量交易</div><div class="v" id="historyLow30">0</div></div>
+          <div class="history-kpi"><div class="k">盈利天数</div><div class="v" id="historyWinDays">0</div></div>
+        </div>
+        <div class="quality-grid">
+          <div class="quality-box">
+            <h3>近 7 次纪律趋势</h3>
+            <p id="historyTrend7">还没有历史记录。</p>
+          </div>
+          <div class="quality-box">
+            <h3>最近一次复盘</h3>
+            <p id="lastReviewSummary">保存今日复盘后显示。</p>
+          </div>
+          <div class="quality-box">
+            <h3>导入识别摘要</h3>
+            <p id="ocrImportSummary">尚未导入截图。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">6</div>
+          <div>
+            <h2>生成发给 ChatGPT 的复盘文本</h2>
+            <p>点一下就能生成固定模板，减少写作压力，留下标准化记录。</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn-red" onclick="generateText()">生成复盘文本</button>
+          <button class="btn-dark" onclick="copyText()">复制文本</button>
+          <button class="btn-light" onclick="downloadText()">下载 TXT</button>
+          <button class="btn-soft" onclick="saveLocal()">保存到本机浏览器</button>
+          <button class="btn-soft" onclick="loadLocal()">读取上次保存</button>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="panel">
+          <div class="muted" style="margin-bottom:10px">复制下面内容发给我即可。我会按“市场环境—每笔交易—模式分类—风险控制—明日计划”的结构给你做复盘分析。</div>
+          <div id="output" class="out">点击“生成复盘文本”后，这里会出现可复制内容。</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      这不是一个普通表格，而是一套帮你沉淀交易框架的记录系统。<br>
+      一天进步一点点，久了就不是靠情绪交易，而是靠方法赚钱。
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="ocrModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ocrModalTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="ocrModalTitle">截图智能导入</h2>
+          <p>截图只在本地浏览器识别。识别结果会先进入预览区，确认后才写入复盘表。</p>
+        </div>
+        <button class="icon-btn" onclick="closeOcrModal()" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="stepper">
+          <div class="step active" id="ocrStep1">1 上传截图</div>
+          <div class="step" id="ocrStep2">2 识别预览</div>
+          <div class="step" id="ocrStep3">3 确认写入</div>
+        </div>
+
+        <div class="grid g2">
+          <div class="drop-zone">
+            <div class="grid g2">
+              <div class="field">
+                <label>截图版式</label>
+                <select id="ocrLayout" onchange="saveOcrPrefs()">
+                  <option value="auto">自动判断</option>
+                  <option value="mobile">手机 App</option>
+                  <option value="pc">电脑客户端</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>写入方式</label>
+                <select id="ocrWriteMode">
+                  <option value="append">追加到现有交易</option>
+                  <option value="replace">替换现有交易</option>
+                </select>
+              </div>
+            </div>
+            <div class="field" style="margin-top:12px">
+              <label>上传成交 / 持仓 / 资产截图 <span class="tip">可多选</span></label>
+              <input id="ocrFiles" type="file" accept="image/*" multiple onchange="handleOcrFiles(this)">
+            </div>
+            <div class="preview-strip" id="ocrImagePreviews"></div>
+            <div class="ocr-status" id="ocrStatus">选择截图后点击“开始本地识别”。如果网络无法加载识别资源，也可以把文字粘贴到右侧后解析。</div>
+            <div class="toolbar" style="margin-top:12px">
+              <button class="btn-red" onclick="runOcr()">开始本地识别</button>
+              <button class="btn-soft" onclick="parseManualOcrText()">解析右侧文本</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>OCR 原始文本 <span class="tip">可手动修正后重新解析</span></label>
+            <textarea id="ocrRawText" style="min-height:252px" placeholder="识别后的文字会出现在这里。也可以直接粘贴券商截图识别文本，然后点击“解析右侧文本”。"></textarea>
+          </div>
+        </div>
+
+        <div class="grid g3" style="margin-top:14px">
+          <div class="field"><label>识别账户总资金</label><input id="ocrCapitalPreview" placeholder="未识别"></div>
+          <div class="field"><label>识别今日盈亏</label><input id="ocrPnlPreview" placeholder="未识别"></div>
+          <div class="field"><label>识别收盘仓位</label>
+            <select id="ocrPositionPreview">
+              <option value="">未识别</option>
+              <option>空仓</option><option>1成</option><option>2成</option><option>3成</option><option>4成</option>
+              <option>5成</option><option>6成</option><option>7成</option><option>8成</option><option>满仓</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top:14px">
+          <table class="preview-table">
+            <thead>
+              <tr>
+                <th>时间</th><th>股票/ETF</th><th>买/卖</th><th>价格</th><th>数量</th><th>金额</th><th>置信度</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="ocrTradePreviewBody">
+              <tr><td colspan="8" class="muted">识别或粘贴文本后，这里会出现可编辑的交易预览。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn-light" onclick="closeOcrModal()">取消</button>
+          <button class="btn-soft" onclick="addOcrPreviewRow()">手动补一行</button>
+          <button class="btn-red" onclick="applyOcrImport()">确认写入表单</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="floating">
+    <a href="#" class="fab" title="回到顶部" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">↑</a>
+  </div>
+
+<script>
+const QUOTES = [
+  "会买的是徒弟，会卖的是师傅，会空仓的是祖师爷。",
+  "市场永远是对的，错的只是你的应对方式。",
+  "先学会不亏大钱，才有资格谈赚大钱。",
+  "看对方向只是开始，真正决定盈亏的是执行。",
+  "强者恒强，但不是所有上涨都值得追。",
+  "交易最大的敌人，不是市场，而是失控的自己。",
+  "计划你的交易，交易你的计划。",
+  "没有模式的出手，往往只是情绪的宣泄。",
+  "宁可错过，不可做错；宁可少赚，不可乱赚。",
+  "真正稳定的盈利，来自重复正确，而不是偶尔神来之笔。",
+  "仓位决定命运，节奏决定体验，纪律决定上限。",
+  "好机会不怕等，坏交易最怕扛。",
+  "看不懂时少做，看明白时聚焦做。",
+  "复盘的意义，不是后悔，而是把错误变成下次的规则。",
+  "赚自己认知以内的钱，亏自己规则之外的钱。",
+  "不要和市场争辩，要和自己较真。",
+  "高手不是天天交易，而是只在该出手时出手。",
+  "赚钱靠耐心，亏钱常常只需一冲动。",
+  "真正的底气，不是今天赚了多少，而是你知道自己为什么赚。",
+  "主线给你利润，纪律帮你留住利润。",
+  "最好的交易，常常看起来并不刺激。",
+  "每一笔计划外的交易，都是对账户的偷袭。",
+  "市场给机会从不缺席，缺席的是你冷静的判断。",
+  "一笔好交易，不等于一笔赚钱的交易；一笔坏交易，也可能暂时赚钱。",
+  "先让自己活在市场里，再去想着在市场里扬名。"
+];
+
+const STORAGE_CURRENT = 'tradeReviewDataV3';
+const STORAGE_HISTORY = 'tradeReviewHistoryV1';
+const STORAGE_OCR_PREFS = 'ocrImportPrefsV1';
+let ocrFiles = [];
+let lastOcrResult = {trades:[], asset:{}, warnings:[]};
+
+function shuffle(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function formatDate(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function dayDiff(a,b){
+  const MS=24*60*60*1000;
+  const da=new Date(a+'T00:00:00');
+  const db=new Date(b+'T00:00:00');
+  return Math.floor((db-da)/MS);
+}
+function initDailyQuote(){
+  const today=formatDate(new Date());
+  let state;
+  try{ state = JSON.parse(localStorage.getItem('quoteState')||'{}'); }catch(e){ state={}; }
+  if(!Array.isArray(state.order) || state.order.length !== QUOTES.length){
+    state.order = shuffle([...Array(QUOTES.length).keys()]);
+    state.index = 0;
+    state.lastDate = today;
+  }else{
+    if(!state.lastDate){ state.lastDate = today; }
+    const diff = dayDiff(state.lastDate, today);
+    if(diff > 0){
+      state.index += diff;
+      while(state.index >= state.order.length){
+        const lastQuoteIndex = state.order[state.order.length-1];
+        state.order = shuffle([...Array(QUOTES.length).keys()]);
+        if(state.order[0] === lastQuoteIndex && QUOTES.length > 1){
+          [state.order[0], state.order[1]] = [state.order[1], state.order[0]];
+        }
+        state.index -= QUOTES.length;
+      }
+      state.lastDate = today;
+    }
+  }
+  localStorage.setItem('quoteState', JSON.stringify(state));
+  const quote = QUOTES[state.order[state.index]];
+  document.getElementById('dailyQuote').textContent = quote;
+  document.getElementById('quoteSub').textContent = `更新日期：${today} · 每天自动切换一句，按周期不重复。`;
+}
+
+function todayStr(){ return formatDate(new Date()); }
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('date').value = todayStr();
+  loadOcrPrefs();
+  initDailyQuote();
+  addTrade({time:'09:30',name:'',side:'买入'});
+  addTrade({time:'09:35',name:'',side:'卖出'});
+  recalc();
+  renderHistoryPanel();
+});
+
+function scoreSelect(value=1){
+  return `<select onchange="recalc()" class="score">
+    <option value="0" ${value==0?'selected':''}>0</option>
+    <option value="0.5" ${value==0.5?'selected':''}>0.5</option>
+    <option value="1" ${value==1?'selected':''}>1</option>
+    <option value="1.5" ${value==1.5?'selected':''}>1.5</option>
+    <option value="2" ${value==2?'selected':''}>2</option>
+  </select>`;
+}
+function esc(value){
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[ch]));
+}
+function addTrade(data={}){
+  const tr=document.createElement('tr');
+  const side = data.side === '卖出' ? '卖出' : '买入';
+  const mode = data.mode || '趋势波段';
+  tr.innerHTML=`
+    <td><input placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
+    <td><input placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
+    <td>
+      <select>
+        <option ${side==='买入'?'selected':''}>买入</option>
+        <option ${side==='卖出'?'selected':''}>卖出</option>
+      </select>
+    </td>
+    <td><input type="number" step="0.001" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)"></td>
+    <td><input type="number" placeholder="数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)"></td>
+    <td><input type="number" step="0.01" placeholder="金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()"></td>
+    <td>
+      <select>
+        <option ${mode==='趋势波段'?'selected':''}>趋势波段</option><option ${mode==='强势股'?'selected':''}>强势股</option><option ${mode==='事件套利'?'selected':''}>事件套利</option>
+        <option ${mode==='ETF主线'?'selected':''}>ETF主线</option><option ${mode==='止盈/止损'?'selected':''}>止盈/止损</option><option ${mode==='随手单'?'selected':''}>随手单</option>
+      </select>
+    </td>
+    <td><textarea placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
+    <td>${scoreSelect(data.planScore ?? 1)}</td>
+    <td>${scoreSelect(data.lineScore ?? 1)}</td>
+    <td>${scoreSelect(data.timingScore ?? 1)}</td>
+    <td>${scoreSelect(data.sizeScore ?? 1)}</td>
+    <td>${scoreSelect(data.riskScore ?? 1)}</td>
+    <td><span class="rowScore">5.0</span></td>
+    <td><button class="btn-danger" onclick="this.closest('tr').remove();recalc()">删</button></td>`;
+  document.getElementById('tradeBody').appendChild(tr);
+  recalc();
+}
+function calcAmount(el){
+  const tr=el.closest('tr');
+  const price=parseFloat(tr.children[3].querySelector('input').value)||0;
+  const qty=parseFloat(tr.children[4].querySelector('input').value)||0;
+  if(price && qty) tr.children[5].querySelector('input').value=(price*qty).toFixed(2);
+  refreshQualityPanel();
+}
+function recalc(){
+  const rows=[...document.querySelectorAll('#tradeBody tr')];
+  let total=0, good=0, bad=0, unplanned=0;
+  rows.forEach(tr=>{
+    const scores=[...tr.querySelectorAll('select.score')].map(s=>parseFloat(s.value)||0);
+    const sum=scores.reduce((a,b)=>a+b,0);
+    const badge=tr.querySelector('.rowScore');
+    badge.textContent=sum.toFixed(1);
+    badge.style.background = sum>=8 ? '#e8fff5' : sum<5 ? '#fff1f2' : '#f3f6fb';
+    badge.style.color = sum>=8 ? '#0f766e' : sum<5 ? '#b42318' : '#24324a';
+    total+=sum;
+    if(sum>=8) good++;
+    if(sum<5) bad++;
+    if(scores[0]<1) unplanned++;
+  });
+  document.getElementById('avgScore').textContent=rows.length?(total/rows.length).toFixed(1):'0';
+  document.getElementById('goodCount').textContent=good;
+  document.getElementById('badCount').textContent=bad;
+  document.getElementById('unplannedCount').textContent=unplanned;
+  refreshQualityPanel();
+}
+function clearTrades(){
+  if(confirm('确定清空交易表吗？')){
+    document.getElementById('tradeBody').innerHTML='';
+    recalc();
+  }
+}
+function normalizeNumber(value){
+  const raw = String(value ?? '').replace(/,/g,'').match(/[+-]?\d+(?:\.\d+)?/);
+  return raw ? raw[0] : '';
+}
+function normalizeTime(value){
+  const raw = String(value ?? '').match(/(\d{1,2}):(\d{2})(?::\d{2})?/);
+  if(!raw) return '';
+  return `${raw[1].padStart(2,'0')}:${raw[2]}`;
+}
+function normalizeSide(value){
+  return String(value).includes('卖') ? '卖出' : '买入';
+}
+function positionFromRatio(holdingValue,totalValue){
+  const holding = parseFloat(normalizeNumber(holdingValue));
+  const total = parseFloat(normalizeNumber(totalValue));
+  if(!holding || !total) return '';
+  const ratio = Math.max(0, Math.min(1, holding / total));
+  if(ratio <= 0.05) return '空仓';
+  const tier = Math.round(ratio * 10);
+  if(tier >= 9) return '满仓';
+  return `${Math.max(1,tier)}成`;
+}
+function extractAsset(text){
+  const compact = text.replace(/\s+/g,' ');
+  const field = names => {
+    const joined = names.join('|');
+    const re = new RegExp(`(?:${joined})\\s*[:：]?\\s*([+-]?\\d[\\d,]*(?:\\.\\d+)?)`);
+    const m = compact.match(re);
+    return m ? normalizeNumber(m[1]) : '';
+  };
+  const capital = field(['账户总资金','账户总资产','总资产','资产总额','总资金']);
+  const pnl = field(['今日盈亏','当日盈亏','当日参考盈亏','浮动盈亏','总盈亏']);
+  const holding = field(['持仓市值','证券市值','股票市值','参考市值']);
+  return {
+    capital,
+    pnl: pnl && !String(pnl).startsWith('-') && !String(pnl).startsWith('+') && compact.match(/(?:今日盈亏|当日盈亏|浮动盈亏)\s*[:：]?\s*\+/) ? `+${pnl}` : pnl,
+    position: positionFromRatio(holding, capital),
+    holding
+  };
+}
+function parsePcTrades(text){
+  const trades = [];
+  text.split(/\n+/).map(line=>line.trim()).filter(Boolean).forEach(line=>{
+    const normalized = line.replace(/\s+/g,' ');
+    const match = normalized.match(/(\d{1,2}:\d{2}(?::\d{2})?)\s+([\u4e00-\u9fa5A-Za-z0-9*ST（）()]+)\s+(买入|卖出|买|卖)\s+([+-]?\d+(?:\.\d+)?)\s+(\d[\d,]*)\s+([+-]?\d[\d,]*(?:\.\d+)?)/);
+    if(match){
+      trades.push({
+        time: normalizeTime(match[1]),
+        name: match[2],
+        side: normalizeSide(match[3]),
+        price: normalizeNumber(match[4]),
+        qty: normalizeNumber(match[5]),
+        amount: normalizeNumber(match[6]),
+        confidence: 'high'
+      });
+    }
+  });
+  return trades;
+}
+function extractAfterLabel(text, labels){
+  const joined = labels.join('|');
+  const re = new RegExp(`(?:${joined})\\s*[:：]?\\s*([+-]?\\d[\\d,]*(?:\\.\\d+)?)`);
+  const m = text.match(re);
+  return m ? normalizeNumber(m[1]) : '';
+}
+function looksLikeStockName(line){
+  const clean = String(line||'').trim();
+  if(!clean || clean.length > 16) return false;
+  if(/[0-9:：]/.test(clean)) return false;
+  if(/买入|卖出|成交|数量|金额|价格|时间|总资产|盈亏|持仓/.test(clean)) return false;
+  return /[\u4e00-\u9fa5A-Za-z]/.test(clean);
+}
+function parseMobileTrades(text){
+  const lines = text.split(/\n+/).map(line=>line.trim()).filter(Boolean);
+  const trades = [];
+  lines.forEach((line,index)=>{
+    if(!/(买入|卖出|买|卖)/.test(line)) return;
+    const context = `${lines[index-1]||''} ${line} ${lines[index+1]||''}`.replace(/\s+/g,' ');
+    let name = looksLikeStockName(lines[index-1]) ? lines[index-1].trim() : '';
+    if(!name){
+      const nameMatch = context.match(/^([\u4e00-\u9fa5A-Za-z0-9*ST（）()]{2,12})\s+(?:买入|卖出|买|卖)/);
+      name = nameMatch ? nameMatch[1] : '';
+    }
+    const sideMatch = context.match(/(买入|卖出|买|卖)/);
+    const price = extractAfterLabel(context, ['成交价','成交价格','价格']);
+    const qty = extractAfterLabel(context, ['成交数量','数量']);
+    const amount = extractAfterLabel(context, ['成交金额','金额']);
+    const timeMatch = context.match(/(?:成交时间|时间)\s*[:：]?\s*(\d{1,2}:\d{2}(?::\d{2})?)/);
+    if(sideMatch && (name || price || amount)){
+      trades.push({
+        time: normalizeTime(timeMatch ? timeMatch[1] : context),
+        name,
+        side: normalizeSide(sideMatch[1]),
+        price,
+        qty,
+        amount,
+        confidence: name && price && qty ? 'medium' : 'low'
+      });
+    }
+  });
+  return trades;
+}
+function dedupeTrades(trades){
+  const seen = new Set();
+  return trades.filter(trade=>{
+    const key = [trade.time,trade.name,trade.side,trade.price,trade.qty,trade.amount].join('|');
+    if(seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function parseOcrText(text, options={}){
+  const layout = options.layout || 'auto';
+  const clean = String(text || '').replace(/\r/g,'\n');
+  const pcTrades = layout === 'mobile' ? [] : parsePcTrades(clean);
+  const mobileTrades = layout === 'pc' ? [] : parseMobileTrades(clean);
+  const trades = layout === 'mobile'
+    ? mobileTrades
+    : layout === 'pc'
+      ? pcTrades
+      : (pcTrades.length >= mobileTrades.length ? pcTrades : mobileTrades);
+  const warnings = [];
+  if(!trades.length) warnings.push('未识别到成交记录，可尝试切换截图版式或手动粘贴文字。');
+  const asset = extractAsset(clean);
+  if(!asset.capital && !asset.pnl && !asset.position) warnings.push('未识别到资金/仓位信息。');
+  return {trades: dedupeTrades(trades), asset, warnings, rawText: clean};
+}
+function openOcrModal(){
+  const modal = document.getElementById('ocrModal');
+  if(!modal) return;
+  modal.classList.add('show');
+  modal.setAttribute('aria-hidden','false');
+  setOcrStep(1);
+}
+function closeOcrModal(){
+  const modal = document.getElementById('ocrModal');
+  if(!modal) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden','true');
+}
+function setOcrStep(step){
+  [1,2,3].forEach(n=>{
+    const el=document.getElementById(`ocrStep${n}`);
+    if(el) el.classList.toggle('active', n===step);
+  });
+}
+function saveOcrPrefs(){
+  const layout = document.getElementById('ocrLayout')?.value || 'auto';
+  localStorage.setItem(STORAGE_OCR_PREFS, JSON.stringify({layout}));
+}
+function loadOcrPrefs(){
+  try{
+    const prefs = JSON.parse(localStorage.getItem(STORAGE_OCR_PREFS)||'{}');
+    if(prefs.layout && document.getElementById('ocrLayout')) document.getElementById('ocrLayout').value = prefs.layout;
+  }catch(e){}
+}
+function handleOcrFiles(input){
+  ocrFiles = [...(input.files || [])];
+  const wrap = document.getElementById('ocrImagePreviews');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  ocrFiles.forEach(file=>{
+    const card = document.createElement('div');
+    card.className = 'image-preview';
+    const img = document.createElement('img');
+    const label = document.createElement('span');
+    label.textContent = file.name;
+    card.appendChild(img);
+    card.appendChild(label);
+    wrap.appendChild(card);
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.readAsDataURL(file);
+  });
+  const status = document.getElementById('ocrStatus');
+  if(status) status.textContent = ocrFiles.length ? `已选择 ${ocrFiles.length} 张截图，点击“开始本地识别”。` : '尚未选择截图。';
+}
+function loadTesseract(){
+  return new Promise((resolve,reject)=>{
+    if(window.Tesseract){ resolve(window.Tesseract); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+    script.onload = () => window.Tesseract ? resolve(window.Tesseract) : reject(new Error('Tesseract.js 未加载成功'));
+    script.onerror = () => reject(new Error('本地识别资源加载失败，请联网或改用手动录入。'));
+    document.head.appendChild(script);
+  });
+}
+async function runOcr(){
+  const status = document.getElementById('ocrStatus');
+  if(!ocrFiles.length){
+    if(status) status.textContent = '请先选择截图，或把文字粘贴到右侧后点击“解析右侧文本”。';
+    return;
+  }
+  try{
+    if(status) status.textContent = '正在加载本地 OCR 资源...';
+    const Tesseract = await loadTesseract();
+    let raw = '';
+    for(let i=0;i<ocrFiles.length;i++){
+      if(status) status.textContent = `正在识别第 ${i+1}/${ocrFiles.length} 张截图...`;
+      const {data} = await Tesseract.recognize(ocrFiles[i], 'chi_sim+eng', {
+        logger(message){
+          if(message.status && status){
+            const pct = message.progress ? ` ${(message.progress*100).toFixed(0)}%` : '';
+            status.textContent = `正在识别第 ${i+1}/${ocrFiles.length} 张截图：${message.status}${pct}`;
+          }
+        }
+      });
+      raw += `\n${data.text || ''}`;
+    }
+    document.getElementById('ocrRawText').value = raw.trim();
+    parseManualOcrText();
+  }catch(error){
+    if(status) status.textContent = error.message || '识别失败，请尝试粘贴文字或手动填写。';
+  }
+}
+function parseManualOcrText(){
+  const raw = document.getElementById('ocrRawText')?.value || '';
+  const layout = document.getElementById('ocrLayout')?.value || 'auto';
+  lastOcrResult = parseOcrText(raw, {layout});
+  renderOcrPreview(lastOcrResult);
+  setOcrStep(2);
+}
+function renderOcrPreview(result){
+  const capital = document.getElementById('ocrCapitalPreview');
+  const pnl = document.getElementById('ocrPnlPreview');
+  const position = document.getElementById('ocrPositionPreview');
+  if(capital) capital.value = result.asset.capital || '';
+  if(pnl) pnl.value = result.asset.pnl || '';
+  if(position) position.value = result.asset.position || '';
+  const body = document.getElementById('ocrTradePreviewBody');
+  if(!body) return;
+  body.innerHTML = '';
+  if(!result.trades.length){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="8" class="muted">${esc(result.warnings.join(' ') || '未识别到交易。')}</td>`;
+    body.appendChild(tr);
+  }else{
+    result.trades.forEach(trade=>addOcrPreviewRow(trade));
+  }
+  const status = document.getElementById('ocrStatus');
+  if(status) status.textContent = result.warnings.length ? result.warnings.join(' ') : `已识别 ${result.trades.length} 笔交易，可在预览区修正后写入。`;
+}
+function addOcrPreviewRow(data={}){
+  const body = document.getElementById('ocrTradePreviewBody');
+  if(!body) return;
+  if(body.querySelector('td[colspan]')) body.innerHTML = '';
+  const confidence = data.confidence || 'manual';
+  const tr = document.createElement('tr');
+  if(confidence === 'low') tr.className = 'low-confidence';
+  tr.innerHTML = `
+    <td><input value="${esc(data.time||'')}" placeholder="09:30"></td>
+    <td><input value="${esc(data.name||'')}" placeholder="股票/ETF"></td>
+    <td><select><option ${data.side!=='卖出'?'selected':''}>买入</option><option ${data.side==='卖出'?'selected':''}>卖出</option></select></td>
+    <td><input type="number" step="0.001" value="${esc(data.price||'')}" placeholder="价格"></td>
+    <td><input type="number" value="${esc(data.qty||'')}" placeholder="数量"></td>
+    <td><input type="number" step="0.01" value="${esc(data.amount||'')}" placeholder="金额"></td>
+    <td><span class="chip">${confidence === 'high' ? '高' : confidence === 'medium' ? '中' : confidence === 'low' ? '低' : '手动'}</span></td>
+    <td><button class="btn-danger" onclick="this.closest('tr').remove()">删</button></td>`;
+  body.appendChild(tr);
+}
+function collectOcrPreview(){
+  const rows = [...document.querySelectorAll('#ocrTradePreviewBody tr')].filter(tr=>!tr.querySelector('td[colspan]'));
+  const trades = rows.map(tr=>{
+    const cells = [...tr.children];
+    return {
+      time: cells[0].querySelector('input').value.trim(),
+      name: cells[1].querySelector('input').value.trim(),
+      side: cells[2].querySelector('select').value,
+      price: cells[3].querySelector('input').value.trim(),
+      qty: cells[4].querySelector('input').value.trim(),
+      amount: cells[5].querySelector('input').value.trim(),
+      reason: ''
+    };
+  }).filter(trade=>trade.name || trade.price || trade.amount);
+  return {
+    asset:{
+      capital: document.getElementById('ocrCapitalPreview')?.value.trim() || '',
+      pnl: document.getElementById('ocrPnlPreview')?.value.trim() || '',
+      position: document.getElementById('ocrPositionPreview')?.value || ''
+    },
+    trades
+  };
+}
+function applyOcrImport(){
+  const data = collectOcrPreview();
+  if(!data.trades.length && !data.asset.capital && !data.asset.pnl && !data.asset.position){
+    alert('没有可写入的数据，请先识别或手动补充。');
+    return;
+  }
+  if(data.asset.capital) document.getElementById('capital').value = data.asset.capital;
+  if(data.asset.pnl) document.getElementById('pnl').value = data.asset.pnl;
+  if(data.asset.position) document.getElementById('position').value = data.asset.position;
+  if(document.getElementById('ocrWriteMode')?.value === 'replace'){
+    document.getElementById('tradeBody').innerHTML = '';
+  }
+  data.trades.forEach(trade=>addTrade(trade));
+  const summary = `本次导入：${data.trades.length} 笔交易${data.asset.capital ? '，已填账户资金' : ''}${data.asset.pnl ? '，已填今日盈亏' : ''}${data.asset.position ? '，已估算仓位' : ''}。`;
+  const summaryEl = document.getElementById('ocrImportSummary');
+  if(summaryEl) summaryEl.textContent = summary;
+  recalc();
+  setOcrStep(3);
+  closeOcrModal();
+}
+function getTradeRowsData(){
+  return [...document.querySelectorAll('#tradeBody tr')].map(tr=>{
+    const cells=[...tr.children];
+    const scores=[...tr.querySelectorAll('select.score')].map(s=>parseFloat(s.value)||0);
+    return {
+      time: cells[0].querySelector('input').value.trim(),
+      name: cells[1].querySelector('input').value.trim(),
+      side: cells[2].querySelector('select').value,
+      price: cells[3].querySelector('input').value.trim(),
+      qty: cells[4].querySelector('input').value.trim(),
+      amount: cells[5].querySelector('input').value.trim(),
+      mode: cells[6].querySelector('select').value,
+      reason: cells[7].querySelector('textarea').value.trim(),
+      planScore: scores[0] || 0,
+      lineScore: scores[1] || 0,
+      timingScore: scores[2] || 0,
+      sizeScore: scores[3] || 0,
+      riskScore: scores[4] || 0,
+      score: scores.reduce((a,b)=>a+b,0)
+    };
+  });
+}
+function buildQualityInsights(input){
+  const trades = input.trades || [];
+  const capital = parseFloat(normalizeNumber(input.capital)) || 0;
+  const stats = {
+    count: trades.length,
+    avgScore: trades.length ? +(trades.reduce((sum,t)=>sum+(parseFloat(t.score)||0),0)/trades.length).toFixed(1) : 0,
+    lowQuality: trades.filter(t=>(parseFloat(t.score)||0)<5).length,
+    unplanned: trades.filter(t=>(parseFloat(t.planScore)||0)<1).length,
+    emptyReason: trades.filter(t=>!String(t.reason||'').trim()).length,
+    largeAmount: capital ? trades.filter(t=>(parseFloat(normalizeNumber(t.amount))||0)/capital >= 0.15).length : 0
+  };
+  const warnings = [];
+  if(stats.emptyReason) warnings.push(`${stats.emptyReason} 笔交易缺少买卖理由，复盘时很难判断是否可复制。`);
+  if(stats.lowQuality) warnings.push(`${stats.lowQuality} 笔交易低于 5 分，需要列入低质量交易清单。`);
+  if(stats.unplanned) warnings.push(`${stats.unplanned} 笔计划外交易暴露了临盘冲动。`);
+  if(stats.largeAmount) warnings.push(`${stats.largeAmount} 笔交易单笔金额超过账户 15%，需要重新检查仓位风险。`);
+  if(['8成','满仓'].includes(input.position)) warnings.push(`当前${input.position}，明日优先检查市场环境是否支持高仓位。`);
+  const riskPoint = warnings[0] || '暂无明显风险点，继续关注计划性和仓位节奏。';
+  const discipline = stats.unplanned
+    ? '明日第一纪律：禁止计划外开仓，临盘想买先写理由再等待一次确认。'
+    : stats.emptyReason
+      ? '明日第一纪律：每笔交易必须先写清楚买卖理由，再考虑是否执行。'
+      : stats.largeAmount
+        ? '明日第一纪律：单笔金额超过账户 15% 前必须二次确认风险。'
+        : '明日第一纪律：继续只做计划内、主线内、风险可控的交易。';
+  const banned = stats.lowQuality
+    ? '禁止重复低于 5 分的交易模式，尤其是无理由、非主线、仓位失控的单子。'
+    : stats.unplanned
+      ? '禁止用盘中情绪替代盘前计划。'
+      : '暂无必须禁止的行为，保持记录完整度。';
+  return {stats,warnings,riskPoint,discipline,banned};
+}
+function refreshQualityPanel(){
+  const riskEl = document.getElementById('riskPoint');
+  if(!riskEl) return;
+  const insights = buildQualityInsights({
+    capital: document.getElementById('capital')?.value || '',
+    position: document.getElementById('position')?.value || '',
+    trades: getTradeRowsData()
+  });
+  riskEl.textContent = insights.riskPoint;
+  document.getElementById('disciplineAdvice').textContent = insights.discipline;
+  document.getElementById('banAdvice').textContent = insights.banned;
+}
+function summarizeHistory(records){
+  const sorted = [...records].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+  const summarize = items => ({
+    avgScore: items.length ? (items.reduce((sum,item)=>sum+(parseFloat(item.stats?.avgScore)||0),0)/items.length).toFixed(1) : '0',
+    lowQuality: items.reduce((sum,item)=>sum+(parseFloat(item.stats?.lowQuality)||0),0),
+    unplanned: items.reduce((sum,item)=>sum+(parseFloat(item.stats?.unplanned)||0),0)
+  });
+  return {
+    count: sorted.length,
+    last7: summarize(sorted.slice(-7)),
+    last30: summarize(sorted.slice(-30)),
+    pnlPositiveDays: sorted.filter(item=>(parseFloat(normalizeNumber(item.basic?.pnl))||0)>0).length,
+    last: sorted[sorted.length-1] || null
+  };
+}
+function getHistoryObject(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_HISTORY)||'{}') || {}; }catch(e){ return {}; }
+}
+function getHistoryRecords(){
+  return Object.values(getHistoryObject()).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+}
+function renderHistoryPanel(){
+  const countEl = document.getElementById('historyCount');
+  if(!countEl) return;
+  const records = getHistoryRecords();
+  const summary = summarizeHistory(records);
+  countEl.textContent = summary.count;
+  document.getElementById('historyAvg7').textContent = summary.last7.avgScore;
+  document.getElementById('historyLow30').textContent = summary.last30.lowQuality;
+  document.getElementById('historyWinDays').textContent = summary.pnlPositiveDays;
+  document.getElementById('historyTrend7').textContent = summary.count
+    ? `近 7 次计划外交易 ${summary.last7.unplanned} 笔，低质量交易 ${summary.last7.lowQuality} 笔。`
+    : '还没有历史记录。';
+  document.getElementById('lastReviewSummary').textContent = summary.last
+    ? `${summary.last.date}：平均分 ${summary.last.stats?.avgScore || 0}，低质量 ${summary.last.stats?.lowQuality || 0}，计划外 ${summary.last.stats?.unplanned || 0}。`
+    : '保存今日复盘后显示。';
+}
+function collectStructured(){
+  const trades = getTradeRowsData();
+  const insights = buildQualityInsights({capital: val('capital'), position: val('position'), trades});
+  return {
+    date: val('date') || todayStr(),
+    basic:{capital: val('capital'), position: val('position'), pnl: val('pnl')},
+    market:{indexState: val('indexState'), mood: val('mood'), actionEnv: val('actionEnv'), mainLines: val('mainLines'), marketOne: val('marketOne')},
+    trades,
+    reflection:{rightThing: val('rightThing'), bigMistake: val('bigMistake'), worstTrade: val('worstTrade'), discipline: val('discipline')},
+    plan:{corePlan: val('corePlan'), noisePlan: val('noisePlan'), newPlan: val('newPlan'), banRule: val('banRule'), selfTalk: val('selfTalk')},
+    stats: insights.stats,
+    quality: insights
+  };
+}
+function saveTodayToHistory(){
+  recalc();
+  const record = collectStructured();
+  const history = getHistoryObject();
+  if(history[record.date] && !confirm(`${record.date} 已有复盘记录，是否覆盖？`)) return;
+  history[record.date] = record;
+  localStorage.setItem(STORAGE_HISTORY, JSON.stringify(history));
+  renderHistoryPanel();
+  alert('今日复盘已保存到历史记录。');
+}
+function exportHistoryJson(){
+  const payload = {exportedAt: new Date().toISOString(), records: getHistoryObject()};
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`A股复盘历史_${todayStr()}.json`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),300);
+}
+function importHistoryJson(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      const incoming = parsed.records || parsed;
+      if(!incoming || typeof incoming !== 'object') throw new Error('格式不正确');
+      const merged = {...getHistoryObject(), ...incoming};
+      localStorage.setItem(STORAGE_HISTORY, JSON.stringify(merged));
+      renderHistoryPanel();
+      alert('历史记录已导入。');
+    }catch(e){
+      alert('导入失败，请确认 JSON 文件格式正确。');
+    }finally{
+      input.value = '';
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+function clearHistory(){
+  if(confirm('确定清空全部历史复盘记录吗？此操作不可恢复。')){
+    localStorage.removeItem(STORAGE_HISTORY);
+    renderHistoryPanel();
+  }
+}
+function formatQualityText(insights){
+  const warnings = insights.warnings.length ? insights.warnings.map((w,i)=>`${i+1}. ${w}`).join('\n') : '暂无明显风险提醒。';
+  return `平均交易分：${insights.stats.avgScore}
+低质量交易：${insights.stats.lowQuality}
+计划外交易：${insights.stats.unplanned}
+空理由交易：${insights.stats.emptyReason}
+风险提醒：
+${warnings}
+今日最大风险点：${insights.riskPoint}
+明日纪律建议：${insights.discipline}
+需要禁止重复：${insights.banned}`;
+}
+function formatHistoryText(){
+  const summary = summarizeHistory(getHistoryRecords());
+  if(!summary.count) return '暂无历史复盘记录。';
+  return `累计复盘：${summary.count} 次
+近7次平均分：${summary.last7.avgScore}
+近7次计划外交易：${summary.last7.unplanned}
+近30次低质量交易：${summary.last30.lowQuality}
+盈利天数：${summary.pnlPositiveDays}`;
+}
+function val(id){return document.getElementById(id).value.trim();}
+function tradeLines(){
+  const rows=[...document.querySelectorAll('#tradeBody tr')];
+  if(!rows.length) return '无';
+  return rows.map((tr,i)=>{
+    const c=[...tr.children];
+    const time=c[0].querySelector('input').value;
+    const name=c[1].querySelector('input').value;
+    const side=c[2].querySelector('select').value;
+    const price=c[3].querySelector('input').value;
+    const qty=c[4].querySelector('input').value;
+    const amount=c[5].querySelector('input').value;
+    const mode=c[6].querySelector('select').value;
+    const reason=c[7].querySelector('textarea').value;
+    const score=c[13].querySelector('.rowScore').textContent;
+    return `${i+1}. ${time} ${side} ${name}，价格${price || '未填'}，数量${qty || '未填'}，金额${amount || '未填'}，模式：${mode}，理由：${reason || '未填写'}，自评：${score}/10`;
+  }).join('\n');
+}
+function generateText(){
+  recalc();
+  const structured = collectStructured();
+  const qualityText = formatQualityText(structured.quality);
+  const historyText = formatHistoryText();
+  const importSummary = document.getElementById('ocrImportSummary')?.textContent || '尚未导入截图。';
+  const text=`【A股每日交易复盘】
+
+一、基本信息
+日期：${val('date')}
+账户总资金：${val('capital') || '未填写'}
+收盘总仓位：${val('position')}
+今日盈亏：${val('pnl') || '未填写'}
+
+二、市场环境
+指数状态：${val('indexState')}
+市场情绪：${val('mood')}
+适合动作：${val('actionEnv')}
+今日主线/强势方向：${val('mainLines') || '未填写'}
+一句话市场判断：${val('marketOne') || '未填写'}
+
+三、今日成交与自评
+${tradeLines()}
+
+四、复盘质量与风险提醒
+截图导入摘要：${importSummary}
+${qualityText}
+
+五、历史趋势
+${historyText}
+
+六、今日反思
+今天做对了什么：${val('rightThing') || '未填写'}
+今天最大的错误：${val('bigMistake') || '未填写'}
+最不该做的一笔：${val('worstTrade') || '未填写'}
+明天最需要遵守的一条纪律：${val('discipline') || '未填写'}
+
+七、明日操作计划
+主线核心仓：${val('corePlan') || '未填写'}
+随手单/低质量仓：${val('noisePlan') || '未填写'}
+允许新开的仓位/方向：${val('newPlan') || '未填写'}
+明日禁令：${val('banRule') || '未填写'}
+给明天的自己一句话：${val('selfTalk') || '未填写'}
+
+请你根据以上内容，按市场环境、每笔交易质量、模式分类、风险控制、历史进步/退步、明日计划六个部分帮我复盘，并指出哪些交易可以复制、哪些交易需要禁止重复。`;
+  document.getElementById('output').textContent=text;
+}
+async function copyText(){
+  const text=document.getElementById('output').textContent;
+  try{
+    await navigator.clipboard.writeText(text);
+    alert('已复制，可以直接发给 ChatGPT。');
+  }catch(e){
+    alert('复制失败，请手动长按/选择复制。');
+  }
+}
+function downloadText(){
+  generateText();
+  const blob=new Blob([document.getElementById('output').textContent],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`A股复盘_${val('date')||todayStr()}.txt`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),300);
+}
+function collectLegacySnapshot(){
+  const data={};
+  document.querySelectorAll('input,select,textarea').forEach((el,i)=>data[i]=el.value);
+  data.tradeCount=document.querySelectorAll('#tradeBody tr').length;
+  return data;
+}
+function applyStructured(record){
+  if(!record) return;
+  const basic = record.basic || {};
+  const market = record.market || {};
+  const reflection = record.reflection || {};
+  const plan = record.plan || {};
+  const set = (id,value) => {
+    const el = document.getElementById(id);
+    if(el && value !== undefined) el.value = value;
+  };
+  set('date', record.date || todayStr());
+  set('capital', basic.capital || '');
+  set('position', basic.position || '5成');
+  set('pnl', basic.pnl || '');
+  set('indexState', market.indexState || '指数强');
+  set('mood', market.mood || '分化');
+  set('actionEnv', market.actionEnv || '只做核心');
+  set('mainLines', market.mainLines || '');
+  set('marketOne', market.marketOne || '');
+  set('rightThing', reflection.rightThing || '');
+  set('bigMistake', reflection.bigMistake || '');
+  set('worstTrade', reflection.worstTrade || '');
+  set('discipline', reflection.discipline || '');
+  set('corePlan', plan.corePlan || '');
+  set('noisePlan', plan.noisePlan || '');
+  set('newPlan', plan.newPlan || '');
+  set('banRule', plan.banRule || '');
+  set('selfTalk', plan.selfTalk || '');
+  document.getElementById('tradeBody').innerHTML='';
+  (record.trades || []).forEach(trade=>addTrade(trade));
+  recalc();
+}
+function saveLocal(){
+  recalc();
+  localStorage.setItem(STORAGE_CURRENT, JSON.stringify({
+    version: 3,
+    savedAt: new Date().toISOString(),
+    record: collectStructured(),
+    legacy: collectLegacySnapshot()
+  }));
+  alert('已保存到本机浏览器。');
+}
+function loadLocal(){
+  const raw=localStorage.getItem(STORAGE_CURRENT);
+  if(raw){
+    const data=JSON.parse(raw);
+    applyStructured(data.record);
+    alert('已读取上次保存。');
+    return;
+  }
+  const legacyRaw=localStorage.getItem('tradeReviewDataV2');
+  if(!legacyRaw){ alert('没有找到上次保存。'); return; }
+  const data=JSON.parse(legacyRaw);
+  document.getElementById('tradeBody').innerHTML='';
+  for(let i=0;i<(data.tradeCount||0);i++) addTrade();
+  const els=[...document.querySelectorAll('input,select,textarea')];
+  els.forEach((el,i)=>{ if(data[i]!==undefined) el.value=data[i]; });
+  recalc();
+  alert('已读取上次保存。');
+}
+</script>
+</body>
+</html>
