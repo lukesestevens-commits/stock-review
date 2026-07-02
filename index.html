@@ -458,6 +458,439 @@
     margin-top:14px;
   }
   .hidden-file{display:none}
+
+  /* Compact review-workbench redesign */
+  :root{
+    --bg1:#050914;
+    --bg2:#091b2c;
+    --bg3:#20102f;
+    --card:rgba(255,255,255,.68);
+    --card-strong:rgba(255,255,255,.84);
+    --line:rgba(255,255,255,.58);
+    --line-dark:rgba(61,82,105,.16);
+    --muted:#60748b;
+    --text:#142033;
+    --red:#ff4968;
+    --red2:#ff7a5f;
+    --green:#0b9b79;
+    --gold:#ffd166;
+    --blue:#4f8cff;
+    --aqua:#20d6c7;
+    --violet:#9a6dff;
+    --shadow:0 24px 68px rgba(0,0,0,.24);
+    --inner-glow:inset 0 1px 0 rgba(255,255,255,.78), inset 0 -1px 0 rgba(255,255,255,.26);
+    --radius:12px;
+  }
+  html{
+    height:100%;
+    overflow-x:hidden;
+    overflow-y:hidden;
+    overscroll-behavior-y:none;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(32,214,199,.22), transparent 34%),
+      radial-gradient(circle at 84% 8%, rgba(255,73,104,.18), transparent 32%),
+      radial-gradient(circle at 78% 86%, rgba(154,109,255,.20), transparent 34%),
+      linear-gradient(145deg, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
+  }
+  body{
+    position:relative;
+    height:100%;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(32,214,199,.28), transparent 34%),
+      radial-gradient(circle at 84% 8%, rgba(255,73,104,.24), transparent 32%),
+      radial-gradient(circle at 78% 86%, rgba(154,109,255,.24), transparent 34%),
+      linear-gradient(145deg, var(--bg1) 0%, var(--bg2) 48%, var(--bg3) 100%);
+    overflow:hidden;
+    overscroll-behavior-y:none;
+    isolation:isolate;
+  }
+  body::before,
+  body::after{
+    content:"";
+    position:fixed;
+    inset:-8%;
+    z-index:-2;
+    pointer-events:none;
+    background:
+      conic-gradient(from 92deg at 52% 48%,
+        rgba(32,214,199,.32),
+        rgba(79,140,255,.28),
+        rgba(154,109,255,.30),
+        rgba(255,73,104,.26),
+        rgba(255,209,102,.22),
+        rgba(32,214,199,.32)),
+      radial-gradient(closest-side at 18% 24%, rgba(32,214,199,.38), transparent 68%),
+      radial-gradient(closest-side at 82% 20%, rgba(255,73,104,.34), transparent 64%),
+      radial-gradient(closest-side at 70% 78%, rgba(154,109,255,.34), transparent 66%),
+      radial-gradient(closest-side at 32% 84%, rgba(255,209,102,.26), transparent 62%);
+    filter:blur(16px) saturate(125%);
+    opacity:.78;
+    transform:translate3d(0,0,0) scale(1.02);
+    animation:liquidBackdrop 36s ease-in-out infinite alternate;
+  }
+  body::after{
+    inset:0;
+    z-index:-1;
+    background:
+      radial-gradient(circle at 50% 0, rgba(255,255,255,.18), transparent 36%),
+      linear-gradient(115deg, rgba(255,255,255,.12), rgba(255,255,255,.02) 42%, rgba(255,255,255,.10)),
+      repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 1px, transparent 1px 18px);
+    filter:none;
+    opacity:.74;
+    animation:liquidSheen 14s ease-in-out infinite alternate;
+  }
+  @keyframes liquidBackdrop{
+    0%{transform:translate3d(-1.4%,-1%,0) scale(1.02) rotate(0deg)}
+    45%{transform:translate3d(1.2%,.8%,0) scale(1.035) rotate(2.5deg)}
+    100%{transform:translate3d(-.6%,1.4%,0) scale(1.025) rotate(-2deg)}
+  }
+  @keyframes liquidSheen{
+    0%{opacity:.42; transform:translate3d(-1%,0,0)}
+    100%{opacity:.64; transform:translate3d(1%,0,0)}
+  }
+  @media(prefers-reduced-motion:reduce){
+    body::before,
+    body::after{animation:none}
+  }
+  .shell{
+    position:relative;
+    z-index:1;
+    max-width:1440px;
+    height:100vh;
+    height:100dvh;
+    padding:14px clamp(10px,1.8vw,22px) 28px;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-gutter:stable;
+    filter:drop-shadow(0 28px 58px rgba(0,0,0,.28));
+  }
+  .hero{
+    position:relative;
+    padding:16px;
+    border-radius:14px;
+    color:#241a3d;
+    background:
+      radial-gradient(circle at 12% 0, rgba(255,255,255,.72), transparent 32%),
+      radial-gradient(circle at 88% 12%, rgba(213,188,255,.54), transparent 42%),
+      linear-gradient(135deg, rgba(248,244,255,.88), rgba(230,214,255,.76) 48%, rgba(205,229,255,.64));
+    border:1px solid rgba(255,255,255,.68);
+    box-shadow:0 24px 62px rgba(39,28,71,.18), inset 0 1px 0 rgba(255,255,255,.70), inset 0 -1px 0 rgba(143,117,188,.10);
+    backdrop-filter:blur(14px) saturate(130%);
+    -webkit-backdrop-filter:blur(14px) saturate(130%);
+  }
+  .hero::before{
+    display:none;
+    content:none;
+  }
+  .hero::after{display:none}
+  .hero-top{
+    align-items:center;
+    gap:14px;
+  }
+  .title-wrap{
+    min-width:260px;
+    flex:1 1 420px;
+  }
+  .title-wrap h1{
+    font-size:clamp(22px,2.2vw,30px);
+    letter-spacing:0;
+  }
+  .title-wrap p{
+    max-width:840px;
+    margin-top:8px;
+    font-size:13px;
+    line-height:1.55;
+    color:rgba(36,26,61,.76);
+  }
+  .tag-group{
+    justify-content:flex-end;
+    align-items:center;
+    flex:1 1 360px;
+  }
+  .hero-tag,.btn-hero{
+    min-height:38px;
+    padding:8px 12px;
+    border-radius:10px;
+    font-size:12px;
+    color:#2e2452;
+    background:linear-gradient(135deg, rgba(255,255,255,.62), rgba(237,229,255,.36));
+    border:1px solid rgba(112,88,166,.24);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.66), 0 8px 20px rgba(80,61,130,.10);
+    backdrop-filter:blur(10px) saturate(120%);
+    -webkit-backdrop-filter:blur(10px) saturate(120%);
+  }
+  .quote-card{
+    margin-top:12px;
+    padding:12px;
+    border-radius:12px;
+    align-items:center;
+    background:rgba(255,255,255,.38);
+    border:1px solid rgba(112,88,166,.20);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.58);
+  }
+  .quote-icon{
+    width:34px;
+    height:34px;
+    border-radius:9px;
+  }
+  .quote-body .text{font-size:14px;line-height:1.55}
+  .quote-body .label{color:rgba(52,40,83,.62)}
+  .quote-body .text{color:#241a3d}
+  .quote-body .sub{color:rgba(52,40,83,.62)}
+  .dashboard{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+    margin-top:12px;
+  }
+  .dash{
+    border-radius:12px;
+    padding:11px 12px;
+    background:linear-gradient(145deg, rgba(255,255,255,.46), rgba(236,229,255,.28));
+    border:1px solid rgba(112,88,166,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.58), 0 10px 24px rgba(80,61,130,.10);
+    backdrop-filter:blur(10px) saturate(120%);
+    -webkit-backdrop-filter:blur(10px) saturate(120%);
+  }
+  .dash .k{color:rgba(52,40,83,.66)}
+  .dash .v{color:#241a3d}
+  .dash .v{
+    font-size:15px;
+    line-height:1.35;
+  }
+  .section{
+    position:relative;
+    margin-top:12px;
+    border-radius:14px;
+    content-visibility:auto;
+    contain-intrinsic-size:520px;
+    background:
+      radial-gradient(circle at 4% 0, rgba(32,214,199,.12), transparent 26%),
+      radial-gradient(circle at 96% 0, rgba(255,73,104,.10), transparent 24%),
+      linear-gradient(145deg, rgba(255,255,255,.76), rgba(255,255,255,.52)),
+      linear-gradient(115deg, rgba(255,255,255,.32), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.64);
+    box-shadow:var(--shadow), var(--inner-glow), 0 0 0 1px rgba(255,255,255,.10);
+    backdrop-filter:blur(16px) saturate(130%);
+    -webkit-backdrop-filter:blur(16px) saturate(130%);
+    overflow:hidden;
+  }
+  .section::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:
+      linear-gradient(110deg, rgba(255,255,255,.36), transparent 28%, rgba(255,255,255,.12) 62%, transparent),
+      radial-gradient(circle at 8% 0, rgba(35,183,183,.14), transparent 28%);
+  }
+  .section > *{
+    position:relative;
+    z-index:1;
+  }
+  .section-head{
+    align-items:flex-start;
+    padding:14px 14px 10px;
+  }
+  .section-title{
+    min-width:0;
+    flex:1 1 420px;
+  }
+  .section-num{
+    width:30px;
+    height:30px;
+    border-radius:9px;
+    box-shadow:none;
+  }
+  .section-title h2{
+    font-size:18px;
+    line-height:1.3;
+    letter-spacing:0;
+  }
+  .section-title p{
+    line-height:1.45;
+  }
+  .section-body{padding:0 14px 14px}
+  .grid{gap:10px}
+  .field{
+    min-width:0;
+    border-radius:12px;
+    padding:11px;
+    background:
+      radial-gradient(circle at 12% 0, rgba(255,255,255,.74), transparent 42%),
+      linear-gradient(155deg, rgba(255,255,255,.78), rgba(255,255,255,.50));
+    border:1px solid rgba(255,255,255,.64);
+    box-shadow:0 14px 30px rgba(8,20,38,.10), inset 0 1px 0 rgba(255,255,255,.76);
+    backdrop-filter:blur(12px) saturate(122%);
+    -webkit-backdrop-filter:blur(12px) saturate(122%);
+  }
+  .field label{
+    min-width:0;
+    margin-bottom:7px;
+    font-size:12px;
+    line-height:1.35;
+  }
+  input,select,textarea{
+    display:block;
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    border-radius:10px;
+    padding:10px 11px;
+    font-size:13px;
+    line-height:1.45;
+    background:rgba(255,255,255,.80);
+    border:1px solid rgba(83,102,124,.18);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.70), 0 7px 18px rgba(8,20,38,.06);
+  }
+  input,select{min-height:40px}
+  textarea{
+    min-height:74px;
+    max-height:220px;
+    overflow:auto;
+    resize:vertical;
+  }
+  button{
+    max-width:100%;
+    min-height:38px;
+    border-radius:10px;
+    padding:9px 13px;
+    line-height:1.25;
+    white-space:normal;
+    box-shadow:0 12px 26px rgba(8,20,38,.12), inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  button:hover{
+    transform:translateY(-1px);
+  }
+  button:active{
+    transform:translateY(0);
+  }
+  .toolbar{
+    min-width:0;
+    align-items:center;
+  }
+  .panel,.quality-box,.score-item,.history-kpi{
+    min-width:0;
+    border-radius:12px;
+    background:
+      radial-gradient(circle at 10% 0, rgba(255,255,255,.62), transparent 36%),
+      linear-gradient(150deg, rgba(255,255,255,.74), rgba(255,255,255,.48));
+    border:1px solid rgba(255,255,255,.62);
+    box-shadow:0 14px 32px rgba(8,20,38,.10), inset 0 1px 0 rgba(255,255,255,.72);
+    backdrop-filter:blur(12px) saturate(122%);
+    -webkit-backdrop-filter:blur(12px) saturate(122%);
+  }
+  .table-wrap{
+    width:100%;
+    max-width:100%;
+    overflow:auto;
+    border-radius:12px;
+    -webkit-overflow-scrolling:touch;
+    background:rgba(255,255,255,.58);
+    border:1px solid rgba(255,255,255,.64);
+    box-shadow:0 16px 34px rgba(8,20,38,.10), inset 0 1px 0 rgba(255,255,255,.74);
+    backdrop-filter:blur(12px) saturate(125%);
+    -webkit-backdrop-filter:blur(12px) saturate(125%);
+  }
+  table{
+    width:max-content;
+    min-width:1180px;
+    table-layout:fixed;
+  }
+  th,td{
+    padding:8px;
+  }
+  th{
+    background:rgba(247,251,255,.82);
+    color:#53667c;
+    border-bottom:1px solid rgba(83,102,124,.14);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+  }
+  td{
+    border-bottom:1px solid rgba(83,102,124,.10);
+  }
+  th:nth-child(1),td:nth-child(1){width:76px}
+  th:nth-child(2),td:nth-child(2){width:116px}
+  th:nth-child(3),td:nth-child(3){width:76px}
+  th:nth-child(4),td:nth-child(4){width:86px}
+  th:nth-child(5),td:nth-child(5){width:82px}
+  th:nth-child(6),td:nth-child(6){width:100px}
+  th:nth-child(7),td:nth-child(7){width:104px}
+  th:nth-child(8),td:nth-child(8){width:190px}
+  th:nth-child(9),td:nth-child(9),
+  th:nth-child(10),td:nth-child(10),
+  th:nth-child(11),td:nth-child(11),
+  th:nth-child(12),td:nth-child(12),
+  th:nth-child(13),td:nth-child(13){width:78px}
+  th:nth-child(14),td:nth-child(14){width:70px}
+  th:nth-child(15),td:nth-child(15){width:66px}
+  td input,td select,td textarea{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:8px;
+    font-size:12px;
+  }
+  td textarea{
+    min-height:46px;
+    max-height:120px;
+  }
+  .out{
+    min-height:220px;
+    max-height:460px;
+    overflow:auto;
+    border-radius:12px;
+    background:
+      radial-gradient(circle at 12% 0, rgba(32,214,199,.28), transparent 38%),
+      radial-gradient(circle at 100% 0, rgba(154,109,255,.22), transparent 34%),
+      linear-gradient(145deg, rgba(6,15,32,.94), rgba(13,38,56,.86));
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12), 0 18px 38px rgba(17,31,48,.16);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+  }
+  .modal{
+    border-radius:14px;
+    background:rgba(255,255,255,.76);
+    border:1px solid rgba(255,255,255,.58);
+    backdrop-filter:blur(24px) saturate(140%);
+    -webkit-backdrop-filter:blur(24px) saturate(140%);
+  }
+  .modal-body{padding:14px}
+
+  @media(min-width:1180px){
+    .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:980px){
+    .dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .g4,.g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .hero-top{align-items:flex-start}
+    .tag-group{justify-content:flex-start}
+  }
+  @media(max-width:620px){
+    .shell{padding:10px 8px 22px}
+    .hero{padding:13px}
+    .dashboard,.g2,.g3,.g4,.scorebar,.history-kpis,.quality-grid{grid-template-columns:1fr}
+    .section-head{padding:12px 12px 8px}
+    .section-body{padding:0 12px 12px}
+    .field{padding:10px}
+    textarea{max-height:160px}
+    .title-wrap{min-width:0}
+    .tag-group{gap:8px}
+    .hero-tag,.btn-hero{flex:1 1 auto;justify-content:center}
+  }
+  @media(max-height:430px) and (orientation:landscape){
+    .shell{padding-top:8px}
+    .hero{padding:11px}
+    .quote-card{display:none}
+    .dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}
+    textarea{max-height:112px}
+    .out{max-height:260px}
+  }
 </style>
 </head>
 <body>
@@ -465,14 +898,14 @@
     <section class="hero">
       <div class="hero-top">
         <div class="title-wrap">
-          <h1>A股每日交易复盘模板 · 焕新版</h1>
-          <p>把复盘做成一种仪式感。少一些情绪化后悔，多一些可复制的方法。每天收盘后填写一次，让交易从“凭感觉”走向“有框架、有纪律、有成长”。</p>
+          <h1>今日复盘工作台</h1>
+          <p>面向收盘后的快速记录：先导入账户与成交，再补充交易理由、计划性和明日动作。少做机械填写，多做真正有价值的判断。</p>
         </div>
         <div class="tag-group">
-          <div class="hero-tag">📈 趋势波段</div>
-          <div class="hero-tag">⚡ 强势股</div>
-          <div class="hero-tag">🧭 计划交易</div>
-          <div class="hero-tag">🛡 风控优先</div>
+          <div class="hero-tag">趋势波段</div>
+          <div class="hero-tag">强势股</div>
+          <div class="hero-tag">计划交易</div>
+          <div class="hero-tag">风控优先</div>
           <button class="btn-hero" onclick="openOcrModal()">📷 截图智能导入</button>
         </div>
       </div>
@@ -511,8 +944,8 @@
         <div class="section-title">
           <div class="section-num">1</div>
           <div>
-            <h2>当日基本信息</h2>
-            <p>先用一句话定义今天的市场，不要一上来就纠结自己赚了还是亏了。</p>
+            <h2>基本信息与市场环境</h2>
+            <p>同花顺导入、账户资金、仓位和市场判断集中在这里，先完成事实记录，再进入交易复盘。</p>
           </div>
         </div>
         <div class="status-badge">收盘后 10–20 分钟即可完成</div>
@@ -528,6 +961,19 @@
             </select>
           </div>
           <div class="field"><label>今日盈亏 <span class="tip">例如 +1200 / -800</span></label><input id="pnl" placeholder="例如 +1200"></div>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <div class="toolbar" style="justify-content:space-between;gap:12px">
+            <div>
+              <strong>同花顺自动导入</strong>
+              <div class="muted" id="tzzbImportStatus" style="margin-top:4px">启动本地复盘助手后，可从同花顺页面推送数据并自动填表。</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn-dark" onclick="importLatestTzzbData()">读取最新同花顺数据</button>
+              <button class="btn-soft" onclick="copyTzzbBookmarklet()">复制捕获书签</button>
+            </div>
+          </div>
         </div>
 
         <div class="grid g3" style="margin-top:14px">
@@ -1636,6 +2082,67 @@ function applyStructured(record){
   document.getElementById('tradeBody').innerHTML='';
   (record.trades || []).forEach(trade=>addTrade(trade));
   recalc();
+}
+function setTzzbImportStatus(message){
+  const el = document.getElementById('tzzbImportStatus');
+  if(el) el.textContent = message;
+}
+async function fetchTzzbApi(path){
+  const localUrl = `http://127.0.0.1:8787${path}`;
+  const sameOriginAllowed = ['localhost', '127.0.0.1'].includes(location.hostname);
+  const urls = sameOriginAllowed ? [path, localUrl] : [localUrl, path];
+  let lastError;
+  for(const url of urls){
+    try{
+      const res = await fetch(url);
+      const data = await res.json();
+      return {res, data};
+    }catch(error){
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('无法连接本地复盘助手。');
+}
+function applyTzzbReviewData(review){
+  if(!review){
+    setTzzbImportStatus('没有可导入的同花顺数据。');
+    return;
+  }
+  const record = {
+    date: review.date || todayStr(),
+    basic: review.basic || {},
+    market: {},
+    reflection: {},
+    plan: {},
+    trades: review.trades || []
+  };
+  applyStructured(record);
+  const summary = review.importSummary || `同花顺导入：${record.trades.length} 笔成交。`;
+  const ocrSummary = document.getElementById('ocrImportSummary');
+  if(ocrSummary) ocrSummary.textContent = summary;
+  setTzzbImportStatus(`${summary} 当前持仓 ${review.tzzb?.holdingCount || 0} 条，手动补充买卖理由和评分即可。`);
+}
+async function importLatestTzzbData(){
+  setTzzbImportStatus('正在读取本地复盘助手中的同花顺数据...');
+  try{
+    const {res, data} = await fetchTzzbApi('/api/tzzb-latest');
+    if(!res.ok || !data.ok){
+      throw new Error(data.error || '本地助手暂时没有可导入数据。');
+    }
+    applyTzzbReviewData(data.review);
+  }catch(error){
+    setTzzbImportStatus(`读取失败：${error.message} 请确认本地复盘助手已启动，并已在同花顺页面推送数据。`);
+  }
+}
+async function copyTzzbBookmarklet(){
+  try{
+    const {res, data} = await fetchTzzbApi('/api/tzzb-bookmarklet');
+    if(!res.ok || !data.bookmarklet) throw new Error(data.error || '无法生成书签。');
+    await navigator.clipboard.writeText(data.bookmarklet);
+    setTzzbImportStatus('捕获书签已复制。新建浏览器书签，把地址粘贴为刚复制的内容；在同花顺页面点击该书签即可捕获/推送。');
+  }catch(error){
+    setTzzbImportStatus(`复制书签失败：${error.message} 请确认本地复盘助手已启动。`);
+  }
 }
 function saveLocal(){
   recalc();
