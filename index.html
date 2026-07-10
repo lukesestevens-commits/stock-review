@@ -2407,15 +2407,19 @@ function rememberTzzbImport(importedAt){
 }
 async function fetchTzzbApi(path, options={}){
   const syncConfig = getTzzbSyncConfig();
-  if(syncConfig.mode === 'cloud' && syncConfig.baseUrl && syncConfig.key){
+  if(syncConfig.mode === 'cloud'){
     const cloudPath = mapTzzbCloudPath(path);
-    if(cloudPath){
-      const url = new URL(cloudPath, syncConfig.baseUrl);
-      url.searchParams.set('key', syncConfig.key);
-      const res = await fetch(url.toString(), options);
-      const data = await res.json();
-      return {res, data};
-    }
+    if(!cloudPath) throw new Error('云端模式不支持当前操作。');
+    if(!syncConfig.baseUrl) throw new Error('请先填写云同步地址。');
+    if(!syncConfig.key) throw new Error('请先填写云同步访问码。');
+    const url = new URL(cloudPath, syncConfig.baseUrl);
+    const headers = {
+      ...(options.headers || {}),
+      'X-TZZB-Sync-Key': syncConfig.key
+    };
+    const res = await fetch(url.toString(), {...options, headers});
+    const data = await res.json();
+    return {res, data};
   }
   const localUrl = `http://127.0.0.1:8787${path}`;
   const sameOriginAllowed = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -2432,12 +2436,19 @@ async function fetchTzzbApi(path, options={}){
   }
   throw lastError || new Error('无法连接本地复盘助手。');
 }
+function isHostedReviewSite(){
+  return location.protocol === 'https:' && !['localhost', '127.0.0.1'].includes(location.hostname);
+}
 function getTzzbSyncConfig(){
+  const hosted = isHostedReviewSite();
   return {
-    mode: localStorage.getItem(STORAGE_TZZB_SYNC_MODE) || 'local',
-    baseUrl: localStorage.getItem(STORAGE_TZZB_CLOUD_BASE) || '',
+    mode: localStorage.getItem(STORAGE_TZZB_SYNC_MODE) || (hosted ? 'cloud' : 'local'),
+    baseUrl: localStorage.getItem(STORAGE_TZZB_CLOUD_BASE) || (hosted ? location.origin : ''),
     key: localStorage.getItem(STORAGE_TZZB_CLOUD_KEY) || ''
   };
+}
+function tzzbSyncSourceLabel(config=getTzzbSyncConfig()){
+  return config.mode === 'cloud' ? '云端同步' : '本地复盘助手';
 }
 function mapTzzbCloudPath(path){
   if(path === '/api/tzzb-latest') return '/api/sync/latest';
@@ -2469,20 +2480,30 @@ function saveTzzbSyncConfig(){
   autoImportLatestTzzbData();
 }
 async function checkTzzbHelperHealth(){
+  const syncConfig = getTzzbSyncConfig();
+  const sourceLabel = tzzbSyncSourceLabel(syncConfig);
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-health');
-    if(!res.ok || !data.ok) throw new Error(data.error || '本地助手未响应。');
+    if(!res.ok || !data.ok) throw new Error(data.error || `${sourceLabel}未响应。`);
     const latest = data.latestRecordCount
       ? `最近已收到 ${data.latestRecordCount} 条同花顺响应。`
       : '还没有收到同花顺数据。';
     const readiness = data.readyForReview
       ? '当天持仓和交易记录已就绪。'
       : `缺少${(data.endpointCoverage?.missing || ['资金/持仓', '交易记录']).join('、')}，请刷新或重新打开同花顺投资账本。`;
-    setTzzbImportStatus(`本地复盘助手在线，捕获扩展可自动同步。${latest}${readiness}`);
+    const connected = syncConfig.mode === 'cloud'
+      ? '云端同步已连接，电脑捕获的数据可在此自动读取。'
+      : '本地复盘助手在线，捕获扩展可自动同步。';
+    setTzzbImportStatus(`${connected}${latest}${readiness}`);
     setTzzbImportAudit(formatTzzbAudit(data, data.importAudit || {}));
   }catch(error){
-    setTzzbImportStatus('本地复盘助手未连接。请双击“启动复盘助手.command”，再安装/检查捕获扩展。');
-    setTzzbImportAudit('等待本地助手连接。');
+    if(syncConfig.mode === 'cloud'){
+      setTzzbImportStatus(`云端同步未连接：${error.message}`);
+      setTzzbImportAudit('等待云端同步连接。');
+    }else{
+      setTzzbImportStatus('本地复盘助手未连接。请双击“启动复盘助手.command”，再安装/检查捕获扩展。');
+      setTzzbImportAudit('等待本地助手连接。');
+    }
   }
 }
 function tzzbMissingMessage(data){
@@ -2565,7 +2586,9 @@ function applyTzzbReviewData(review, raw={}){
   setTzzbImportStatus(`${summary} 当前持仓 ${review.tzzb?.holdingCount || 0} 条，补充持仓逻辑、买卖理由和评分即可。`);
 }
 async function importLatestTzzbData(){
-  setTzzbImportStatus('正在读取本地复盘助手中的同花顺数据...');
+  const syncConfig = getTzzbSyncConfig();
+  const sourceLabel = tzzbSyncSourceLabel(syncConfig);
+  setTzzbImportStatus(`正在读取${sourceLabel}中的同花顺数据...`);
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-latest');
     if(!res.ok || !data.ok){
@@ -2580,7 +2603,10 @@ async function importLatestTzzbData(){
     rememberTzzbImport(data.raw?.receivedAt);
     if(marketImported) setTzzbImportStatus('已读取最新同花顺数据，并填写指数情况和市场强势方向。');
   }catch(error){
-    setTzzbImportStatus(`读取失败：${error.message} 请确认本地复盘助手已启动，并已在同花顺页面推送数据。`);
+    const guidance = syncConfig.mode === 'cloud'
+      ? '请确认访问码正确，并在电脑端启动复盘助手完成上传。'
+      : '请确认本地复盘助手已启动，并已在同花顺页面推送数据。';
+    setTzzbImportStatus(`读取失败：${error.message} ${guidance}`);
   }
 }
 async function clearTzzbCaptureData(){

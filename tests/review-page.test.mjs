@@ -21,7 +21,11 @@ const context = {
     removeItem(key) { storage.delete(key); }
   },
   navigator: { clipboard: { writeText: async () => {} } },
-  location: { hostname: 'review.example.com' },
+  location: {
+    protocol: 'https:',
+    hostname: 'review.example.com',
+    origin: 'https://review.example.com'
+  },
   document: {
     addEventListener() {},
     createElement() {
@@ -180,6 +184,20 @@ test('page exposes cloud sync configuration controls', () => {
   assert.match(scriptMatch[1], /function saveTzzbSyncConfig/, 'page should save sync configuration locally');
 });
 
+test('hosted page defaults to same-origin cloud sync', () => {
+  const config = context.getTzzbSyncConfig();
+  assert.equal(config.mode, 'cloud');
+  assert.equal(config.baseUrl, 'https://review.example.com');
+  assert.equal(config.key, '');
+  assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
+});
+
+await assert.rejects(
+  () => context.fetchTzzbApi('/api/tzzb-health'),
+  /访问码/,
+  'hosted mode should ask for the cloud access key instead of falling back to localhost'
+);
+
 storage.set('tzzbSyncModeV1', 'cloud');
 storage.set('tzzbCloudSyncBaseUrlV1', 'https://review-cloud.example.com/');
 storage.set('tzzbCloudSyncKeyV1', 'abc123');
@@ -193,14 +211,19 @@ const latest = await context.fetchTzzbApi('/api/tzzb-latest');
 assert.equal(latest.data.ok, true);
 assert.equal(
   cloudRequests[0].url,
-  'https://review-cloud.example.com/api/sync/latest?key=abc123',
-  'cloud mode should map latest import reads to the deployed sync API with access key'
+  'https://review-cloud.example.com/api/sync/latest',
+  'cloud mode should map latest import reads to the deployed sync API'
+);
+assert.equal(
+  cloudRequests[0].options.headers['X-TZZB-Sync-Key'],
+  'abc123',
+  'cloud mode should send the access key in a request header'
 );
 
 await context.fetchTzzbApi('/api/tzzb-health');
 assert.equal(
   cloudRequests[1].url,
-  'https://review-cloud.example.com/api/sync/health?key=abc123',
+  'https://review-cloud.example.com/api/sync/health',
   'cloud mode should map helper health reads to cloud sync health'
 );
 
