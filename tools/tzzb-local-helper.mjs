@@ -7,7 +7,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair-r3';
+const helperVersion = '2026.07.10-sync-repair-r4';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
@@ -18,6 +18,7 @@ const syncAccessKey = process.env.TZZB_SYNC_ACCESS_KEY || '';
 const cloudSyncUrl = process.env.TZZB_CLOUD_SYNC_URL || '';
 const cloudSyncKey = process.env.TZZB_CLOUD_SYNC_KEY || '';
 const cloudRetryDelayMs = Number(process.env.TZZB_CLOUD_RETRY_DELAY_MS || 1000);
+let cloudUploadTail = Promise.resolve();
 
 function localDate(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
@@ -126,7 +127,7 @@ async function readCloudSyncCapture() {
   return JSON.parse(await fs.readFile(cloudSyncPath, 'utf8'));
 }
 
-async function uploadCloudSyncPayload(payload) {
+async function performCloudSyncUpload(payload) {
   if (!cloudSyncUrl || !cloudSyncKey) return { enabled: false };
   try {
     const response = await fetch(`${cloudSyncUrl.replace(/\/$/, '')}/api/sync/tzzb`, {
@@ -153,6 +154,12 @@ async function uploadCloudSyncPayload(payload) {
   } catch (error) {
     return { enabled: true, ok: false, status: 0, error: error.message };
   }
+}
+
+function uploadCloudSyncPayload(payload) {
+  const upload = cloudUploadTail.then(() => performCloudSyncUpload(payload));
+  cloudUploadTail = upload.catch(() => undefined);
+  return upload;
 }
 
 async function uploadSavedCaptureOnStartup() {
