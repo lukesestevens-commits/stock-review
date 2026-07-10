@@ -187,12 +187,21 @@ function holdingKey(row) {
   return row.code || row.stock_code || row.zqdm || row.name || row.stock_name || row.zqmc || JSON.stringify(row);
 }
 
+function isReviewableHolding(row) {
+  const code = String(row.code || row.stock_code || row.zqdm || '');
+  const name = String(row.name || row.stock_name || row.zqmc || '');
+  return code !== '888880' && !name.includes('标准券');
+}
+
 function dedupeActiveHoldings(rows) {
   const holdings = new Map();
   for (const row of rows || []) {
-    if (!isActiveHolding(row)) continue;
     const key = holdingKey(row);
-    if (!holdings.has(key)) holdings.set(key, row);
+    if (!isActiveHolding(row) || !isReviewableHolding(row)) {
+      holdings.delete(key);
+      continue;
+    }
+    holdings.set(key, row);
   }
   return [...holdings.values()];
 }
@@ -267,11 +276,11 @@ function filterRowsByDate(rows, targetDate) {
 export function mapTzzbCaptureToReview(records, options = {}) {
   const targetDate = deriveTargetDate(records, options.targetDate);
   const latest = latestPayloadByEndpoint(records);
-  const positionRows = allRows(records, 'stock_position', (payload) => getLatestArray(payload, 'position'));
-  const cardRows = allRows(records, 'stock_card', (payload) => getLatestArray(payload, 'position'));
+  const positionRows = getLatestArray(latest.get('stock_position'), 'position');
+  const cardRows = getLatestArray(latest.get('stock_card'), 'position');
   const rawHoldings = positionRows.length ? positionRows : cardRows;
   const holdings = dedupeActiveHoldings(rawHoldings);
-  const dayTrades = allRows(records, 'merge_day_trading', (payload) => getLatestArray(payload, 'data'));
+  const dayTrades = getLatestArray(latest.get('merge_day_trading'), 'data');
   const moneyTrades = allRows(records, 'get_money_history', (payload) => getLatestArray(payload, 'list'));
   const todayMoneyTrades = filterRowsByDate(moneyTrades, targetDate);
   const todayDayTrades = filterRowsByDate(dayTrades, targetDate);

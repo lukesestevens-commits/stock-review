@@ -192,6 +192,14 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
 });
 
+test('market snapshots do not downgrade live board directions to fallback rankings', () => {
+  assert.equal(context.marketSnapshotQuality({ boardQuality: 'live' }), 2);
+  assert.equal(context.marketSnapshotQuality({ boardQuality: 'fallback' }), 1);
+  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
+  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'fallback' }), false);
+  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
+});
+
 await assert.rejects(
   () => context.fetchTzzbApi('/api/tzzb-health'),
   /访问码/,

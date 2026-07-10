@@ -43,6 +43,7 @@ const boards = parseBoardPayload({
   }
 });
 assert.deepEqual(boards.map((row) => row.name), ['油田服务', '横向通用软件']);
+assert.ok(boards.every((row) => row.source === 'eastmoney-public-board'));
 
 const sohuBoards = parseSohuBoardHtml(`
   <li bk_id="1631">行业分类<em></em></li>
@@ -118,6 +119,8 @@ assert.equal(fallbackSnapshot.mood, '退潮');
 assert.match(fallbackSnapshot.mainLines, /油田服务/);
 assert.match(fallbackSnapshot.mainLines, /VPN/);
 assert.match(fallbackSnapshot.marketOne, /上证指数-0\.49%/);
+assert.equal(fallbackSnapshot.boardSource, 'eastmoney-public-board');
+assert.equal(fallbackSnapshot.boardQuality, 'live');
 
 const tencentFallbackSnapshot = await fetchMarketSnapshot({
   fetchImpl: async (url) => {
@@ -149,5 +152,7 @@ assert.equal(tencentFallbackSnapshot.indexState, '指数强');
 assert.match(tencentFallbackSnapshot.marketOne, /深证成指\+3\.07%/);
 assert.equal(tencentFallbackSnapshot.mainLines, '强势板块：传媒、非银金融、3D打印');
 assert.doesNotMatch(tencentFallbackSnapshot.mainLines, /上证指数|深证成指|创业板指/);
+assert.equal(tencentFallbackSnapshot.boardSource, 'sohu-board-page');
+assert.equal(tencentFallbackSnapshot.boardQuality, 'fallback');
 
 console.log('PASS market public data');

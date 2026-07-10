@@ -14,16 +14,46 @@ const tempDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tzzb-helper-cloud-u
 const today = new Date().toISOString().slice(0, 10);
 const accessKey = 'upload-secret';
 const receivedUploads = [];
+let remainingStartupFailures = 1;
+let activeUploads = 0;
+let maxConcurrentUploads = 0;
+
+const startupPayload = {
+  source: 'startup-fixture',
+  targetDate: today,
+  pushedAt: `${today}T09:55:00.000Z`,
+  receivedAt: `${today}T09:55:01.000Z`,
+  records: [{
+    capturedAt: `${today}T09:55:00.000Z`,
+    type: 'fetch',
+    method: 'POST',
+    status: 200,
+    url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({ ex_data: { total_asset: '10000', position: [] } })
+  }]
+};
+await fs.writeFile(path.join(tempDataDir, 'latest-capture.json'), JSON.stringify(startupPayload), 'utf8');
 
 const cloudServer = http.createServer(async (req, res) => {
+  activeUploads += 1;
+  maxConcurrentUploads = Math.max(maxConcurrentUploads, activeUploads);
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
   receivedUploads.push({
     method: req.method,
     url: req.url,
     key: req.headers['x-tzzb-sync-key'] || '',
+    uploadProcess: req.headers['x-tzzb-upload-process'] || '',
     body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
   });
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  activeUploads -= 1;
+  if (remainingStartupFailures > 0) {
+    remainingStartupFailures -= 1;
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'temporary edge rejection' }));
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ ok: true }));
 });
@@ -37,7 +67,8 @@ const helper = spawn(nodePath, ['tools/tzzb-local-helper.mjs'], {
     TZZB_HELPER_PORT: String(helperPort),
     TZZB_DATA_DIR: tempDataDir,
     TZZB_CLOUD_SYNC_URL: cloudUrl,
-    TZZB_CLOUD_SYNC_KEY: accessKey
+    TZZB_CLOUD_SYNC_KEY: accessKey,
+    TZZB_CLOUD_RETRY_DELAY_MS: '10'
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -62,8 +93,45 @@ async function waitForHealth() {
   throw new Error(`helper did not become healthy: ${lastError?.message || helperOutput}`);
 }
 
+async function waitForUploads(count) {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (receivedUploads.length >= count) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`helper did not complete ${count} startup upload attempts: ${helperOutput}`);
+}
+
 try {
   await waitForHealth();
+  const concurrentCapture = fetch(`${helperUrl}/api/tzzb-capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source: 'concurrent-fixture',
+      pushedAt: `${today}T10:00:00.000Z`,
+      records: [{
+        capturedAt: `${today}T10:00:00.000Z`,
+        type: 'fetch',
+        method: 'POST',
+        status: 200,
+        url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/query/v1/status',
+        responseText: JSON.stringify({ ex_data: { status: 1 } })
+      }]
+    })
+  });
+  await waitForUploads(3);
+  assert.equal((await concurrentCapture).status, 200);
+  assert.equal(maxConcurrentUploads, 1, 'startup and live capture uploads must be serialized');
+  assert.equal(receivedUploads[0].method, 'POST');
+  assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
+  assert.equal(receivedUploads[0].key, accessKey);
+  assert.equal(receivedUploads[0].body.source, 'startup-fixture');
+  assert.equal(receivedUploads[0].body.replaceRecords, true);
+  assert.equal(receivedUploads.filter((upload) => upload.body.source === 'startup-fixture').length, 2);
+  assert.equal(receivedUploads.some((upload) => upload.uploadProcess === 'fresh'), true);
+  receivedUploads.length = 0;
+
   const capturePayload = {
     source: 'edge-extension',
     pageUrl: 'https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/cloud',
@@ -98,7 +166,8 @@ try {
   assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.targetDate, today);
-  assert.equal(receivedUploads[0].body.records.length, 1);
+  assert.equal(receivedUploads[0].body.replaceRecords, true);
+  assert.equal(receivedUploads[0].body.records.length, 3, 'new captures should upload the same-day merged local snapshot');
 
   console.log('PASS tzzb helper cloud upload');
 } finally {

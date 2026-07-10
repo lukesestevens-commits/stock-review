@@ -86,7 +86,8 @@ export function parseBoardPayload(payload, label = '') {
     name: String(row.f14 || ''),
     changePercent: numeric(row.f3),
     netFlow: numeric(row.f62),
-    label
+    label,
+    source: 'eastmoney-public-board'
   })).filter((row) => row.code && row.name);
 }
 
@@ -187,6 +188,16 @@ export function classifyMarketSnapshot(indices, boards = []) {
     .map((row) => `${row.name}${signedPercent(row.changePercent)}`)
     .join('，');
   const mainLines = formatMainLines(boards, indexState);
+  const boardSource = boards.some((row) => row.source === 'eastmoney-public-board')
+    ? 'eastmoney-public-board'
+    : boards.some((row) => row.source === 'sohu-board-page')
+      ? 'sohu-board-page'
+      : 'none';
+  const boardQuality = boardSource === 'eastmoney-public-board'
+    ? 'live'
+    : boardSource === 'sohu-board-page'
+      ? 'fallback'
+      : 'none';
 
   return {
     indexState,
@@ -196,6 +207,8 @@ export function classifyMarketSnapshot(indices, boards = []) {
     marketOne: `${quoteText || '公开指数数据暂不可用'}；${indexState}，${mood}，适合${actionEnv}。强势方向：${mainLines}。`,
     indices: rows,
     boards,
+    boardSource,
+    boardQuality,
     source: rows.some((row) => row.source === 'tencent-public-index')
       ? 'tencent-public-index'
       : 'eastmoney-public-index',
