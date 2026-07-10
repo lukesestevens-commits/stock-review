@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>A股每日交易复盘模板｜焕新版</title>
 <style>
   :root{
@@ -993,7 +993,11 @@
       max-width:none;
       height:auto;
       min-height:0;
-      padding-bottom:calc(18px + env(safe-area-inset-bottom));
+      padding:
+        calc(14px + env(safe-area-inset-top))
+        calc(clamp(10px,1.8vw,22px) + env(safe-area-inset-right))
+        calc(18px + env(safe-area-inset-bottom))
+        calc(clamp(10px,1.8vw,22px) + env(safe-area-inset-left));
     }
     input[type="date"]{
       appearance:none;
@@ -1009,7 +1013,7 @@
       text-align:left;
     }
     .floating{
-      right:max(12px, env(safe-area-inset-right));
+      right:calc(12px + env(safe-area-inset-right));
       bottom:calc(12px + env(safe-area-inset-bottom));
     }
     .dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1018,7 +1022,13 @@
     .tag-group{justify-content:flex-start}
   }
   @media(max-width:620px){
-    .shell{padding:10px 8px calc(12px + env(safe-area-inset-bottom))}
+    .shell{
+      padding:
+        calc(10px + env(safe-area-inset-top))
+        calc(8px + env(safe-area-inset-right))
+        calc(12px + env(safe-area-inset-bottom))
+        calc(8px + env(safe-area-inset-left));
+    }
     .hero{padding:13px}
     .dashboard,.g2,.g3,.g4,.scorebar,.history-kpis,.quality-grid{grid-template-columns:1fr}
     .section-head{padding:12px 12px 8px}
@@ -1030,7 +1040,7 @@
     .hero-tag,.btn-hero{flex:1 1 auto;justify-content:center}
   }
   @media(max-height:430px) and (orientation:landscape){
-    .shell{padding-top:8px}
+    .shell{padding-top:calc(8px + env(safe-area-inset-top))}
     .hero{padding:11px}
     .quote-card{display:none}
     .dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}
