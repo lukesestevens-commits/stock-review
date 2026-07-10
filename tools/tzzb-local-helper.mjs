@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -7,7 +8,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair';
+const helperVersion = '2026.07.10-sync-repair-r6';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
@@ -17,6 +18,31 @@ const port = Number(process.env.TZZB_HELPER_PORT || 8787);
 const syncAccessKey = process.env.TZZB_SYNC_ACCESS_KEY || '';
 const cloudSyncUrl = process.env.TZZB_CLOUD_SYNC_URL || '';
 const cloudSyncKey = process.env.TZZB_CLOUD_SYNC_KEY || '';
+const cloudRetryDelayMs = Number(process.env.TZZB_CLOUD_RETRY_DELAY_MS || 1000);
+let cloudUploadTail = Promise.resolve();
+let useFreshCloudUploadProcess = false;
+
+const freshCloudUploadSource = `
+const chunks = [];
+for await (const chunk of process.stdin) chunks.push(chunk);
+try {
+  const response = await fetch(process.env.TZZB_FRESH_UPLOAD_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-TZZB-Sync-Key': process.env.TZZB_FRESH_UPLOAD_KEY,
+      'X-TZZB-Upload-Process': 'fresh'
+    },
+    body: Buffer.concat(chunks),
+    signal: AbortSignal.timeout(20000)
+  });
+  let data = {};
+  try { data = await response.json(); } catch {}
+  process.stdout.write(JSON.stringify({ status: response.status, data }));
+} catch (error) {
+  process.stdout.write(JSON.stringify({ status: 0, error: error.message }));
+}
+`;
 
 function localDate(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
@@ -125,8 +151,17 @@ async function readCloudSyncCapture() {
   return JSON.parse(await fs.readFile(cloudSyncPath, 'utf8'));
 }
 
-async function uploadCloudSyncPayload(payload) {
-  if (!cloudSyncUrl || !cloudSyncKey) return { enabled: false };
+function cloudUploadResult(status, data = {}, transportError = '') {
+  const ok = status >= 200 && status < 300 && Boolean(data.ok);
+  return {
+    enabled: true,
+    ok,
+    status,
+    error: ok ? '' : (data.error || transportError || `HTTP ${status}`)
+  };
+}
+
+async function uploadCloudSyncDirect(payload) {
   try {
     const response = await fetch(`${cloudSyncUrl.replace(/\/$/, '')}/api/sync/tzzb`, {
       method: 'POST',
@@ -134,7 +169,8 @@ async function uploadCloudSyncPayload(payload) {
         'Content-Type': 'application/json',
         'X-TZZB-Sync-Key': cloudSyncKey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(20000)
     });
     let data = {};
     try {
@@ -142,26 +178,71 @@ async function uploadCloudSyncPayload(payload) {
     } catch {
       data = {};
     }
-    return {
-      enabled: true,
-      ok: Boolean(response.ok && data.ok),
-      status: response.status,
-      error: response.ok && data.ok ? '' : (data.error || `HTTP ${response.status}`)
-    };
+    return cloudUploadResult(response.status, data);
   } catch (error) {
-    return { enabled: true, ok: false, status: 0, error: error.message };
+    return cloudUploadResult(0, {}, error.message);
   }
+}
+
+function uploadCloudSyncFresh(payload) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, ['--input-type=module', '-e', freshCloudUploadSource], {
+      env: {
+        ...process.env,
+        TZZB_FRESH_UPLOAD_URL: `${cloudSyncUrl.replace(/\/$/, '')}/api/sync/tzzb`,
+        TZZB_FRESH_UPLOAD_KEY: cloudSyncKey
+      },
+      stdio: ['pipe', 'pipe', 'ignore']
+    });
+    const chunks = [];
+    child.stdout.on('data', (chunk) => chunks.push(chunk));
+    child.on('error', (error) => resolve(cloudUploadResult(0, {}, error.message)));
+    child.on('close', () => {
+      try {
+        const result = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+        resolve(cloudUploadResult(Number(result.status || 0), result.data || {}, result.error || ''));
+      } catch (error) {
+        resolve(cloudUploadResult(0, {}, error.message));
+      }
+    });
+    child.stdin.end(JSON.stringify(payload));
+  });
+}
+
+async function performCloudSyncUpload(payload) {
+  if (!cloudSyncUrl || !cloudSyncKey) return { enabled: false };
+  if (useFreshCloudUploadProcess) return uploadCloudSyncFresh(payload);
+
+  const result = await uploadCloudSyncDirect(payload);
+  if (result.status !== 403) return result;
+
+  const freshResult = await uploadCloudSyncFresh(payload);
+  if (freshResult.ok) useFreshCloudUploadProcess = true;
+  return freshResult;
+}
+
+function uploadCloudSyncPayload(payload) {
+  const upload = cloudUploadTail.then(() => performCloudSyncUpload(payload));
+  cloudUploadTail = upload.catch(() => undefined);
+  return upload;
 }
 
 async function uploadSavedCaptureOnStartup() {
   if (!cloudSyncUrl || !cloudSyncKey) return;
   try {
-    const result = await uploadCloudSyncPayload(await readLatestCapture());
-    if (result.ok) {
-      console.log('已把本机最新同花顺快照补传到云端。');
-    } else {
-      console.error(`启动补传云端失败：${result.error || `HTTP ${result.status}`}`);
+    const payload = await readLatestCapture();
+    let result = { ok: false, status: 0, error: '' };
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
+      result = await uploadCloudSyncPayload(payload);
+      if (result.ok) {
+        console.log('已把本机最新同花顺快照补传到云端。');
+        return;
+      }
+      if (attempt < 5) {
+        await new Promise((resolve) => setTimeout(resolve, cloudRetryDelayMs * (2 ** (attempt - 1))));
+      }
     }
+    console.error(`启动补传云端失败：${result.error || `HTTP ${result.status}`}`);
   } catch (error) {
     if (error?.code !== 'ENOENT') console.error(`启动补传云端失败：${error.message}`);
   }
