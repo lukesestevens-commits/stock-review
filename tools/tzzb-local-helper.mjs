@@ -7,7 +7,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair-r2';
+const helperVersion = '2026.07.10-sync-repair-r3';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
@@ -17,6 +17,7 @@ const port = Number(process.env.TZZB_HELPER_PORT || 8787);
 const syncAccessKey = process.env.TZZB_SYNC_ACCESS_KEY || '';
 const cloudSyncUrl = process.env.TZZB_CLOUD_SYNC_URL || '';
 const cloudSyncKey = process.env.TZZB_CLOUD_SYNC_KEY || '';
+const cloudRetryDelayMs = Number(process.env.TZZB_CLOUD_RETRY_DELAY_MS || 1000);
 
 function localDate(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
@@ -134,7 +135,8 @@ async function uploadCloudSyncPayload(payload) {
         'Content-Type': 'application/json',
         'X-TZZB-Sync-Key': cloudSyncKey
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(20000)
     });
     let data = {};
     try {
@@ -158,14 +160,14 @@ async function uploadSavedCaptureOnStartup() {
   try {
     const payload = await readLatestCapture();
     let result = { ok: false, status: 0, error: '' };
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
+    for (let attempt = 1; attempt <= 5; attempt += 1) {
       result = await uploadCloudSyncPayload(payload);
       if (result.ok) {
         console.log('已把本机最新同花顺快照补传到云端。');
         return;
       }
-      if (attempt < 3) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+      if (attempt < 5) {
+        await new Promise((resolve) => setTimeout(resolve, cloudRetryDelayMs * (2 ** (attempt - 1))));
       }
     }
     console.error(`启动补传云端失败：${result.error || `HTTP ${result.status}`}`);

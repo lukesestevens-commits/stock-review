@@ -60,7 +60,8 @@ const helper = spawn(nodePath, ['tools/tzzb-local-helper.mjs'], {
     TZZB_HELPER_PORT: String(helperPort),
     TZZB_DATA_DIR: tempDataDir,
     TZZB_CLOUD_SYNC_URL: cloudUrl,
-    TZZB_CLOUD_SYNC_KEY: accessKey
+    TZZB_CLOUD_SYNC_KEY: accessKey,
+    TZZB_CLOUD_RETRY_DELAY_MS: '10'
   },
   stdio: ['ignore', 'pipe', 'pipe']
 });
