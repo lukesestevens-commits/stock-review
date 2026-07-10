@@ -7,7 +7,7 @@ cd "$SCRIPT_DIR"
 REVIEW_URL="http://127.0.0.1:8787/"
 TZZB_ACCOUNT_NAME="东方"
 TZZB_URL="https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/qAgMWG2"
-EXPECTED_HELPER_VERSION="2026.07.10-sync-repair-r5"
+EXPECTED_HELPER_VERSION="2026.07.10-sync-repair-r6"
 BUNDLED_NODE="/Users/ruiqiwang/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
 HELPER_LOG_DIR="$SCRIPT_DIR/logs"
 HELPER_LOG="$HELPER_LOG_DIR/tzzb-local-helper.log"
@@ -19,6 +19,26 @@ if [ -f "$CLOUD_SYNC_ENV_FILE" ]; then
   source "$CLOUD_SYNC_ENV_FILE"
   set +a
 fi
+
+configureSystemProxy() {
+  if [ -n "${HTTPS_PROXY:-}${https_proxy:-}" ]; then
+    return
+  fi
+
+  local proxy_config proxy_enabled proxy_host proxy_port
+  proxy_config="$(/usr/sbin/scutil --proxy 2>/dev/null || true)"
+  proxy_enabled="$(printf '%s\n' "$proxy_config" | /usr/bin/awk '/HTTPSEnable :/ { print $3; exit }')"
+  proxy_host="$(printf '%s\n' "$proxy_config" | /usr/bin/awk '/HTTPSProxy :/ { print $3; exit }')"
+  proxy_port="$(printf '%s\n' "$proxy_config" | /usr/bin/awk '/HTTPSPort :/ { print $3; exit }')"
+  if [ "$proxy_enabled" = "1" ] && [ -n "$proxy_host" ] && [ -n "$proxy_port" ]; then
+    export HTTPS_PROXY="http://${proxy_host}:${proxy_port}"
+    export HTTP_PROXY="$HTTPS_PROXY"
+    export https_proxy="$HTTPS_PROXY"
+    export http_proxy="$HTTP_PROXY"
+    export NO_PROXY="${NO_PROXY:-localhost,127.0.0.1,::1}"
+    export no_proxy="$NO_PROXY"
+  fi
+}
 
 isHelperReady() {
   /usr/bin/curl -fsS "http://127.0.0.1:8787/api/tzzb-health" >/dev/null 2>&1
@@ -85,6 +105,8 @@ else
   read -k 1 "?按任意键关闭..."
   exit 1
 fi
+
+configureSystemProxy
 
 if "$NODE_BIN" --help 2>&1 | /usr/bin/grep -q -- '--use-env-proxy'; then
   export NODE_USE_ENV_PROXY=1

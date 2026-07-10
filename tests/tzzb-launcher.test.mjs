@@ -19,6 +19,9 @@ assert.match(launcher, /云同步配置\.env/, 'launcher should use a readable c
 assert.match(launcher, /source "\$CLOUD_SYNC_ENV_FILE"/, 'launcher should load cloud sync env before starting helper');
 assert.match(launcher, /--use-env-proxy/, 'launcher should detect Node environment-proxy support');
 assert.match(launcher, /NODE_USE_ENV_PROXY=1/, 'launcher should let cloud uploads use the configured HTTPS proxy');
+assert.match(launcher, /scutil --proxy/, 'launcher should read the macOS system proxy when Terminal has no proxy environment');
+assert.match(launcher, /export HTTPS_PROXY=/, 'launcher should pass the system HTTPS proxy to the helper');
+assert.match(launcher, /export HTTP_PROXY=/, 'launcher should pass the system HTTP proxy to the helper');
 assert.doesNotMatch(launcher, /trap .*SERVER_PID.*EXIT/, 'launcher should not kill the helper when the terminal exits');
 assert.doesNotMatch(launcher, /wait "\$SERVER_PID"/, 'launcher should not keep the terminal window open waiting for the helper');
 

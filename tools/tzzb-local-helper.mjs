@@ -8,7 +8,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair-r5';
+const helperVersion = '2026.07.10-sync-repair-r6';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
