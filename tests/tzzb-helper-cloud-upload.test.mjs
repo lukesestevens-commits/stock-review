@@ -14,6 +14,7 @@ const tempDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tzzb-helper-cloud-u
 const today = new Date().toISOString().slice(0, 10);
 const accessKey = 'upload-secret';
 const receivedUploads = [];
+let remainingStartupFailures = 1;
 
 const startupPayload = {
   source: 'startup-fixture',
@@ -40,6 +41,12 @@ const cloudServer = http.createServer(async (req, res) => {
     key: req.headers['x-tzzb-sync-key'] || '',
     body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
   });
+  if (remainingStartupFailures > 0) {
+    remainingStartupFailures -= 1;
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'temporary edge rejection' }));
+    return;
+  }
   res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify({ ok: true }));
 });
@@ -78,22 +85,23 @@ async function waitForHealth() {
   throw new Error(`helper did not become healthy: ${lastError?.message || helperOutput}`);
 }
 
-async function waitForUpload() {
+async function waitForUploads(count) {
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
-    if (receivedUploads.length) return;
+    if (receivedUploads.length >= count) return;
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  throw new Error(`helper did not upload its saved latest capture on startup: ${helperOutput}`);
+  throw new Error(`helper did not complete ${count} startup upload attempts: ${helperOutput}`);
 }
 
 try {
   await waitForHealth();
-  await waitForUpload();
+  await waitForUploads(2);
   assert.equal(receivedUploads[0].method, 'POST');
   assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.source, 'startup-fixture');
+  assert.equal(receivedUploads[1].body.source, 'startup-fixture');
   receivedUploads.length = 0;
 
   const capturePayload = {

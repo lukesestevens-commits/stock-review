@@ -7,7 +7,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair';
+const helperVersion = '2026.07.10-sync-repair-r2';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
@@ -156,12 +156,19 @@ async function uploadCloudSyncPayload(payload) {
 async function uploadSavedCaptureOnStartup() {
   if (!cloudSyncUrl || !cloudSyncKey) return;
   try {
-    const result = await uploadCloudSyncPayload(await readLatestCapture());
-    if (result.ok) {
-      console.log('已把本机最新同花顺快照补传到云端。');
-    } else {
-      console.error(`启动补传云端失败：${result.error || `HTTP ${result.status}`}`);
+    const payload = await readLatestCapture();
+    let result = { ok: false, status: 0, error: '' };
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      result = await uploadCloudSyncPayload(payload);
+      if (result.ok) {
+        console.log('已把本机最新同花顺快照补传到云端。');
+        return;
+      }
+      if (attempt < 3) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+      }
     }
+    console.error(`启动补传云端失败：${result.error || `HTTP ${result.status}`}`);
   } catch (error) {
     if (error?.code !== 'ENOENT') console.error(`启动补传云端失败：${error.message}`);
   }
