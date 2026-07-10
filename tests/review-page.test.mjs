@@ -141,12 +141,24 @@ test('summarizeHistory calculates 7-day and 30-day trends', () => {
   assert.equal(summary.pnlPositiveDays, 4);
 });
 
-test('auto import retries market fill after the same TZZB capture was already imported', () => {
-  assert.match(
-    scriptMatch[1],
-    /if\(data\.latestReceivedAt === lastTzzbImportedAt\)\{[\s\S]*importMarketSnapshot\(\{silent:true\}\)[\s\S]*return;/,
-    'auto import should keep retrying market fields even when the same capture was already imported'
+test('market refresh runs independently from the three-second TZZB poll', () => {
+  const autoImportSource = scriptMatch[1].match(
+    /async function autoImportLatestTzzbData\(\)\{([\s\S]*?)\n\}\nfunction startTzzbAutoImport/
   );
+  assert.ok(autoImportSource, 'trade auto-import function should exist');
+  assert.match(
+    autoImportSource[1],
+    /if\(data\.latestReceivedAt === lastTzzbImportedAt\) return;/,
+    'same capture should return without extra work'
+  );
+  assert.doesNotMatch(
+    autoImportSource[1],
+    /importMarketSnapshot/,
+    'trade polls should not call the public market API'
+  );
+  assert.match(scriptMatch[1], /setInterval\(autoImportLatestTzzbData, 3000\)/);
+  assert.match(scriptMatch[1], /setInterval\(autoImportMarketSnapshot, 60000\)/);
+  assert.match(scriptMatch[1], /startTzzbAutoImport\(\);[\s\S]*startMarketAutoImport\(\);/);
 });
 
 test('page exposes a holding review module for tomorrow planning', () => {
@@ -200,12 +212,22 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
 });
 
-test('market snapshots do not downgrade live board directions to fallback rankings', () => {
-  assert.equal(context.marketSnapshotQuality({ boardQuality: 'live' }), 2);
-  assert.equal(context.marketSnapshotQuality({ boardQuality: 'fallback' }), 1);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'fallback' }), false);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
+test('fresh valid market snapshots apply regardless of source quality', () => {
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-10T09:30:00.000Z',
+    boardQuality: 'live',
+    mainLines: '行业：半导体'
+  }), true);
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-10T09:31:00.000Z',
+    boardQuality: 'fallback',
+    mainLines: '强势板块：传媒'
+  }), true);
+  assert.equal(
+    context.applyMarketSnapshot({ updatedAt: '2026-07-10T09:32:00.000Z' }),
+    false,
+    'a snapshot without a usable sector direction should preserve the existing form'
+  );
 });
 
 await assert.rejects(

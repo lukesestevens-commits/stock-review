@@ -182,6 +182,13 @@ try {
   assert.equal(market.ok, true);
   assert.equal(market.market.indexState, '指数强');
   assert.equal(market.market.mood, '分化');
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  const cachedMarket = await (await fetch(`${helperUrl}/api/market-snapshot`)).json();
+  assert.equal(
+    cachedMarket.market.updatedAt,
+    market.market.updatedAt,
+    'repeated helper reads inside the TTL should reuse one public market snapshot'
+  );
 
   const clearRes = await fetch(`${helperUrl}/api/tzzb-clear`, { method: 'POST' });
   const clearData = await clearRes.json();

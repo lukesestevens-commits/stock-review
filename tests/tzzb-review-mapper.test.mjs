@@ -109,7 +109,7 @@ const mixedDatePayload = [
 const todayOnly = mapTzzbCaptureToReview(mixedDatePayload, { targetDate: '2026-07-03' });
 assert.equal(todayOnly.date, '2026-07-03');
 assert.deepEqual(todayOnly.trades.map((trade) => trade.name), ['今日股票']);
-assert.equal(todayOnly.trades[0].time, '10:02');
+assert.equal(todayOnly.trades[0].time, '10:02:00');
 assert.equal(todayOnly.basic.capital, '10000.00');
 assert.equal(todayOnly.tzzb.holdingCount, 1);
 assert.equal(todayOnly.holdings[0].name, '今日持仓');
@@ -141,7 +141,58 @@ const mergeDayWithoutTime = mapTzzbCaptureToReview([
     })
   }
 ], { targetDate: '2026-07-09' });
-assert.deepEqual(mergeDayWithoutTime.trades.map((trade) => trade.time), ['09:30', '09:31']);
+assert.deepEqual(mergeDayWithoutTime.trades.map((trade) => trade.time), ['', '']);
+assert.ok(
+  mergeDayWithoutTime.tzzb.importAudit.warnings.some((warning) => warning.includes('真实成交时间')),
+  'summary trades without matching details should report missing real timestamps'
+);
+
+const enrichedDayTrades = mapTzzbCaptureToReview([
+  {
+    capturedAt: '2026-07-10T08:00:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v1/merge_day_trading',
+    responseText: JSON.stringify({
+      ex_data: {
+        data: [
+          { zqdm: '002384', zqmc: '东山精密', czlx: '买入', cjjg: '252.680', cjsl: '100', moneychg: '-25268' },
+          { zqdm: '002038', zqmc: '双鹭药业', czlx: '买入', cjjg: '6.220', cjsl: '400', moneychg: '-2488' },
+          { zqdm: '688362', zqmc: '甬矽电子', czlx: '买入', cjjg: '118.010', cjsl: '89', moneychg: '-10502.89' },
+          { zqdm: '300489', zqmc: '光智科技', czlx: '卖出', cjjg: '266.600', cjsl: '100', moneychg: '26660' }
+        ]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-10T08:00:01.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v2/get_money_history',
+    responseText: JSON.stringify({
+      ex_data: {
+        list: [
+          { code: '204001', entry_date: '2026-07-10', entry_time: '15:02:07', name: 'GC001', op_name: '买入', entry_price: '0.910', entry_count: '170', entry_money: '170000' },
+          { code: '002384', entry_date: '2026-07-10', entry_time: '14:11:01', name: '东山精密', op_name: '买入', entry_price: '252.680', entry_count: '100', entry_money: '25268' },
+          { code: '002038', entry_date: '2026-07-10', entry_time: '09:49:06', name: '双鹭药业', op_name: '买入', entry_price: '6.220', entry_count: '400', entry_money: '2488' },
+          { code: '688362', entry_date: '2026-07-10', entry_time: '09:33:26', name: '甬矽电子', op_name: '买入', entry_price: '118.010', entry_count: '89', entry_money: '10502.89' },
+          { code: '300489', entry_date: '2026-07-10', entry_time: '09:30:59', name: '光智科技', op_name: '卖出', entry_price: '266.600', entry_count: '100', entry_money: '26660' }
+        ]
+      }
+    })
+  }
+], { targetDate: '2026-07-10' });
+assert.deepEqual(
+  enrichedDayTrades.trades.map((trade) => `${trade.time} ${trade.name}`),
+  [
+    '09:30:59 光智科技',
+    '09:33:26 甬矽电子',
+    '09:49:06 双鹭药业',
+    '14:11:01 东山精密'
+  ],
+  'summary-authorized trades should be enriched and sorted by real second-level timestamps'
+);
+assert.doesNotMatch(
+  enrichedDayTrades.trades.map((trade) => trade.name).join(','),
+  /GC001/,
+  'detail-only cash-management rows should not enter the review trade list'
+);
 
 const activeHoldingOnly = mapTzzbCaptureToReview([
   {
@@ -279,10 +330,10 @@ const currentEasternMapped = mapTzzbCaptureToReview(currentEasternRecords, { tar
 assert.deepEqual(
   currentEasternMapped.trades.map((trade) => `${trade.time} ${trade.name} ${trade.side}`),
   [
-    '09:33 海南海药 卖出',
-    '09:33 海南海药 卖出',
-    '09:37 光智科技 买入',
-    '10:06 光智科技 卖出'
+    '09:33:00 海南海药 卖出',
+    '09:33:00 海南海药 卖出',
+    '09:37:00 光智科技 买入',
+    '10:06:00 光智科技 卖出'
   ],
   'current-day trades should be sorted from earliest to latest'
 );
