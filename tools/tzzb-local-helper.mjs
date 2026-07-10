@@ -8,7 +8,7 @@ import { fetchMarketSnapshot } from './market-public-data.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.10-sync-repair-r6';
+const helperVersion = '2026.07.10-sync-repair-r7';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
@@ -211,12 +211,13 @@ function uploadCloudSyncFresh(payload) {
 
 async function performCloudSyncUpload(payload) {
   if (!cloudSyncUrl || !cloudSyncKey) return { enabled: false };
-  if (useFreshCloudUploadProcess) return uploadCloudSyncFresh(payload);
+  const snapshotPayload = { ...payload, replaceRecords: true };
+  if (useFreshCloudUploadProcess) return uploadCloudSyncFresh(snapshotPayload);
 
-  const result = await uploadCloudSyncDirect(payload);
+  const result = await uploadCloudSyncDirect(snapshotPayload);
   if (result.status !== 403) return result;
 
-  const freshResult = await uploadCloudSyncFresh(payload);
+  const freshResult = await uploadCloudSyncFresh(snapshotPayload);
   if (freshResult.ok) useFreshCloudUploadProcess = true;
   return freshResult;
 }

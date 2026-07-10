@@ -110,15 +110,18 @@ async function uploadSync(request, env) {
 
   const store = createTzzbSyncStore(env.DB);
   const existing = await store.readLatest();
-  const existingRecords = existing?.targetDate === targetDate && Array.isArray(existing.records)
+  const existingRecords = payload.replaceRecords !== true
+    && existing?.targetDate === targetDate
+    && Array.isArray(existing.records)
     ? existing.records
     : [];
   const records = mergeCaptureRecords(existingRecords, Array.isArray(payload.records) ? payload.records : [], {
     targetDate
   });
+  const { replaceRecords: _replaceRecords, ...incoming } = payload;
   const stored = {
     ...(existing?.targetDate === targetDate ? existing : {}),
-    ...payload,
+    ...incoming,
     source: payload.source || 'cloud-sync',
     targetDate,
     receivedAt: new Date().toISOString(),
