@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>同花顺复盘捕获</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+      color: #18212f;
+      background: #f7f9fc;
+    }
+    h1 { margin: 0 0 10px; font-size: 17px; }
+    .status {
+      padding: 10px;
+      border: 1px solid #e6ebf2;
+      border-radius: 8px;
+      background: #fff;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 7px 0;
+      font-size: 13px;
+      border-bottom: 1px solid #eef2f6;
+    }
+    .row:last-child { border-bottom: 0; }
+    .label { color: #667085; }
+    .value { font-weight: 700; text-align: right; }
+    .ok { color: #008a5b; }
+    .bad { color: #c0262d; }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    button {
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary { color: #fff; background: #111827; }
+    .soft { color: #2948b5; background: #eaf0ff; }
+    .hint {
+      margin-top: 10px;
+      color: #667085;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  <h1>同花顺复盘捕获</h1>
+  <div class="status">
+    <div class="row"><span class="label">本地助手</span><span class="value" id="helperOnline">检查中</span></div>
+    <div class="row"><span class="label">已捕获</span><span class="value" id="capturedCount">0</span></div>
+    <div class="row"><span class="label">待同步</span><span class="value" id="pendingCount">0</span></div>
+    <div class="row"><span class="label">数据完整性</span><span class="value" id="coverageStatus">检查中</span></div>
+    <div class="row"><span class="label">最近同步</span><span class="value" id="lastSyncAt">无</span></div>
+  </div>
+  <div class="actions">
+    <button class="primary" id="syncNow">立即同步</button>
+    <button class="soft" id="clearQueue">清空队列</button>
+  </div>
+  <div class="hint" id="lastError">打开同花顺投资账本后会自动捕获，只同步到本机 127.0.0.1。</div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
