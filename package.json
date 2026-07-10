@@ -1,0 +1,9 @@
+{
+  "name": "tzzb-review-cloud",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build-cloud-site.mjs",
+    "test": "node tests/run-all.mjs"
+  }
+}

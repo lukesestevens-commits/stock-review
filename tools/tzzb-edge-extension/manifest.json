@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "同花顺复盘稳定捕获",
+  "version": "1.0.0",
+  "description": "自动捕获同花顺投资账本只读响应，并同步到本地复盘助手。",
+  "permissions": ["alarms", "storage", "scripting"],
+  "host_permissions": [
+    "https://tzzb.10jqka.com.cn/*",
+    "http://127.0.0.1:8787/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "同花顺复盘捕获"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://tzzb.10jqka.com.cn/*"],
+      "js": ["page-capture.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": ["https://tzzb.10jqka.com.cn/*"],
+      "js": ["content-bridge.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

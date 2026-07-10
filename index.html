@@ -227,7 +227,7 @@
     border-radius:18px; overflow:auto;
     background:linear-gradient(180deg,#fff,#fbfcff);
   }
-  table{width:100%; border-collapse:separate; border-spacing:0; min-width:1280px;}
+  table{width:100%; border-collapse:separate; border-spacing:0; min-width:1440px;}
   th,td{
     padding:10px 10px; border-bottom:1px solid #eef2f7; text-align:left; vertical-align:top;
   }
@@ -241,6 +241,46 @@
     border-radius:12px; padding:9px 10px; font-size:13px;
   }
   td textarea{min-height:52px}
+  .holding-table{min-width:1180px}
+  .trade-detail-toggle{
+    margin-top:8px;
+    border-radius:12px;
+    border:1px solid #e8edf5;
+    background:#f8fbff;
+    padding:8px;
+  }
+  .trade-detail-toggle summary{
+    cursor:pointer;
+    color:#526071;
+    font-size:12px;
+    font-weight:800;
+    list-style:none;
+  }
+  .trade-detail-toggle summary::-webkit-details-marker{display:none}
+  .trade-detail-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px;
+    margin-top:8px;
+  }
+  .secondary-tools{
+    margin-top:16px;
+    border-radius:20px;
+    border:1px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    overflow:hidden;
+  }
+  .secondary-tools summary{
+    cursor:pointer;
+    padding:14px 16px;
+    font-size:13px;
+    font-weight:800;
+    color:rgba(255,255,255,.9);
+  }
+  .secondary-tools-body{
+    padding:0 16px 16px;
+  }
   .rowScore{
     display:inline-flex;
     min-width:56px; justify-content:center; align-items:center;
@@ -526,7 +566,6 @@
     filter:blur(16px) saturate(125%);
     opacity:.78;
     transform:translate3d(0,0,0) scale(1.02);
-    animation:liquidBackdrop 36s ease-in-out infinite alternate;
   }
   body::after{
     inset:0;
@@ -537,20 +576,6 @@
       repeating-linear-gradient(135deg, rgba(255,255,255,.055) 0 1px, transparent 1px 18px);
     filter:none;
     opacity:.74;
-    animation:liquidSheen 14s ease-in-out infinite alternate;
-  }
-  @keyframes liquidBackdrop{
-    0%{transform:translate3d(-1.4%,-1%,0) scale(1.02) rotate(0deg)}
-    45%{transform:translate3d(1.2%,.8%,0) scale(1.035) rotate(2.5deg)}
-    100%{transform:translate3d(-.6%,1.4%,0) scale(1.025) rotate(-2deg)}
-  }
-  @keyframes liquidSheen{
-    0%{opacity:.42; transform:translate3d(-1%,0,0)}
-    100%{opacity:.64; transform:translate3d(1%,0,0)}
-  }
-  @media(prefers-reduced-motion:reduce){
-    body::before,
-    body::after{animation:none}
   }
   .shell{
     position:relative;
@@ -663,8 +688,6 @@
     position:relative;
     margin-top:12px;
     border-radius:14px;
-    content-visibility:auto;
-    contain-intrinsic-size:520px;
     background:
       radial-gradient(circle at 4% 0, rgba(32,214,199,.12), transparent 26%),
       radial-gradient(circle at 96% 0, rgba(255,73,104,.10), transparent 24%),
@@ -795,7 +818,7 @@
   }
   table{
     width:max-content;
-    min-width:1180px;
+    min-width:1440px;
     table-layout:fixed;
   }
   th,td{
@@ -826,6 +849,24 @@
   th:nth-child(13),td:nth-child(13){width:78px}
   th:nth-child(14),td:nth-child(14){width:70px}
   th:nth-child(15),td:nth-child(15){width:66px}
+  #tradeTable{
+    min-width:1440px;
+  }
+  #tradeTable th:nth-child(1),#tradeTable td:nth-child(1){width:96px}
+  #tradeTable th:nth-child(2),#tradeTable td:nth-child(2){width:150px}
+  #tradeTable th:nth-child(3),#tradeTable td:nth-child(3){width:96px}
+  #tradeTable th:nth-child(4),#tradeTable td:nth-child(4){width:124px}
+  #tradeTable th:nth-child(5),#tradeTable td:nth-child(5){width:124px}
+  #tradeTable th:nth-child(6),#tradeTable td:nth-child(6){width:148px}
+  #tradeTable th:nth-child(7),#tradeTable td:nth-child(7){width:180px}
+  #tradeTable th:nth-child(8),#tradeTable td:nth-child(8),
+  #tradeTable th:nth-child(9),#tradeTable td:nth-child(9),
+  #tradeTable th:nth-child(10),#tradeTable td:nth-child(10){width:112px}
+  #tradeTable th:nth-child(11),#tradeTable td:nth-child(11){width:86px}
+  #tradeTable th:nth-child(12),#tradeTable td:nth-child(12){width:70px}
+  #tradeTable td{
+    vertical-align:middle;
+  }
   td input,td select,td textarea{
     width:100%;
     min-width:0;
@@ -836,6 +877,32 @@
   td textarea{
     min-height:46px;
     max-height:120px;
+  }
+  #tradeTable td input,
+  #tradeTable td select,
+  #tradeTable td textarea,
+  #tradeTable .trade-detail-toggle{
+    height:46px;
+    min-height:46px;
+  }
+  #tradeTable td textarea.trade-reason{
+    resize:none;
+    overflow:auto;
+  }
+  #tradeTable .trade-detail-toggle{
+    display:flex;
+    align-items:stretch;
+    width:100%;
+    margin-top:0;
+    padding:0;
+  }
+  #tradeTable .trade-detail-toggle summary{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+    height:100%;
+    padding:0 8px;
   }
   .out{
     min-height:220px;
@@ -859,6 +926,58 @@
     -webkit-backdrop-filter:blur(24px) saturate(140%);
   }
   .modal-body{padding:14px}
+
+  @media(min-width:981px){
+    html{
+      height:auto;
+      min-height:100%;
+      overflow-y:auto;
+      overscroll-behavior-y:auto;
+    }
+    body{
+      height:auto;
+      min-height:100%;
+      overflow-x:hidden;
+      overflow-y:auto;
+      overscroll-behavior-y:auto;
+    }
+    .shell{
+      height:auto;
+      min-height:100vh;
+      overflow:visible;
+      overscroll-behavior-y:auto;
+      scrollbar-gutter:auto;
+      filter:none;
+    }
+    .hero,
+    .hero-tag,
+    .btn-hero,
+    .dash,
+    .section,
+    .field,
+    .panel,
+    .quality-box,
+    .score-item,
+    .history-kpi,
+    .table-wrap,
+    th,
+    .out{
+      backdrop-filter:none;
+      -webkit-backdrop-filter:none;
+    }
+    .section,
+    .field,
+    .panel,
+    .quality-box,
+    .score-item,
+    .history-kpi,
+    .table-wrap{
+      box-shadow:0 10px 24px rgba(8,20,38,.08), inset 0 1px 0 rgba(255,255,255,.72);
+    }
+    .hero{
+      box-shadow:0 16px 34px rgba(39,28,71,.14), inset 0 1px 0 rgba(255,255,255,.70);
+    }
+  }
 
   @media(min-width:1180px){
     .g4{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -906,16 +1025,6 @@
           <div class="hero-tag">强势股</div>
           <div class="hero-tag">计划交易</div>
           <div class="hero-tag">风控优先</div>
-          <button class="btn-hero" onclick="openOcrModal()">📷 截图智能导入</button>
-        </div>
-      </div>
-
-      <div class="quote-card">
-        <div class="quote-icon">✦</div>
-        <div class="quote-body">
-          <div class="label">今日股市箴言</div>
-          <div class="text" id="dailyQuote">会买的是徒弟，会卖的是师傅，会空仓的是祖师爷。</div>
-          <div class="sub" id="quoteSub">每天自动更新一句，不重复循环。</div>
         </div>
       </div>
 
@@ -937,6 +1046,23 @@
           <div class="v">抓一个错误，改一个习惯</div>
         </div>
       </div>
+
+      <details class="secondary-tools">
+        <summary>备用工具与每日提醒</summary>
+        <div class="secondary-tools-body">
+          <div class="toolbar" style="margin-bottom:12px">
+            <button class="btn-dark" onclick="openOcrModal()">截图智能导入</button>
+          </div>
+          <div class="quote-card">
+            <div class="quote-icon">✦</div>
+            <div class="quote-body">
+              <div class="label">今日股市箴言</div>
+              <div class="text" id="dailyQuote">会买的是徒弟，会卖的是师傅，会空仓的是祖师爷。</div>
+              <div class="sub" id="quoteSub">每天自动更新一句，不重复循环。</div>
+            </div>
+          </div>
+        </div>
+      </details>
     </section>
 
     <section class="section">
@@ -967,13 +1093,40 @@
           <div class="toolbar" style="justify-content:space-between;gap:12px">
             <div>
               <strong>同花顺自动导入</strong>
-              <div class="muted" id="tzzbImportStatus" style="margin-top:4px">启动本地复盘助手后，可从同花顺页面推送数据并自动填表。</div>
+              <div class="muted" id="tzzbImportStatus" style="margin-top:4px">启动本地复盘助手并安装捕获扩展后，同花顺页面会自动同步数据。</div>
+              <div class="muted" id="tzzbImportAudit" style="margin-top:4px">等待当天捕获数据。</div>
             </div>
             <div class="toolbar">
               <button class="btn-dark" onclick="importLatestTzzbData()">读取最新同花顺数据</button>
-              <button class="btn-soft" onclick="copyTzzbBookmarklet()">复制捕获书签</button>
+              <button class="btn-soft" onclick="showTzzbExtensionHelp()">安装/检查捕获扩展</button>
+              <button class="btn-light" onclick="clearTzzbCaptureData()">清理本地捕获</button>
             </div>
           </div>
+          <details class="secondary-tools" style="margin-top:12px;background:#f8fbff;color:#334155;border-color:#e6edf7">
+            <summary style="color:#334155">同步来源设置</summary>
+            <div class="secondary-tools-body">
+              <div class="grid g3">
+                <div class="field">
+                  <label>同步模式</label>
+                  <select id="tzzbSyncMode">
+                    <option value="local">本地助手</option>
+                    <option value="cloud">云端同步</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>云端地址</label>
+                  <input id="tzzbCloudSyncBaseUrl" placeholder="例如 https://review.example.com">
+                </div>
+                <div class="field">
+                  <label>访问码</label>
+                  <input id="tzzbCloudSyncKey" type="password" placeholder="部署时设置的访问码">
+                </div>
+              </div>
+              <div class="toolbar" style="margin-top:12px">
+                <button class="btn-dark" onclick="saveTzzbSyncConfig()">保存同步设置</button>
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="grid g3" style="margin-top:14px">
@@ -1020,7 +1173,6 @@
       </div>
       <div class="section-body">
         <div class="toolbar" style="margin-bottom:12px">
-          <button class="btn-dark" onclick="openOcrModal()">📷 截图智能导入</button>
           <button class="btn-red" onclick="addTrade()">+ 添加一笔交易</button>
           <button class="btn-soft" onclick="recalc()">重新计算评分</button>
           <button class="btn-danger" onclick="clearTrades()">清空交易表</button>
@@ -1032,15 +1184,12 @@
                 <th>时间</th>
                 <th>股票/ETF</th>
                 <th>买/卖</th>
-                <th>价格</th>
-                <th>数量</th>
                 <th>金额</th>
+                <th>明细</th>
                 <th>模式</th>
                 <th>理由</th>
                 <th>计划性</th>
                 <th>主线</th>
-                <th>买卖点</th>
-                <th>仓位</th>
                 <th>风控</th>
                 <th>总分</th>
                 <th></th>
@@ -1091,23 +1240,34 @@
         <div class="section-title">
           <div class="section-num">3</div>
           <div>
-            <h2>今日反思</h2>
-            <p>复盘不是批判自己，而是提取经验。把“后悔”变成“规则”。</p>
+            <h2>持仓复盘与明日预案</h2>
+            <p>同花顺持仓会自动进入这里，你只需要判断逻辑是否还成立，以及明天怎么处理。</p>
           </div>
         </div>
-        <div class="chips">
-          <div class="chip">✅ 今天做对了什么</div>
-          <div class="chip">⚠️ 最大错误</div>
-          <div class="chip">🚫 最不该做的一笔</div>
-          <div class="chip">🧱 明天最重要纪律</div>
+        <div class="toolbar">
+          <button class="btn-soft" onclick="addHoldingReviewRow()">+ 补一只持仓</button>
+          <button class="btn-dark" onclick="syncHoldingPlanToTomorrow()">生成明日计划</button>
+          <button class="btn-danger" onclick="clearHoldingPlans()">清空持仓表</button>
         </div>
       </div>
       <div class="section-body">
-        <div class="grid g2">
-          <div class="field"><label>今天做对了什么？</label><textarea id="rightThing" placeholder="例如：提前关注到存储/液冷主线，方向判断不错。"></textarea></div>
-          <div class="field"><label>今天最大的错误是什么？</label><textarea id="bigMistake" placeholder="例如：高价股一手占比过高，开盘确认不足就重仓。"></textarea></div>
-          <div class="field"><label>最不该做的一笔</label><textarea id="worstTrade" placeholder="例如：10点后临时买入某票，属于随手单。"></textarea></div>
-          <div class="field"><label>明天最需要遵守的一条纪律</label><textarea id="discipline" placeholder="例如：开盘前30分钟不新增陌生票；10点后禁止随手开仓。"></textarea></div>
+        <div class="table-wrap">
+          <table id="holdingTable" class="holding-table">
+            <thead>
+              <tr>
+                <th>股票/ETF</th>
+                <th>市值 / 仓位</th>
+                <th>是否核心</th>
+                <th>持仓逻辑是否成立</th>
+                <th>明日处理</th>
+                <th>触发条件</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="holdingBody">
+              <tr class="holding-empty"><td colspan="7" class="muted">同步同花顺持仓后会自动生成。也可以手动补充需要跟踪的股票。</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -1116,6 +1276,28 @@
       <div class="section-head">
         <div class="section-title">
           <div class="section-num">4</div>
+          <div>
+            <h2>今日反思</h2>
+            <p>复盘不是批判自己，而是提取经验。把“后悔”变成“规则”。</p>
+          </div>
+        </div>
+        <div class="chips">
+          <div class="chip">✅ 今天做对了什么</div>
+          <div class="chip">⚠️ 今天做错了什么</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="grid g2">
+          <div class="field"><label>今天做对了什么？</label><textarea id="rightThing" placeholder="例如：提前关注到存储/液冷主线，方向判断不错。"></textarea></div>
+          <div class="field"><label>今天做错了什么？</label><textarea id="bigMistake" placeholder="例如：高价股一手占比过高，开盘确认不足就重仓。"></textarea></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div class="section-title">
+          <div class="section-num">5</div>
           <div>
             <h2>明日操作计划</h2>
             <p>区分主线核心仓、随手单和新开仓方向，让明天不是“临盘乱做”，而是“有准备地出手”。</p>
@@ -1138,7 +1320,7 @@
     <section class="section">
       <div class="section-head">
         <div class="section-title">
-          <div class="section-num">5</div>
+          <div class="section-num">6</div>
           <div>
             <h2>复盘质量与历史追踪</h2>
             <p>把每天的复盘变成可对比的数据，重点看纪律是否越来越稳定。</p>
@@ -1179,7 +1361,7 @@
     <section class="section">
       <div class="section-head">
         <div class="section-title">
-          <div class="section-num">6</div>
+          <div class="section-num">7</div>
           <div>
             <h2>生成发给 ChatGPT 的复盘文本</h2>
             <p>点一下就能生成固定模板，减少写作压力，留下标准化记录。</p>
@@ -1330,8 +1512,15 @@ const QUOTES = [
 const STORAGE_CURRENT = 'tradeReviewDataV3';
 const STORAGE_HISTORY = 'tradeReviewHistoryV1';
 const STORAGE_OCR_PREFS = 'ocrImportPrefsV1';
+const STORAGE_TZZB_IMPORT = 'tzzbLastImportedAtV1';
+const STORAGE_TZZB_SYNC_MODE = 'tzzbSyncModeV1';
+const STORAGE_TZZB_CLOUD_BASE = 'tzzbCloudSyncBaseUrlV1';
+const STORAGE_TZZB_CLOUD_KEY = 'tzzbCloudSyncKeyV1';
 let ocrFiles = [];
 let lastOcrResult = {trades:[], asset:{}, warnings:[]};
+let lastTzzbImportedAt = localStorage.getItem(STORAGE_TZZB_IMPORT) || '';
+let lastMarketImportedAt = '';
+let tzzbAutoImportTimer = null;
 
 function shuffle(arr){
   const a=[...arr];
@@ -1387,11 +1576,15 @@ function todayStr(){ return formatDate(new Date()); }
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('date').value = todayStr();
   loadOcrPrefs();
+  loadTzzbSyncConfig();
   initDailyQuote();
   addTrade({time:'09:30',name:'',side:'买入'});
   addTrade({time:'09:35',name:'',side:'卖出'});
   recalc();
   renderHistoryPanel();
+  checkTzzbHelperHealth();
+  startTzzbAutoImport();
+  importMarketSnapshot();
 });
 
 function scoreSelect(value=1){
@@ -1403,6 +1596,10 @@ function scoreSelect(value=1){
     <option value="2" ${value==2?'selected':''}>2</option>
   </select>`;
 }
+function scoreFromCoreDimensions(scores){
+  const raw = scores.reduce((sum,value)=>sum+(parseFloat(value)||0),0);
+  return +(raw / 6 * 10).toFixed(1);
+}
 function esc(value){
   return String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
@@ -1413,28 +1610,33 @@ function addTrade(data={}){
   const side = data.side === '卖出' ? '卖出' : '买入';
   const mode = data.mode || '趋势波段';
   tr.innerHTML=`
-    <td><input placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
-    <td><input placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
+    <td><input class="trade-time" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
+    <td><input class="trade-name" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
     <td>
-      <select>
+      <select class="trade-side">
         <option ${side==='买入'?'selected':''}>买入</option>
         <option ${side==='卖出'?'selected':''}>卖出</option>
       </select>
     </td>
-    <td><input type="number" step="0.001" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)"></td>
-    <td><input type="number" placeholder="数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)"></td>
-    <td><input type="number" step="0.01" placeholder="金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()"></td>
+    <td><input class="trade-amount" type="number" step="0.01" placeholder="金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()"></td>
     <td>
-      <select>
+      <details class="trade-detail-toggle">
+        <summary>价格 / 数量</summary>
+        <div class="trade-detail-grid">
+          <input class="trade-price" type="number" step="0.001" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)">
+          <input class="trade-qty" type="number" placeholder="数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)">
+        </div>
+      </details>
+    </td>
+    <td>
+      <select class="trade-mode">
         <option ${mode==='趋势波段'?'selected':''}>趋势波段</option><option ${mode==='强势股'?'selected':''}>强势股</option><option ${mode==='事件套利'?'selected':''}>事件套利</option>
         <option ${mode==='ETF主线'?'selected':''}>ETF主线</option><option ${mode==='止盈/止损'?'selected':''}>止盈/止损</option><option ${mode==='随手单'?'selected':''}>随手单</option>
       </select>
     </td>
-    <td><textarea placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
+    <td><textarea class="trade-reason" placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
     <td>${scoreSelect(data.planScore ?? 1)}</td>
     <td>${scoreSelect(data.lineScore ?? 1)}</td>
-    <td>${scoreSelect(data.timingScore ?? 1)}</td>
-    <td>${scoreSelect(data.sizeScore ?? 1)}</td>
     <td>${scoreSelect(data.riskScore ?? 1)}</td>
     <td><span class="rowScore">5.0</span></td>
     <td><button class="btn-danger" onclick="this.closest('tr').remove();recalc()">删</button></td>`;
@@ -1443,9 +1645,9 @@ function addTrade(data={}){
 }
 function calcAmount(el){
   const tr=el.closest('tr');
-  const price=parseFloat(tr.children[3].querySelector('input').value)||0;
-  const qty=parseFloat(tr.children[4].querySelector('input').value)||0;
-  if(price && qty) tr.children[5].querySelector('input').value=(price*qty).toFixed(2);
+  const price=parseFloat(tr.querySelector('.trade-price')?.value)||0;
+  const qty=parseFloat(tr.querySelector('.trade-qty')?.value)||0;
+  if(price && qty) tr.querySelector('.trade-amount').value=(price*qty).toFixed(2);
   refreshQualityPanel();
 }
 function recalc(){
@@ -1453,7 +1655,7 @@ function recalc(){
   let total=0, good=0, bad=0, unplanned=0;
   rows.forEach(tr=>{
     const scores=[...tr.querySelectorAll('select.score')].map(s=>parseFloat(s.value)||0);
-    const sum=scores.reduce((a,b)=>a+b,0);
+    const sum=scoreFromCoreDimensions(scores);
     const badge=tr.querySelector('.rowScore');
     badge.textContent=sum.toFixed(1);
     badge.style.background = sum>=8 ? '#e8fff5' : sum<5 ? '#fff1f2' : '#f3f6fb';
@@ -1474,6 +1676,99 @@ function clearTrades(){
     document.getElementById('tradeBody').innerHTML='';
     recalc();
   }
+}
+function holdingActionSelect(value='观察'){
+  const options = ['持有','减仓','清仓','观察','加仓候选'];
+  return `<select class="holding-action">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
+}
+function holdingCoreSelect(value='待判断'){
+  const options = ['核心','非核心','待判断'];
+  return `<select class="holding-core">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
+}
+function removeHoldingEmpty(){
+  document.querySelector('#holdingBody .holding-empty')?.remove();
+}
+function renderHoldingEmpty(){
+  const body = document.getElementById('holdingBody');
+  if(!body || body.children.length) return;
+  const tr = document.createElement('tr');
+  tr.className = 'holding-empty';
+  tr.innerHTML = '<td colspan="7" class="muted">同步同花顺持仓后会自动生成。也可以手动补充需要跟踪的股票。</td>';
+  body.appendChild(tr);
+}
+function addHoldingReviewRow(data={}){
+  const body = document.getElementById('holdingBody');
+  if(!body) return;
+  removeHoldingEmpty();
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>
+      <input class="holding-name" placeholder="股票/ETF" value="${esc(data.name||'')}">
+      <input class="holding-code" placeholder="代码" value="${esc(data.code||'')}" style="margin-top:8px">
+    </td>
+    <td>
+      <input class="holding-value" placeholder="市值" value="${esc(data.value||'')}">
+      <input class="holding-weight" placeholder="仓位占比" value="${esc(data.weight||'')}" style="margin-top:8px">
+    </td>
+    <td>${holdingCoreSelect(data.isCore || '待判断')}</td>
+    <td><textarea class="holding-logic" placeholder="例如：仍是主线核心，承接未破坏。">${esc(data.logic||'')}</textarea></td>
+    <td>${holdingActionSelect(data.tomorrowAction || '观察')}</td>
+    <td><textarea class="holding-trigger" placeholder="例如：跌破5日线减仓；放量突破再加。">${esc(data.trigger||'')}</textarea></td>
+    <td><button class="btn-danger" onclick="this.closest('tr').remove();renderHoldingEmpty()">删</button></td>`;
+  body.appendChild(tr);
+}
+function clearHoldingPlans(){
+  if(!confirm('确定清空持仓复盘表吗？')){
+    return;
+  }
+  document.getElementById('holdingBody').innerHTML = '';
+  renderHoldingEmpty();
+}
+function collectHoldingPlan(){
+  return [...document.querySelectorAll('#holdingBody tr')]
+    .filter(tr=>!tr.classList.contains('holding-empty'))
+    .map(tr=>({
+      name: tr.querySelector('.holding-name')?.value.trim() || '',
+      code: tr.querySelector('.holding-code')?.value.trim() || '',
+      value: tr.querySelector('.holding-value')?.value.trim() || '',
+      weight: tr.querySelector('.holding-weight')?.value.trim() || '',
+      isCore: tr.querySelector('.holding-core')?.value || '待判断',
+      logic: tr.querySelector('.holding-logic')?.value.trim() || '',
+      tomorrowAction: tr.querySelector('.holding-action')?.value || '观察',
+      trigger: tr.querySelector('.holding-trigger')?.value.trim() || ''
+    }))
+    .filter(item=>item.name || item.code || item.logic || item.trigger);
+}
+function applyHoldingPlans(holdings=[]){
+  const body = document.getElementById('holdingBody');
+  if(!body) return;
+  body.innerHTML = '';
+  holdings.forEach(item=>addHoldingReviewRow(item));
+  renderHoldingEmpty();
+}
+function formatHoldingPlanText(holdings=collectHoldingPlan()){
+  if(!holdings.length) return '暂无持仓计划。';
+  return holdings.map((item,index)=>{
+    const title = `${item.name || item.code || '未命名持仓'}${item.weight ? `（${item.weight}）` : ''}`;
+    return `${index+1}. ${title}：${item.isCore}，明日${item.tomorrowAction}；逻辑：${item.logic || '未填写'}；触发条件：${item.trigger || '未填写'}`;
+  }).join('\n');
+}
+function syncHoldingPlanToTomorrow(){
+  const holdings = collectHoldingPlan();
+  if(!holdings.length){
+    alert('请先同步或填写持仓复盘。');
+    return;
+  }
+  const core = holdings.filter(item=>item.isCore === '核心');
+  const noise = holdings.filter(item=>item.isCore !== '核心');
+  const coreText = core.length
+    ? core.map(item=>`${item.name || item.code}：${item.tomorrowAction}，${item.trigger || '按盘面确认'}`).join('；')
+    : '暂无明确主线核心仓，先观察市场主线是否延续。';
+  const noiseText = noise.length
+    ? noise.map(item=>`${item.name || item.code}：${item.tomorrowAction}，${item.trigger || '弱于预期处理'}`).join('；')
+    : '暂无非核心仓。';
+  document.getElementById('corePlan').value = coreText;
+  document.getElementById('noisePlan').value = noiseText;
 }
 function normalizeNumber(value){
   const raw = String(value ?? '').replace(/,/g,'').match(/[+-]?\d+(?:\.\d+)?/);
@@ -1780,23 +2075,20 @@ function applyOcrImport(){
 }
 function getTradeRowsData(){
   return [...document.querySelectorAll('#tradeBody tr')].map(tr=>{
-    const cells=[...tr.children];
     const scores=[...tr.querySelectorAll('select.score')].map(s=>parseFloat(s.value)||0);
     return {
-      time: cells[0].querySelector('input').value.trim(),
-      name: cells[1].querySelector('input').value.trim(),
-      side: cells[2].querySelector('select').value,
-      price: cells[3].querySelector('input').value.trim(),
-      qty: cells[4].querySelector('input').value.trim(),
-      amount: cells[5].querySelector('input').value.trim(),
-      mode: cells[6].querySelector('select').value,
-      reason: cells[7].querySelector('textarea').value.trim(),
+      time: tr.querySelector('.trade-time')?.value.trim() || '',
+      name: tr.querySelector('.trade-name')?.value.trim() || '',
+      side: tr.querySelector('.trade-side')?.value || '买入',
+      price: tr.querySelector('.trade-price')?.value.trim() || '',
+      qty: tr.querySelector('.trade-qty')?.value.trim() || '',
+      amount: tr.querySelector('.trade-amount')?.value.trim() || '',
+      mode: tr.querySelector('.trade-mode')?.value || '趋势波段',
+      reason: tr.querySelector('.trade-reason')?.value.trim() || '',
       planScore: scores[0] || 0,
       lineScore: scores[1] || 0,
-      timingScore: scores[2] || 0,
-      sizeScore: scores[3] || 0,
-      riskScore: scores[4] || 0,
-      score: scores.reduce((a,b)=>a+b,0)
+      riskScore: scores[2] || 0,
+      score: scoreFromCoreDimensions(scores)
     };
   });
 }
@@ -1889,7 +2181,8 @@ function collectStructured(){
     basic:{capital: val('capital'), position: val('position'), pnl: val('pnl')},
     market:{indexState: val('indexState'), mood: val('mood'), actionEnv: val('actionEnv'), mainLines: val('mainLines'), marketOne: val('marketOne')},
     trades,
-    reflection:{rightThing: val('rightThing'), bigMistake: val('bigMistake'), worstTrade: val('worstTrade'), discipline: val('discipline')},
+    holdings: collectHoldingPlan(),
+    reflection:{rightThing: val('rightThing'), bigMistake: val('bigMistake')},
     plan:{corePlan: val('corePlan'), noisePlan: val('noisePlan'), newPlan: val('newPlan'), banRule: val('banRule'), selfTalk: val('selfTalk')},
     stats: insights.stats,
     quality: insights
@@ -1967,16 +2260,15 @@ function tradeLines(){
   const rows=[...document.querySelectorAll('#tradeBody tr')];
   if(!rows.length) return '无';
   return rows.map((tr,i)=>{
-    const c=[...tr.children];
-    const time=c[0].querySelector('input').value;
-    const name=c[1].querySelector('input').value;
-    const side=c[2].querySelector('select').value;
-    const price=c[3].querySelector('input').value;
-    const qty=c[4].querySelector('input').value;
-    const amount=c[5].querySelector('input').value;
-    const mode=c[6].querySelector('select').value;
-    const reason=c[7].querySelector('textarea').value;
-    const score=c[13].querySelector('.rowScore').textContent;
+    const time=tr.querySelector('.trade-time')?.value || '';
+    const name=tr.querySelector('.trade-name')?.value || '';
+    const side=tr.querySelector('.trade-side')?.value || '';
+    const price=tr.querySelector('.trade-price')?.value || '';
+    const qty=tr.querySelector('.trade-qty')?.value || '';
+    const amount=tr.querySelector('.trade-amount')?.value || '';
+    const mode=tr.querySelector('.trade-mode')?.value || '';
+    const reason=tr.querySelector('.trade-reason')?.value || '';
+    const score=tr.querySelector('.rowScore')?.textContent || '0';
     return `${i+1}. ${time} ${side} ${name}，价格${price || '未填'}，数量${qty || '未填'}，金额${amount || '未填'}，模式：${mode}，理由：${reason || '未填写'}，自评：${score}/10`;
   }).join('\n');
 }
@@ -1985,6 +2277,7 @@ function generateText(){
   const structured = collectStructured();
   const qualityText = formatQualityText(structured.quality);
   const historyText = formatHistoryText();
+  const holdingText = formatHoldingPlanText(structured.holdings);
   const importSummary = document.getElementById('ocrImportSummary')?.textContent || '尚未导入截图。';
   const text=`【A股每日交易复盘】
 
@@ -2004,20 +2297,21 @@ function generateText(){
 三、今日成交与自评
 ${tradeLines()}
 
-四、复盘质量与风险提醒
+四、持仓复盘与明日预案
+${holdingText}
+
+五、复盘质量与风险提醒
 截图导入摘要：${importSummary}
 ${qualityText}
 
-五、历史趋势
+六、历史趋势
 ${historyText}
 
-六、今日反思
+七、今日反思
 今天做对了什么：${val('rightThing') || '未填写'}
-今天最大的错误：${val('bigMistake') || '未填写'}
-最不该做的一笔：${val('worstTrade') || '未填写'}
-明天最需要遵守的一条纪律：${val('discipline') || '未填写'}
+今天做错了什么：${val('bigMistake') || '未填写'}
 
-七、明日操作计划
+八、明日操作计划
 主线核心仓：${val('corePlan') || '未填写'}
 随手单/低质量仓：${val('noisePlan') || '未填写'}
 允许新开的仓位/方向：${val('newPlan') || '未填写'}
@@ -2072,8 +2366,6 @@ function applyStructured(record){
   set('marketOne', market.marketOne || '');
   set('rightThing', reflection.rightThing || '');
   set('bigMistake', reflection.bigMistake || '');
-  set('worstTrade', reflection.worstTrade || '');
-  set('discipline', reflection.discipline || '');
   set('corePlan', plan.corePlan || '');
   set('noisePlan', plan.noisePlan || '');
   set('newPlan', plan.newPlan || '');
@@ -2081,20 +2373,61 @@ function applyStructured(record){
   set('selfTalk', plan.selfTalk || '');
   document.getElementById('tradeBody').innerHTML='';
   (record.trades || []).forEach(trade=>addTrade(trade));
+  applyHoldingPlans(record.holdings || []);
   recalc();
 }
 function setTzzbImportStatus(message){
   const el = document.getElementById('tzzbImportStatus');
   if(el) el.textContent = message;
 }
-async function fetchTzzbApi(path){
+function setTzzbImportAudit(message){
+  const el = document.getElementById('tzzbImportAudit');
+  if(el) el.textContent = message;
+}
+function formatTzzbAudit(raw={}, audit={}){
+  const coverage = raw.endpointCoverage || {};
+  const parts = [
+    `日期 ${raw.targetDate || audit.targetDate || todayStr()}`,
+    `记录 ${raw.records ?? 0} 条`,
+    `资金 ${audit.capitalSource || '未知'}`,
+    `持仓 ${audit.holdingSource || '未知'}`,
+    `交易 ${audit.tradeSource || '未知'}`
+  ];
+  if(raw.receivedAt) parts.push(`捕获 ${new Date(raw.receivedAt).toLocaleString()}`);
+  if(coverage.endpointCounts){
+    parts.push(`接口 ${Object.keys(coverage.endpointCounts).length} 类`);
+  }
+  const warnings = audit.warnings?.length ? `；提醒：${audit.warnings.join('、')}` : '';
+  return `${parts.join('｜')}${warnings}`;
+}
+function rememberTzzbImport(importedAt){
+  if(!importedAt) return;
+  lastTzzbImportedAt = importedAt;
+  localStorage.setItem(STORAGE_TZZB_IMPORT, importedAt);
+}
+async function fetchTzzbApi(path, options={}){
+  const syncConfig = getTzzbSyncConfig();
+  if(syncConfig.mode === 'cloud'){
+    const cloudPath = mapTzzbCloudPath(path);
+    if(!cloudPath) throw new Error('云端模式不支持当前操作。');
+    if(!syncConfig.baseUrl) throw new Error('请先填写云同步地址。');
+    if(!syncConfig.key) throw new Error('请先填写云同步访问码。');
+    const url = new URL(cloudPath, syncConfig.baseUrl);
+    const headers = {
+      ...(options.headers || {}),
+      'X-TZZB-Sync-Key': syncConfig.key
+    };
+    const res = await fetch(url.toString(), {...options, headers});
+    const data = await res.json();
+    return {res, data};
+  }
   const localUrl = `http://127.0.0.1:8787${path}`;
   const sameOriginAllowed = ['localhost', '127.0.0.1'].includes(location.hostname);
   const urls = sameOriginAllowed ? [path, localUrl] : [localUrl, path];
   let lastError;
   for(const url of urls){
     try{
-      const res = await fetch(url);
+      const res = await fetch(url, options);
       const data = await res.json();
       return {res, data};
     }catch(error){
@@ -2103,7 +2436,135 @@ async function fetchTzzbApi(path){
   }
   throw lastError || new Error('无法连接本地复盘助手。');
 }
-function applyTzzbReviewData(review){
+function isHostedReviewSite(){
+  return location.protocol === 'https:' && !['localhost', '127.0.0.1'].includes(location.hostname);
+}
+function getTzzbSyncConfig(){
+  const hosted = isHostedReviewSite();
+  return {
+    mode: localStorage.getItem(STORAGE_TZZB_SYNC_MODE) || (hosted ? 'cloud' : 'local'),
+    baseUrl: localStorage.getItem(STORAGE_TZZB_CLOUD_BASE) || (hosted ? location.origin : ''),
+    key: localStorage.getItem(STORAGE_TZZB_CLOUD_KEY) || ''
+  };
+}
+function tzzbSyncSourceLabel(config=getTzzbSyncConfig()){
+  return config.mode === 'cloud' ? '云端同步' : '本地复盘助手';
+}
+function mapTzzbCloudPath(path){
+  if(path === '/api/tzzb-latest') return '/api/sync/latest';
+  if(path === '/api/tzzb-health') return '/api/sync/health';
+  if(path === '/api/market-snapshot') return '/api/market-snapshot';
+  return '';
+}
+function loadTzzbSyncConfig(){
+  const config = getTzzbSyncConfig();
+  const mode = document.getElementById('tzzbSyncMode');
+  const baseUrl = document.getElementById('tzzbCloudSyncBaseUrl');
+  const key = document.getElementById('tzzbCloudSyncKey');
+  if(mode) mode.value = config.mode;
+  if(baseUrl) baseUrl.value = config.baseUrl;
+  if(key) key.value = config.key;
+}
+function saveTzzbSyncConfig(){
+  const mode = document.getElementById('tzzbSyncMode')?.value || 'local';
+  const baseUrl = (document.getElementById('tzzbCloudSyncBaseUrl')?.value || '').trim().replace(/\/+$/,'');
+  const key = (document.getElementById('tzzbCloudSyncKey')?.value || '').trim();
+  localStorage.setItem(STORAGE_TZZB_SYNC_MODE, mode);
+  localStorage.setItem(STORAGE_TZZB_CLOUD_BASE, baseUrl);
+  localStorage.setItem(STORAGE_TZZB_CLOUD_KEY, key);
+  lastTzzbImportedAt = '';
+  localStorage.removeItem(STORAGE_TZZB_IMPORT);
+  const label = mode === 'cloud' ? '云端同步' : '本地助手';
+  setTzzbImportStatus(`已切换为${label}模式，正在重新检查数据。`);
+  checkTzzbHelperHealth();
+  autoImportLatestTzzbData();
+}
+async function checkTzzbHelperHealth(){
+  const syncConfig = getTzzbSyncConfig();
+  const sourceLabel = tzzbSyncSourceLabel(syncConfig);
+  try{
+    const {res, data} = await fetchTzzbApi('/api/tzzb-health');
+    if(!res.ok || !data.ok) throw new Error(data.error || `${sourceLabel}未响应。`);
+    const latest = data.latestRecordCount
+      ? `最近已收到 ${data.latestRecordCount} 条同花顺响应。`
+      : '还没有收到同花顺数据。';
+    const readiness = data.readyForReview
+      ? '当天持仓和交易记录已就绪。'
+      : `缺少${(data.endpointCoverage?.missing || ['资金/持仓', '交易记录']).join('、')}，请刷新或重新打开同花顺投资账本。`;
+    const connected = syncConfig.mode === 'cloud'
+      ? '云端同步已连接，电脑捕获的数据可在此自动读取。'
+      : '本地复盘助手在线，捕获扩展可自动同步。';
+    setTzzbImportStatus(`${connected}${latest}${readiness}`);
+    setTzzbImportAudit(formatTzzbAudit(data, data.importAudit || {}));
+  }catch(error){
+    if(syncConfig.mode === 'cloud'){
+      setTzzbImportStatus(`云端同步未连接：${error.message}`);
+      setTzzbImportAudit('等待云端同步连接。');
+    }else{
+      setTzzbImportStatus('本地复盘助手未连接。请双击“启动复盘助手.command”，再安装/检查捕获扩展。');
+      setTzzbImportAudit('等待本地助手连接。');
+    }
+  }
+}
+function tzzbMissingMessage(data){
+  const missing = data?.endpointCoverage?.missing || data?.raw?.endpointCoverage?.missing || ['资金/持仓', '交易记录'];
+  return `缺少${missing.join('、')}，请刷新或重新打开同花顺投资账本，等页面加载完成后再读取。`;
+}
+async function autoImportLatestTzzbData(){
+  try{
+    const {res, data} = await fetchTzzbApi('/api/tzzb-health');
+    if(!res.ok || !data.ok || !data.latestReceivedAt) return;
+    if(data.latestReceivedAt === lastTzzbImportedAt){
+      const marketImported = await importMarketSnapshot({silent:true});
+      if(marketImported) setTzzbImportStatus(`已自动补填 ${data.targetDate || '当天'} 指数和强势方向。`);
+      return;
+    }
+    if(!data.readyForReview){
+      setTzzbImportStatus(`已连接本地助手，但${tzzbMissingMessage(data)}`);
+      return;
+    }
+    const latest = await fetchTzzbApi('/api/tzzb-latest');
+    if(!latest.res.ok || !latest.data.ok || !latest.data.raw?.readyForReview) return;
+    applyTzzbReviewData(latest.data.review, latest.data.raw);
+    const marketImported = await importMarketSnapshot({silent:true});
+    rememberTzzbImport(data.latestReceivedAt);
+    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据，${marketImported ? '指数和强势方向已填写' : '指数和强势方向暂未更新'}。`);
+  }catch(error){
+    // 自动同步保持安静，按钮导入时再展示详细错误。
+  }
+}
+function startTzzbAutoImport(){
+  if(tzzbAutoImportTimer) clearInterval(tzzbAutoImportTimer);
+  autoImportLatestTzzbData();
+  tzzbAutoImportTimer = setInterval(autoImportLatestTzzbData, 3000);
+}
+function applyMarketSnapshot(market){
+  if(!market) return;
+  const set = (id,value) => {
+    const el = document.getElementById(id);
+    if(el && value !== undefined && value !== '') el.value = value;
+  };
+  set('indexState', market.indexState);
+  set('mood', market.mood);
+  set('actionEnv', market.actionEnv);
+  set('mainLines', market.mainLines);
+  set('marketOne', market.marketOne);
+  lastMarketImportedAt = market.updatedAt || new Date().toISOString();
+}
+async function importMarketSnapshot(options={}){
+  const silent = Boolean(options.silent);
+  try{
+    const {res, data} = await fetchTzzbApi('/api/market-snapshot');
+    if(!res.ok || !data.ok || !data.market) throw new Error(data.error || '公开市场数据暂不可用');
+    if(data.market.updatedAt && data.market.updatedAt === lastMarketImportedAt) return true;
+    applyMarketSnapshot(data.market);
+    return true;
+  }catch(error){
+    if(!silent) setTzzbImportStatus(`同花顺数据已保留，但指数和强势方向读取失败：${error.message}`);
+    return false;
+  }
+}
+function applyTzzbReviewData(review, raw={}){
   if(!review){
     setTzzbImportStatus('没有可导入的同花顺数据。');
     return;
@@ -2111,37 +2572,70 @@ function applyTzzbReviewData(review){
   const record = {
     date: review.date || todayStr(),
     basic: review.basic || {},
-    market: {},
+    market: review.market || collectStructured().market || {},
     reflection: {},
     plan: {},
+    holdings: review.holdings || review.tzzb?.holdings || [],
     trades: review.trades || []
   };
   applyStructured(record);
   const summary = review.importSummary || `同花顺导入：${record.trades.length} 笔成交。`;
   const ocrSummary = document.getElementById('ocrImportSummary');
   if(ocrSummary) ocrSummary.textContent = summary;
-  setTzzbImportStatus(`${summary} 当前持仓 ${review.tzzb?.holdingCount || 0} 条，手动补充买卖理由和评分即可。`);
+  setTzzbImportAudit(formatTzzbAudit(raw, review.tzzb?.importAudit || raw.importAudit || {}));
+  setTzzbImportStatus(`${summary} 当前持仓 ${review.tzzb?.holdingCount || 0} 条，补充持仓逻辑、买卖理由和评分即可。`);
 }
 async function importLatestTzzbData(){
-  setTzzbImportStatus('正在读取本地复盘助手中的同花顺数据...');
+  const syncConfig = getTzzbSyncConfig();
+  const sourceLabel = tzzbSyncSourceLabel(syncConfig);
+  setTzzbImportStatus(`正在读取${sourceLabel}中的同花顺数据...`);
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-latest');
     if(!res.ok || !data.ok){
       throw new Error(data.error || '本地助手暂时没有可导入数据。');
     }
-    applyTzzbReviewData(data.review);
+    if(!data.raw?.readyForReview){
+      setTzzbImportStatus(`暂不写入表单：${tzzbMissingMessage(data)}当前页面内容已保留。`);
+      return;
+    }
+    applyTzzbReviewData(data.review, data.raw);
+    const marketImported = await importMarketSnapshot();
+    rememberTzzbImport(data.raw?.receivedAt);
+    if(marketImported) setTzzbImportStatus('已读取最新同花顺数据，并填写指数情况和市场强势方向。');
   }catch(error){
-    setTzzbImportStatus(`读取失败：${error.message} 请确认本地复盘助手已启动，并已在同花顺页面推送数据。`);
+    const guidance = syncConfig.mode === 'cloud'
+      ? '请确认访问码正确，并在电脑端启动复盘助手完成上传。'
+      : '请确认本地复盘助手已启动，并已在同花顺页面推送数据。';
+    setTzzbImportStatus(`读取失败：${error.message} ${guidance}`);
   }
 }
-async function copyTzzbBookmarklet(){
+async function clearTzzbCaptureData(){
+  if(!confirm('清理本机保存的同花顺捕获数据？复盘表单当前内容不会被删除。')) return;
   try{
-    const {res, data} = await fetchTzzbApi('/api/tzzb-bookmarklet');
-    if(!res.ok || !data.bookmarklet) throw new Error(data.error || '无法生成书签。');
-    await navigator.clipboard.writeText(data.bookmarklet);
-    setTzzbImportStatus('捕获书签已复制。新建浏览器书签，把地址粘贴为刚复制的内容；在同花顺页面点击该书签即可捕获/推送。');
+    const {res, data} = await fetchTzzbApi('/api/tzzb-clear', {method:'POST'});
+    if(!res.ok || !data.ok) throw new Error(data.error || '清理失败');
+    localStorage.removeItem(STORAGE_TZZB_IMPORT);
+    lastTzzbImportedAt = '';
+    setTzzbImportStatus('已清理本机保存的同花顺捕获数据，当前复盘表单内容已保留。');
+    setTzzbImportAudit('等待新的当天捕获数据。');
   }catch(error){
-    setTzzbImportStatus(`复制书签失败：${error.message} 请确认本地复盘助手已启动。`);
+    setTzzbImportStatus(`清理失败：${error.message} 请确认本地复盘助手已启动。`);
+  }
+}
+async function showTzzbExtensionHelp(){
+  try{
+    const {res, data} = await fetchTzzbApi('/api/tzzb-extension-info');
+    if(!res.ok || !data.ok) throw new Error(data.error || '无法读取扩展安装信息。');
+    const message = [
+      '捕获扩展安装步骤：',
+      ...(data.instructions || []),
+      '',
+      '扩展安装后不需要再点书签；刷新、重新登录或重开浏览器后都会自动捕获。'
+    ].join('\n');
+    alert(message);
+    setTzzbImportStatus(`扩展文件夹：${data.extensionDir}。安装后打开同花顺投资账本，数据会自动同步到本地助手。`);
+  }catch(error){
+    setTzzbImportStatus(`无法读取扩展安装信息：${error.message} 请先双击“启动复盘助手.command”。`);
   }
 }
 function saveLocal(){

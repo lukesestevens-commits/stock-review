@@ -1,0 +1,10 @@
+data/tzzb/*.json
+data/tzzb/*.csv
+data/tzzb/*.local.*
+云同步配置.env
+.DS_Store
+.superpowers/
+.worktrees/
+logs/
+dist/
+*.tar.gz
