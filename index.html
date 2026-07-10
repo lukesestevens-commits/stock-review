@@ -418,6 +418,15 @@
     backdrop-filter:blur(8px);
   }
   .modal-backdrop.show{display:flex}
+  html.modal-open{overflow:hidden}
+  body.modal-open{
+    position:fixed;
+    top:var(--modal-scroll-offset,0px);
+    left:0;
+    right:0;
+    width:100%;
+    overflow:hidden;
+  }
   .modal{
     width:min(1080px,100%);
     max-height:92vh;
@@ -986,13 +995,30 @@
     .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
   @media(max-width:980px){
+    html,
+    body{
+      height:auto;
+      min-height:100%;
+      overflow-x:hidden;
+      overflow-y:auto;
+      overscroll-behavior-y:auto;
+    }
+    body{
+      min-height:100vh;
+      min-height:100dvh;
+    }
     .shell{
-      position:fixed;
-      inset:0;
+      position:relative;
+      inset:auto;
       width:100%;
       max-width:none;
       height:auto;
-      min-height:0;
+      min-height:100vh;
+      min-height:100dvh;
+      overflow:visible;
+      overscroll-behavior-y:auto;
+      scrollbar-gutter:auto;
+      filter:none;
       padding:
         calc(14px + env(safe-area-inset-top))
         calc(clamp(10px,1.8vw,22px) + env(safe-area-inset-right))
@@ -1088,7 +1114,7 @@
         <summary>备用工具与每日提醒</summary>
         <div class="secondary-tools-body">
           <div class="toolbar" style="margin-bottom:12px">
-            <button class="btn-dark" onclick="openOcrModal()">截图智能导入</button>
+            <button class="btn-dark" onclick="openOcrModal(this)">截图智能导入</button>
           </div>
           <div class="quote-card">
             <div class="quote-icon">✦</div>
@@ -1433,7 +1459,7 @@
           <h2 id="ocrModalTitle">截图智能导入</h2>
           <p>截图只在本地浏览器识别。识别结果会先进入预览区，确认后才写入复盘表。</p>
         </div>
-        <button class="icon-btn" onclick="closeOcrModal()" aria-label="关闭">×</button>
+        <button class="icon-btn" onclick="closeOcrModal()" aria-label="关闭截图导入">×</button>
       </div>
       <div class="modal-body">
         <div class="stepper">
@@ -1519,11 +1545,6 @@
 
 <script>
 function scrollReviewToTop(){
-  const shell = document.querySelector('.shell');
-  if(window.matchMedia('(max-width: 980px)').matches && shell){
-    shell.scrollTo({top:0,behavior:'smooth'});
-    return;
-  }
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1945,18 +1966,67 @@ function parseOcrText(text, options={}){
   if(!asset.capital && !asset.pnl && !asset.position) warnings.push('未识别到资金/仓位信息。');
   return {trades: dedupeTrades(trades), asset, warnings, rawText: clean};
 }
-function openOcrModal(){
+let modalPageScrollY = 0;
+let modalTriggerElement = null;
+function getOcrModalFocusableElements(modal){
+  return [...modal.querySelectorAll('button,input,select,textarea,[href],[tabindex]:not([tabindex="-1"])')]
+    .filter(element=>!element.disabled && element.getClientRects().length);
+}
+function handleOcrModalKeydown(event){
   const modal = document.getElementById('ocrModal');
-  if(!modal) return;
+  if(!modal?.classList.contains('show')) return;
+  if(event.key === 'Escape'){
+    event.preventDefault();
+    closeOcrModal();
+    return;
+  }
+  if(event.key !== 'Tab') return;
+  const focusable = getOcrModalFocusableElements(modal);
+  if(!focusable.length){
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  const active = document.activeElement;
+  if(event.shiftKey && (active === first || !modal.contains(active))){
+    event.preventDefault();
+    last.focus();
+  }else if(!event.shiftKey && (active === last || !modal.contains(active))){
+    event.preventDefault();
+    first.focus();
+  }
+}
+function openOcrModal(trigger){
+  const modal = document.getElementById('ocrModal');
+  if(!modal || modal.classList.contains('show')) return;
+  const active = document.activeElement;
+  modalTriggerElement = trigger || (active && typeof active.focus === 'function' ? active : null);
+  modalPageScrollY = window.scrollY;
+  document.body.style.setProperty('--modal-scroll-offset', `-${modalPageScrollY}px`);
+  document.documentElement.classList.add('modal-open');
+  document.body.classList.add('modal-open');
   modal.classList.add('show');
   modal.setAttribute('aria-hidden','false');
+  document.addEventListener('keydown', handleOcrModalKeydown);
   setOcrStep(1);
+  modal.querySelector('[aria-label="关闭截图导入"]')?.focus();
 }
 function closeOcrModal(){
   const modal = document.getElementById('ocrModal');
   if(!modal) return;
+  const wasOpen = modal.classList.contains('show');
   modal.classList.remove('show');
   modal.setAttribute('aria-hidden','true');
+  document.removeEventListener('keydown', handleOcrModalKeydown);
+  if(wasOpen){
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('--modal-scroll-offset');
+    window.scrollTo(0, modalPageScrollY);
+    modalTriggerElement?.focus();
+    modalTriggerElement = null;
+  }
 }
 function setOcrStep(step){
   [1,2,3].forEach(n=>{

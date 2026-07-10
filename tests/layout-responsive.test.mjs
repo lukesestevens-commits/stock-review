@@ -35,38 +35,20 @@ for (const viewport of viewports) {
     initialWindowY: window.scrollY,
     initialShellY: document.querySelector('.shell').scrollTop
   }));
-  if (isDesktop) {
-    assert.ok(
-      scrollability.windowScrollHeight > scrollability.windowClientHeight + 200,
-      `${viewport.name} browser viewport should own vertical scrolling`
-    );
-    await page.evaluate(() => window.scrollTo(0, 500));
-  } else {
-    assert.ok(
-      scrollability.shellScrollHeight > scrollability.shellClientHeight + 200,
-      `${viewport.name} shell should have enough vertical content to scroll`
-    );
-    await page.evaluate(() => {
-      const shell = document.querySelector('.shell');
-      shell.scrollTop = 500;
-    });
-  }
+  assert.ok(
+    scrollability.windowScrollHeight > scrollability.windowClientHeight + 200,
+    `${viewport.name} browser viewport should own vertical scrolling`
+  );
+  await page.evaluate(() => window.scrollTo(0, 500));
   const scrolled = await page.evaluate(() => ({
     windowY: window.scrollY,
     shellY: document.querySelector('.shell').scrollTop
   }));
-  if (isDesktop) {
-    assert.ok(scrolled.windowY > scrollability.initialWindowY, `${viewport.name} browser viewport should scroll vertically`);
-    assert.equal(scrolled.shellY, scrollability.initialShellY, `${viewport.name} shell should not be the desktop scroll container`);
-  } else {
-    assert.equal(scrolled.windowY, scrollability.initialWindowY, `${viewport.name} browser viewport should stay fixed`);
-    assert.ok(scrolled.shellY > scrollability.initialShellY, `${viewport.name} shell should scroll vertically`);
-  }
+  assert.ok(scrolled.windowY > scrollability.initialWindowY, `${viewport.name} browser viewport should scroll vertically`);
+  assert.equal(scrolled.shellY, scrollability.initialShellY, `${viewport.name} shell should not own vertical scrolling`);
 
   await page.locator('.fab').click();
-  await page.waitForFunction((desktop) => (
-    desktop ? window.scrollY === 0 : document.querySelector('.shell').scrollTop === 0
-  ), isDesktop, { timeout: 1500 });
+  await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 1500 });
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 4, `${viewport.name} should not overflow page horizontally, overflow=${overflow}`);
@@ -96,14 +78,16 @@ for (const viewport of viewports) {
       dateInsideField: dateBox.left >= fieldBox.left - 1 && dateBox.right <= fieldBox.right + 1,
       dateAppearance: dateStyle.appearance,
       shellPosition: shellStyle.position,
-      shellBottomGap: Math.abs(window.innerHeight - shellBox.bottom)
+      shellOverflowY: shellStyle.overflowY,
+      shellTallerThanViewport: shellBox.height > window.innerHeight + 200
     };
   });
   if (!isDesktop) {
     assert.equal(mobileSurface.dateInsideField, true, `${viewport.name} date input should stay inside its field`);
     assert.equal(mobileSurface.dateAppearance, 'none', `${viewport.name} date input should normalize iOS appearance`);
-    assert.equal(mobileSurface.shellPosition, 'fixed', `${viewport.name} shell should cover the visual viewport`);
-    assert.ok(mobileSurface.shellBottomGap <= 1, `${viewport.name} shell should reach the viewport bottom`);
+    assert.equal(mobileSurface.shellPosition, 'relative', `${viewport.name} shell should stay in document flow`);
+    assert.notEqual(mobileSurface.shellOverflowY, 'auto', `${viewport.name} shell should not be a scroll container`);
+    assert.equal(mobileSurface.shellTallerThanViewport, true, `${viewport.name} shell should expand with its content`);
   }
 
   const tableCheck = await page.evaluate(() => {
@@ -197,13 +181,10 @@ for (const viewport of viewports) {
       fieldBackground: field.backgroundImage
     };
   });
+  assert.equal(liquidGlass.documentScrolls, true, `${viewport.name} should use native document scrolling`);
+  assert.equal(liquidGlass.shellAvoidsFilter, true, `${viewport.name} shell should avoid whole-layer filters while scrolling`);
   if (isDesktop) {
-    assert.equal(liquidGlass.documentScrolls, true, `${viewport.name} should use native document scrolling`);
-    assert.equal(liquidGlass.shellAvoidsFilter, true, `${viewport.name} shell should avoid whole-layer filters while scrolling`);
     assert.equal(liquidGlass.desktopCardBlurRemoved, true, `${viewport.name} form surfaces should avoid live backdrop blur during scroll`);
-  } else {
-    assert.equal(liquidGlass.viewportLocked, true, `${viewport.name} viewport should not rubber-band the whole document`);
-    assert.equal(liquidGlass.shellScrolls, true, `${viewport.name} shell should be the contained scroll area`);
   }
   assert.equal(liquidGlass.rootHasPageBackground, true, `${viewport.name} root should paint a background behind overscroll`);
   assert.equal(liquidGlass.bodyBackdropVisible, true, `${viewport.name} should expose the backdrop layer`);
