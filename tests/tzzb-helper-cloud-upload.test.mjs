@@ -43,6 +43,7 @@ const cloudServer = http.createServer(async (req, res) => {
     method: req.method,
     url: req.url,
     key: req.headers['x-tzzb-sync-key'] || '',
+    uploadProcess: req.headers['x-tzzb-upload-process'] || '',
     body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
   });
   await new Promise((resolve) => setTimeout(resolve, 50));
@@ -127,6 +128,7 @@ try {
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.source, 'startup-fixture');
   assert.equal(receivedUploads.filter((upload) => upload.body.source === 'startup-fixture').length, 2);
+  assert.equal(receivedUploads.some((upload) => upload.uploadProcess === 'fresh'), true);
   receivedUploads.length = 0;
 
   const capturePayload = {
