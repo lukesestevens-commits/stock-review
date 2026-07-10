@@ -1520,6 +1520,8 @@ let ocrFiles = [];
 let lastOcrResult = {trades:[], asset:{}, warnings:[]};
 let lastTzzbImportedAt = localStorage.getItem(STORAGE_TZZB_IMPORT) || '';
 let lastMarketImportedAt = '';
+let lastMarketSnapshotQuality = 0;
+let lastMarketSnapshotDate = '';
 let tzzbAutoImportTimer = null;
 
 function shuffle(arr){
@@ -2539,7 +2541,7 @@ function startTzzbAutoImport(){
   tzzbAutoImportTimer = setInterval(autoImportLatestTzzbData, 3000);
 }
 function applyMarketSnapshot(market){
-  if(!market) return;
+  if(!market || !shouldApplyMarketSnapshot(market)) return false;
   const set = (id,value) => {
     const el = document.getElementById(id);
     if(el && value !== undefined && value !== '') el.value = value;
@@ -2550,6 +2552,23 @@ function applyMarketSnapshot(market){
   set('mainLines', market.mainLines);
   set('marketOne', market.marketOne);
   lastMarketImportedAt = market.updatedAt || new Date().toISOString();
+  return true;
+}
+function marketSnapshotQuality(market={}){
+  if(market.boardQuality === 'live') return 2;
+  if(market.boardQuality === 'fallback') return 1;
+  return Array.isArray(market.boards) && market.boards.length ? 1 : 0;
+}
+function shouldApplyMarketSnapshot(market={}){
+  const snapshotDate = String(market.updatedAt || '').slice(0,10);
+  if(snapshotDate && snapshotDate !== lastMarketSnapshotDate){
+    lastMarketSnapshotDate = snapshotDate;
+    lastMarketSnapshotQuality = 0;
+  }
+  const quality = marketSnapshotQuality(market);
+  if(lastMarketSnapshotQuality && quality < lastMarketSnapshotQuality) return false;
+  lastMarketSnapshotQuality = Math.max(lastMarketSnapshotQuality, quality);
+  return true;
 }
 async function importMarketSnapshot(options={}){
   const silent = Boolean(options.silent);

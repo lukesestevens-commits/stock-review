@@ -176,6 +176,74 @@ const activeHoldingOnly = mapTzzbCaptureToReview([
 assert.deepEqual(activeHoldingOnly.holdings.map((holding) => holding.name), ['光智科技', '宝钛发债']);
 assert.equal(activeHoldingOnly.tzzb.holdingCount, 2);
 
+const latestPositionSnapshotOnly = mapTzzbCaptureToReview([
+  {
+    capturedAt: '2026-07-10T01:00:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({
+      ex_data: {
+        total_asset: '10000',
+        total_value: '5000',
+        position: [
+          { code: '000001', name: '已经清仓', value: '2000', count: '100', price: '20', position_rate: '0.2' },
+          { code: '000002', name: '当前持仓', value: '3000', count: '100', price: '30', position_rate: '0.3' }
+        ]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-10T02:00:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({
+      ex_data: {
+        total_asset: '12000',
+        total_value: '3600',
+        position: [
+          { code: '000001', name: '已经清仓', value: '0', count: '0', price: '20', position_rate: '0' },
+          { code: '000002', name: '当前持仓', value: '3600', count: '120', price: '30', position_rate: '0.3' },
+          { code: '888880', name: '新标准券', value: '8000', count: '8', price: '1000', position_rate: '0.8' }
+        ]
+      }
+    })
+  }
+], { targetDate: '2026-07-10' });
+assert.deepEqual(
+  latestPositionSnapshotOnly.holdings.map((holding) => `${holding.code} ${holding.name} ${holding.qty} ${holding.value} ${holding.weight}`),
+  ['000002 当前持仓 120 3600.00 30.0%'],
+  'only active reviewable holdings from the latest position snapshot should be kept'
+);
+assert.equal(latestPositionSnapshotOnly.tzzb.rawHoldings.length, 3, 'raw holdings should come from the latest snapshot only');
+assert.equal(latestPositionSnapshotOnly.basic.capital, '12000.00');
+assert.equal(latestPositionSnapshotOnly.basic.position, '3成');
+
+const latestDayTradingSnapshotOnly = mapTzzbCaptureToReview([
+  {
+    capturedAt: '2026-07-10T01:10:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v1/merge_day_trading',
+    responseText: JSON.stringify({
+      ex_data: { data: [
+        { zqmc: '旧成交', czlx: '买入', cjjg: '10', cjsl: '100', moneychg: '-1000' },
+        { zqmc: '保留成交', czlx: '买入', cjjg: '20', cjsl: '100', moneychg: '-2000' }
+      ] }
+    })
+  },
+  {
+    capturedAt: '2026-07-10T02:10:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v1/merge_day_trading',
+    responseText: JSON.stringify({
+      ex_data: { data: [
+        { zqmc: '保留成交', czlx: '买入', cjjg: '20', cjsl: '100', moneychg: '-2000' },
+        { zqmc: '新增成交', czlx: '卖出', cjjg: '30', cjsl: '100', moneychg: '3000' }
+      ] }
+    })
+  }
+], { targetDate: '2026-07-10' });
+assert.deepEqual(
+  latestDayTradingSnapshotOnly.trades.map((trade) => trade.name),
+  ['保留成交', '新增成交'],
+  'merge_day_trading should use the latest full-day snapshot instead of accumulating repeated snapshots'
+);
+
 const currentEasternRecords = [
   {
     capturedAt: '2026-07-09T01:31:00.000Z',

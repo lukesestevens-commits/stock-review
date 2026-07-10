@@ -15,6 +15,22 @@ const today = new Date().toISOString().slice(0, 10);
 const accessKey = 'upload-secret';
 const receivedUploads = [];
 
+const startupPayload = {
+  source: 'startup-fixture',
+  targetDate: today,
+  pushedAt: `${today}T09:55:00.000Z`,
+  receivedAt: `${today}T09:55:01.000Z`,
+  records: [{
+    capturedAt: `${today}T09:55:00.000Z`,
+    type: 'fetch',
+    method: 'POST',
+    status: 200,
+    url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({ ex_data: { total_asset: '10000', position: [] } })
+  }]
+};
+await fs.writeFile(path.join(tempDataDir, 'latest-capture.json'), JSON.stringify(startupPayload), 'utf8');
+
 const cloudServer = http.createServer(async (req, res) => {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -62,8 +78,24 @@ async function waitForHealth() {
   throw new Error(`helper did not become healthy: ${lastError?.message || helperOutput}`);
 }
 
+async function waitForUpload() {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (receivedUploads.length) return;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  throw new Error(`helper did not upload its saved latest capture on startup: ${helperOutput}`);
+}
+
 try {
   await waitForHealth();
+  await waitForUpload();
+  assert.equal(receivedUploads[0].method, 'POST');
+  assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
+  assert.equal(receivedUploads[0].key, accessKey);
+  assert.equal(receivedUploads[0].body.source, 'startup-fixture');
+  receivedUploads.length = 0;
+
   const capturePayload = {
     source: 'edge-extension',
     pageUrl: 'https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/cloud',
@@ -98,7 +130,7 @@ try {
   assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.targetDate, today);
-  assert.equal(receivedUploads[0].body.records.length, 1);
+  assert.equal(receivedUploads[0].body.records.length, 2, 'new captures should upload the same-day merged local snapshot');
 
   console.log('PASS tzzb helper cloud upload');
 } finally {
