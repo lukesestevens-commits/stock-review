@@ -265,7 +265,11 @@ async function fetchBoardRows(fetchImpl) {
   }
 }
 
-export async function fetchMarketSnapshot({ fetchImpl = fetch, fixture = process.env.TZZB_MARKET_FIXTURE } = {}) {
+const defaultFixture = typeof process !== 'undefined'
+  ? process.env?.TZZB_MARKET_FIXTURE
+  : undefined;
+
+export async function fetchMarketSnapshot({ fetchImpl = fetch, fixture = defaultFixture } = {}) {
   if (fixture) {
     const indices = parseEastmoneyIndexPayload(JSON.parse(fixture));
     return classifyMarketSnapshot(indices);
