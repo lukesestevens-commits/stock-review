@@ -127,6 +127,7 @@ try {
   assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.source, 'startup-fixture');
+  assert.equal(receivedUploads[0].body.replaceRecords, true);
   assert.equal(receivedUploads.filter((upload) => upload.body.source === 'startup-fixture').length, 2);
   assert.equal(receivedUploads.some((upload) => upload.uploadProcess === 'fresh'), true);
   receivedUploads.length = 0;
@@ -165,6 +166,7 @@ try {
   assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
   assert.equal(receivedUploads[0].key, accessKey);
   assert.equal(receivedUploads[0].body.targetDate, today);
+  assert.equal(receivedUploads[0].body.replaceRecords, true);
   assert.equal(receivedUploads[0].body.records.length, 3, 'new captures should upload the same-day merged local snapshot');
 
   console.log('PASS tzzb helper cloud upload');

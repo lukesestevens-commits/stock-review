@@ -201,6 +201,23 @@ assert.equal(latestBody.review.holdings[0].name, '云端持仓');
 assert.equal(latestBody.review.holdings[0].weight, '90.0%');
 assert.deepEqual(latestBody.review.trades.map((item) => item.name), ['云端交易', '第二笔交易']);
 
+const sameDaySnapshotReplacement = await app.fetch(jsonRequest('/api/sync/tzzb', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-TZZB-Sync-Key': accessKey
+  },
+  body: JSON.stringify({
+    ...payload(firstDate, [stockRecord(firstDate, '完整快照持仓')]),
+    replaceRecords: true
+  })
+}), env);
+const sameDaySnapshotReplacementBody = await body(sameDaySnapshotReplacement);
+assert.equal(sameDaySnapshotReplacement.status, 200);
+assert.equal(sameDaySnapshotReplacementBody.raw.records, 1);
+assert.equal(sameDaySnapshotReplacementBody.review.holdings[0].name, '完整快照持仓');
+assert.equal(sameDaySnapshotReplacementBody.review.trades.length, 0);
+
 const replacement = await app.fetch(jsonRequest('/api/sync/tzzb', {
   method: 'POST',
   headers: {
