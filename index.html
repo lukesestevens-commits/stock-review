@@ -1587,9 +1587,8 @@ let ocrFiles = [];
 let lastOcrResult = {trades:[], asset:{}, warnings:[]};
 let lastTzzbImportedAt = localStorage.getItem(STORAGE_TZZB_IMPORT) || '';
 let lastMarketImportedAt = '';
-let lastMarketSnapshotQuality = 0;
-let lastMarketSnapshotDate = '';
 let tzzbAutoImportTimer = null;
+let marketAutoImportTimer = null;
 
 function shuffle(arr){
   const a=[...arr];
@@ -1653,7 +1652,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderHistoryPanel();
   checkTzzbHelperHealth();
   startTzzbAutoImport();
-  importMarketSnapshot();
+  startMarketAutoImport();
 });
 
 function scoreSelect(value=1){
@@ -2596,6 +2595,7 @@ function saveTzzbSyncConfig(){
   setTzzbImportStatus(`已切换为${label}模式，正在重新检查数据。`);
   checkTzzbHelperHealth();
   autoImportLatestTzzbData();
+  autoImportMarketSnapshot();
 }
 async function checkTzzbHelperHealth(){
   const syncConfig = getTzzbSyncConfig();
@@ -2632,11 +2632,7 @@ async function autoImportLatestTzzbData(){
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-health');
     if(!res.ok || !data.ok || !data.latestReceivedAt) return;
-    if(data.latestReceivedAt === lastTzzbImportedAt){
-      const marketImported = await importMarketSnapshot({silent:true});
-      if(marketImported) setTzzbImportStatus(`已自动补填 ${data.targetDate || '当天'} 指数和强势方向。`);
-      return;
-    }
+    if(data.latestReceivedAt === lastTzzbImportedAt) return;
     if(!data.readyForReview){
       setTzzbImportStatus(`已连接本地助手，但${tzzbMissingMessage(data)}`);
       return;
@@ -2644,9 +2640,8 @@ async function autoImportLatestTzzbData(){
     const latest = await fetchTzzbApi('/api/tzzb-latest');
     if(!latest.res.ok || !latest.data.ok || !latest.data.raw?.readyForReview) return;
     applyTzzbReviewData(latest.data.review, latest.data.raw);
-    const marketImported = await importMarketSnapshot({silent:true});
     rememberTzzbImport(data.latestReceivedAt);
-    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据，${marketImported ? '指数和强势方向已填写' : '指数和强势方向暂未更新'}。`);
+    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据。指数和强势方向按独立周期刷新。`);
   }catch(error){
     // 自动同步保持安静，按钮导入时再展示详细错误。
   }
@@ -2656,11 +2651,24 @@ function startTzzbAutoImport(){
   autoImportLatestTzzbData();
   tzzbAutoImportTimer = setInterval(autoImportLatestTzzbData, 3000);
 }
+async function autoImportMarketSnapshot(){
+  const applied = await importMarketSnapshot({silent:true});
+  if(applied) setTzzbImportStatus('已更新指数情况和市场强势方向。');
+}
+function startMarketAutoImport(){
+  if(marketAutoImportTimer) clearInterval(marketAutoImportTimer);
+  autoImportMarketSnapshot();
+  marketAutoImportTimer = setInterval(autoImportMarketSnapshot, 60000);
+}
 function applyMarketSnapshot(market){
-  if(!market || !shouldApplyMarketSnapshot(market)) return false;
+  if(!market || !String(market.mainLines || '').trim()) return false;
+  let changed = false;
   const set = (id,value) => {
     const el = document.getElementById(id);
-    if(el && value !== undefined && value !== '') el.value = value;
+    if(el && value !== undefined && value !== '' && el.value !== value){
+      el.value = value;
+      changed = true;
+    }
   };
   set('indexState', market.indexState);
   set('mood', market.mood);
@@ -2668,32 +2676,15 @@ function applyMarketSnapshot(market){
   set('mainLines', market.mainLines);
   set('marketOne', market.marketOne);
   lastMarketImportedAt = market.updatedAt || new Date().toISOString();
-  return true;
-}
-function marketSnapshotQuality(market={}){
-  if(market.boardQuality === 'live') return 2;
-  if(market.boardQuality === 'fallback') return 1;
-  return Array.isArray(market.boards) && market.boards.length ? 1 : 0;
-}
-function shouldApplyMarketSnapshot(market={}){
-  const snapshotDate = String(market.updatedAt || '').slice(0,10);
-  if(snapshotDate && snapshotDate !== lastMarketSnapshotDate){
-    lastMarketSnapshotDate = snapshotDate;
-    lastMarketSnapshotQuality = 0;
-  }
-  const quality = marketSnapshotQuality(market);
-  if(lastMarketSnapshotQuality && quality < lastMarketSnapshotQuality) return false;
-  lastMarketSnapshotQuality = Math.max(lastMarketSnapshotQuality, quality);
-  return true;
+  return changed;
 }
 async function importMarketSnapshot(options={}){
   const silent = Boolean(options.silent);
   try{
     const {res, data} = await fetchTzzbApi('/api/market-snapshot');
     if(!res.ok || !data.ok || !data.market) throw new Error(data.error || '公开市场数据暂不可用');
-    if(data.market.updatedAt && data.market.updatedAt === lastMarketImportedAt) return true;
-    applyMarketSnapshot(data.market);
-    return true;
+    if(data.market.updatedAt && data.market.updatedAt === lastMarketImportedAt) return false;
+    return applyMarketSnapshot(data.market);
   }catch(error){
     if(!silent) setTzzbImportStatus(`同花顺数据已保留，但指数和强势方向读取失败：${error.message}`);
     return false;
