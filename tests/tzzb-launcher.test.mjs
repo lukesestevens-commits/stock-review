@@ -17,6 +17,8 @@ assert.match(launcher, /stopStaleHelper/, 'launcher should restart stale helper 
 assert.match(launcher, /CLOUD_SYNC_ENV_FILE=/, 'launcher should support an optional cloud sync env file');
 assert.match(launcher, /云同步配置\.env/, 'launcher should use a readable cloud sync config filename');
 assert.match(launcher, /source "\$CLOUD_SYNC_ENV_FILE"/, 'launcher should load cloud sync env before starting helper');
+assert.match(launcher, /--use-env-proxy/, 'launcher should detect Node environment-proxy support');
+assert.match(launcher, /NODE_USE_ENV_PROXY=1/, 'launcher should let cloud uploads use the configured HTTPS proxy');
 assert.doesNotMatch(launcher, /trap .*SERVER_PID.*EXIT/, 'launcher should not kill the helper when the terminal exits');
 assert.doesNotMatch(launcher, /wait "\$SERVER_PID"/, 'launcher should not keep the terminal window open waiting for the helper');
 

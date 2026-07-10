@@ -15,12 +15,17 @@ const viewports = [
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const page = await browser.newPage();
 page.on('dialog', dialog => dialog.accept());
+await page.addInitScript(() => {
+  localStorage.setItem('tzzbSyncModeV1', 'cloud');
+  localStorage.setItem('tzzbCloudSyncBaseUrlV1', 'https://layout-test.invalid');
+});
 
 for (const viewport of viewports) {
   const isDesktop = viewport.width >= 981;
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.goto(pageUrl);
   await page.locator('text=今日复盘工作台').waitFor();
+  await page.locator('#tradeTable tbody tr:first-child').waitFor();
 
   const scrollability = await page.evaluate(() => ({
     windowScrollHeight: document.documentElement.scrollHeight,

@@ -86,6 +86,10 @@ else
   exit 1
 fi
 
+if "$NODE_BIN" --help 2>&1 | /usr/bin/grep -q -- '--use-env-proxy'; then
+  export NODE_USE_ENV_PROXY=1
+fi
+
 echo "复盘助手正在启动：http://127.0.0.1:8787/"
 echo "将先打开同花顺投资账本（$TZZB_ACCOUNT_NAME 账户），再打开复盘网站。"
 echo "同花顺登录完成后，扩展会自动同步今天的资金、仓位、持仓和交易。"

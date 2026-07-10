@@ -1,9 +1,42 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import { mapTzzbCaptureToReview } from '../tools/tzzb-review-mapper.mjs';
 
-const raw = JSON.parse(fs.readFileSync(new URL('../data/tzzb/raw-responses-1782916774379.json', import.meta.url), 'utf8'));
-const mapped = mapTzzbCaptureToReview(raw);
+const raw = [
+  {
+    capturedAt: '2026-07-03T02:00:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({
+      ex_data: {
+        total_asset: '10000',
+        total_value: '7000',
+        position: [{ name: '样本持仓', value: '7000', count: '100', price: '70' }]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-03T02:01:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/get_money_history',
+    responseText: JSON.stringify({
+      ex_data: {
+        list: [{
+          entry_date: '2026-07-03',
+          entry_time: '10:01:00',
+          name: '样本交易',
+          op_name: '买入',
+          entry_price: '10',
+          entry_count: '100',
+          entry_money: '1000'
+        }]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-03T02:02:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/time_share',
+    responseText: JSON.stringify({ ex_data: { data: [{ yk: '88.5' }] } })
+  }
+];
+const mapped = mapTzzbCaptureToReview(raw, { targetDate: '2026-07-03' });
 
 assert.equal(mapped.source, 'tzzb');
 assert.match(mapped.date, /^\d{4}-\d{2}-\d{2}$/);
@@ -143,8 +176,38 @@ const activeHoldingOnly = mapTzzbCaptureToReview([
 assert.deepEqual(activeHoldingOnly.holdings.map((holding) => holding.name), ['光智科技', '宝钛发债']);
 assert.equal(activeHoldingOnly.tzzb.holdingCount, 2);
 
-const currentEastern = JSON.parse(fs.readFileSync(new URL('../data/tzzb/latest-capture.json', import.meta.url), 'utf8'));
-const currentEasternMapped = mapTzzbCaptureToReview(currentEastern.records, { targetDate: currentEastern.targetDate });
+const currentEasternRecords = [
+  {
+    capturedAt: '2026-07-09T01:31:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/stock_position',
+    responseText: JSON.stringify({
+      ex_data: {
+        total_asset: '30000',
+        total_value: '11000',
+        position: [
+          { code: '300489', name: '光智科技', value: '10604', count: '100', price: '106.04', position_rate: '0.964' },
+          { code: '733456', name: '宝钛发债', value: '396', count: '10', price: '39.6', position_rate: '0.036' },
+          { code: '000566', name: '海南海药', value: '0', count: '0', price: '4.73', position_rate: '0' }
+        ]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-09T01:32:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/asset/v1/get_money_history',
+    responseText: JSON.stringify({
+      ex_data: {
+        list: [
+          { entry_date: '2026-07-09', entry_time: '10:06:00', name: '光智科技', op_name: '卖出', entry_price: '101', entry_count: '50', entry_money: '5050' },
+          { entry_date: '2026-07-09', entry_time: '09:33:00', name: '海南海药', op_name: '卖出', entry_price: '4.72', entry_count: '100', entry_money: '472' },
+          { entry_date: '2026-07-09', entry_time: '09:37:00', name: '光智科技', op_name: '买入', entry_price: '100', entry_count: '100', entry_money: '10000' },
+          { entry_date: '2026-07-09', entry_time: '09:33:00', name: '海南海药', op_name: '卖出', entry_price: '4.73', entry_count: '200', entry_money: '946' }
+        ]
+      }
+    })
+  }
+];
+const currentEasternMapped = mapTzzbCaptureToReview(currentEasternRecords, { targetDate: '2026-07-09' });
 assert.deepEqual(
   currentEasternMapped.trades.map((trade) => `${trade.time} ${trade.name} ${trade.side}`),
   [
