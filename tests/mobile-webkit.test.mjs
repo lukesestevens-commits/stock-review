@@ -57,6 +57,22 @@ try {
   await page.getByRole('button', { name: '回到顶部' }).click();
   await page.waitForFunction(() => window.scrollY === 0);
 
+  await page.evaluate(() => window.scrollTo(0, 500));
+  const modalScrollY = await page.evaluate(() => window.scrollY);
+  await page.evaluate(() => openOcrModal());
+  const modalLock = await page.evaluate(() => ({
+    htmlLocked: document.documentElement.classList.contains('modal-open'),
+    bodyLocked: document.body.classList.contains('modal-open'),
+    bodyPosition: getComputedStyle(document.body).position,
+    bodyTop: getComputedStyle(document.body).top
+  }));
+  assert.equal(modalLock.htmlLocked, true, 'WebKit modal should lock the document root');
+  assert.equal(modalLock.bodyLocked, true, 'WebKit modal should lock the page body');
+  assert.equal(modalLock.bodyPosition, 'fixed', 'WebKit modal should prevent background page scrolling');
+  assert.equal(modalLock.bodyTop, `-${modalScrollY}px`, 'WebKit modal should preserve the visual scroll position');
+  await page.evaluate(() => closeOcrModal());
+  await page.waitForFunction((expectedY) => window.scrollY === expectedY, modalScrollY);
+
   await assertMobileSurface({ width: 844, height: 390 });
   console.log('PASS mobile WebKit layout');
 } finally {

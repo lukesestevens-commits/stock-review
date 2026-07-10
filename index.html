@@ -418,6 +418,15 @@
     backdrop-filter:blur(8px);
   }
   .modal-backdrop.show{display:flex}
+  html.modal-open{overflow:hidden}
+  body.modal-open{
+    position:fixed;
+    top:var(--modal-scroll-offset,0px);
+    left:0;
+    right:0;
+    width:100%;
+    overflow:hidden;
+  }
   .modal{
     width:min(1080px,100%);
     max-height:92vh;
@@ -1957,9 +1966,14 @@ function parseOcrText(text, options={}){
   if(!asset.capital && !asset.pnl && !asset.position) warnings.push('未识别到资金/仓位信息。');
   return {trades: dedupeTrades(trades), asset, warnings, rawText: clean};
 }
+let modalPageScrollY = 0;
 function openOcrModal(){
   const modal = document.getElementById('ocrModal');
-  if(!modal) return;
+  if(!modal || modal.classList.contains('show')) return;
+  modalPageScrollY = window.scrollY;
+  document.body.style.setProperty('--modal-scroll-offset', `-${modalPageScrollY}px`);
+  document.documentElement.classList.add('modal-open');
+  document.body.classList.add('modal-open');
   modal.classList.add('show');
   modal.setAttribute('aria-hidden','false');
   setOcrStep(1);
@@ -1967,8 +1981,15 @@ function openOcrModal(){
 function closeOcrModal(){
   const modal = document.getElementById('ocrModal');
   if(!modal) return;
+  const wasOpen = modal.classList.contains('show');
   modal.classList.remove('show');
   modal.setAttribute('aria-hidden','true');
+  if(wasOpen){
+    document.documentElement.classList.remove('modal-open');
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('--modal-scroll-offset');
+    window.scrollTo(0, modalPageScrollY);
+  }
 }
 function setOcrStep(step){
   [1,2,3].forEach(n=>{
