@@ -168,6 +168,14 @@ test('secondary tools are folded below the main workflow', () => {
   assert.doesNotMatch(html, /<button class="btn-hero" onclick="openOcrModal\(\)">/, 'hero should not promote OCR as a primary action');
 });
 
+test('mobile shell declares edge-to-edge iPhone safe-area coverage', () => {
+  assert.match(html, /name="viewport" content="[^"]*viewport-fit=cover/, 'viewport should enable edge-to-edge iPhone layout');
+  assert.match(html, /env\(safe-area-inset-top\)/, 'mobile shell should avoid the top sensor area');
+  assert.match(html, /env\(safe-area-inset-right\)/, 'mobile shell should avoid the right safe area');
+  assert.match(html, /env\(safe-area-inset-bottom\)/, 'mobile shell should avoid the Home indicator');
+  assert.match(html, /env\(safe-area-inset-left\)/, 'mobile shell should avoid the left safe area');
+});
+
 test('reflection section keeps only right and wrong fields', () => {
   assert.match(html, /id="rightThing"/, 'reflection should keep the did-right field');
   assert.match(html, /id="bigMistake"/, 'reflection should keep the did-wrong field');

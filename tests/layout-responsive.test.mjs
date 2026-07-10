@@ -58,12 +58,15 @@ for (const viewport of viewports) {
   if (isDesktop) {
     assert.ok(scrolled.windowY > scrollability.initialWindowY, `${viewport.name} browser viewport should scroll vertically`);
     assert.equal(scrolled.shellY, scrollability.initialShellY, `${viewport.name} shell should not be the desktop scroll container`);
-    await page.evaluate(() => window.scrollTo(0, 0));
   } else {
     assert.equal(scrolled.windowY, scrollability.initialWindowY, `${viewport.name} browser viewport should stay fixed`);
     assert.ok(scrolled.shellY > scrollability.initialShellY, `${viewport.name} shell should scroll vertically`);
-    await page.evaluate(() => { document.querySelector('.shell').scrollTop = 0; });
   }
+
+  await page.locator('.fab').click();
+  await page.waitForFunction((desktop) => (
+    desktop ? window.scrollY === 0 : document.querySelector('.shell').scrollTop === 0
+  ), isDesktop, { timeout: 1500 });
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   assert.ok(overflow <= 4, `${viewport.name} should not overflow page horizontally, overflow=${overflow}`);
@@ -79,6 +82,29 @@ for (const viewport of viewports) {
     }).map((el) => el.id || el.placeholder || el.tagName);
   });
   assert.deepEqual(escapedFields, [], `${viewport.name} controls should stay inside field cards`);
+
+  const mobileSurface = await page.evaluate(() => {
+    const date = document.querySelector('#date');
+    const field = date.closest('.field');
+    const shell = document.querySelector('.shell');
+    const dateBox = date.getBoundingClientRect();
+    const fieldBox = field.getBoundingClientRect();
+    const shellBox = shell.getBoundingClientRect();
+    const dateStyle = getComputedStyle(date);
+    const shellStyle = getComputedStyle(shell);
+    return {
+      dateInsideField: dateBox.left >= fieldBox.left - 1 && dateBox.right <= fieldBox.right + 1,
+      dateAppearance: dateStyle.appearance,
+      shellPosition: shellStyle.position,
+      shellBottomGap: Math.abs(window.innerHeight - shellBox.bottom)
+    };
+  });
+  if (!isDesktop) {
+    assert.equal(mobileSurface.dateInsideField, true, `${viewport.name} date input should stay inside its field`);
+    assert.equal(mobileSurface.dateAppearance, 'none', `${viewport.name} date input should normalize iOS appearance`);
+    assert.equal(mobileSurface.shellPosition, 'fixed', `${viewport.name} shell should cover the visual viewport`);
+    assert.ok(mobileSurface.shellBottomGap <= 1, `${viewport.name} shell should reach the viewport bottom`);
+  }
 
   const tableCheck = await page.evaluate(() => {
     const table = document.querySelector('#tradeTable');

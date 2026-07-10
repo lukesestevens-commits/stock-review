@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>A股每日交易复盘模板｜焕新版</title>
 <style>
   :root{
@@ -347,6 +347,7 @@
     box-shadow:0 14px 28px rgba(240,68,82,.28);
     font-size:20px; font-weight:900;
     text-decoration:none;
+    padding:0; border:0; min-height:52px; line-height:1; cursor:pointer;
   }
   .section-mini{
     color:#98a2b3; font-size:12px; font-weight:600;
@@ -985,13 +986,49 @@
     .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
   @media(max-width:980px){
+    .shell{
+      position:fixed;
+      inset:0;
+      width:100%;
+      max-width:none;
+      height:auto;
+      min-height:0;
+      padding:
+        calc(14px + env(safe-area-inset-top))
+        calc(clamp(10px,1.8vw,22px) + env(safe-area-inset-right))
+        calc(18px + env(safe-area-inset-bottom))
+        calc(clamp(10px,1.8vw,22px) + env(safe-area-inset-left));
+    }
+    input[type="date"]{
+      appearance:none;
+      -webkit-appearance:none;
+      display:block;
+      inline-size:100%;
+      min-inline-size:0;
+      max-inline-size:100%;
+      overflow:hidden;
+    }
+    input[type="date"]::-webkit-date-and-time-value{
+      min-width:0;
+      text-align:left;
+    }
+    .floating{
+      right:calc(12px + env(safe-area-inset-right));
+      bottom:calc(12px + env(safe-area-inset-bottom));
+    }
     .dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}
     .g4,.g3{grid-template-columns:repeat(2,minmax(0,1fr))}
     .hero-top{align-items:flex-start}
     .tag-group{justify-content:flex-start}
   }
   @media(max-width:620px){
-    .shell{padding:10px 8px 22px}
+    .shell{
+      padding:
+        calc(10px + env(safe-area-inset-top))
+        calc(8px + env(safe-area-inset-right))
+        calc(12px + env(safe-area-inset-bottom))
+        calc(8px + env(safe-area-inset-left));
+    }
     .hero{padding:13px}
     .dashboard,.g2,.g3,.g4,.scorebar,.history-kpis,.quality-grid{grid-template-columns:1fr}
     .section-head{padding:12px 12px 8px}
@@ -1003,7 +1040,7 @@
     .hero-tag,.btn-hero{flex:1 1 auto;justify-content:center}
   }
   @media(max-height:430px) and (orientation:landscape){
-    .shell{padding-top:8px}
+    .shell{padding-top:calc(8px + env(safe-area-inset-top))}
     .hero{padding:11px}
     .quote-card{display:none}
     .dashboard{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -1477,10 +1514,19 @@
   </div>
 
   <div class="floating">
-    <a href="#" class="fab" title="回到顶部" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">↑</a>
+    <button type="button" class="fab" aria-label="回到顶部" title="回到顶部" onclick="scrollReviewToTop()">↑</button>
   </div>
 
 <script>
+function scrollReviewToTop(){
+  const shell = document.querySelector('.shell');
+  if(window.matchMedia('(max-width: 980px)').matches && shell){
+    shell.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 const QUOTES = [
   "会买的是徒弟，会卖的是师傅，会空仓的是祖师爷。",
   "市场永远是对的，错的只是你的应对方式。",
