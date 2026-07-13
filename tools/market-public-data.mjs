@@ -1,8 +1,8 @@
-const EASTMONEY_INDEX_URL = 'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&secids=1.000001,0.399001,0.399006&fields=f12,f14,f2,f3,f4';
+const EASTMONEY_INDEX_URL = 'https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&secids=1.000001,0.399001,0.399006&fields=f12,f14,f2,f3,f4,f124';
 const EASTMONEY_STOCK_INDEX_URLS = [
-  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=1.000001&fields=f43,f57,f58,f169,f170',
-  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=0.399001&fields=f43,f57,f58,f169,f170',
-  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=0.399006&fields=f43,f57,f58,f169,f170'
+  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=1.000001&fields=f43,f57,f58,f86,f169,f170',
+  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=0.399001&fields=f43,f57,f58,f86,f169,f170',
+  'https://push2.eastmoney.com/api/qt/stock/get?fltt=2&secid=0.399006&fields=f43,f57,f58,f86,f169,f170'
 ];
 const EASTMONEY_CONCEPT_URLS = [
   'https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=100&po=1&np=1&fltt=2&fid=f3&fs=m:90+t:3&fields=f12,f14,f3,f5,f6,f8,f62',
@@ -58,6 +58,13 @@ function signedPercent(value) {
   return `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
 }
 
+function shanghaiQuoteTime(value) {
+  const seconds = numeric(value);
+  if (seconds <= 0) return '';
+  const shifted = new Date(seconds * 1000 + 8 * 60 * 60 * 1000).toISOString();
+  return `${shifted.slice(0, 10)} ${shifted.slice(11, 19)}`;
+}
+
 export function parseEastmoneyIndexPayload(payload) {
   const rows = payload && payload.data && Array.isArray(payload.data.diff)
     ? payload.data.diff
@@ -67,7 +74,8 @@ export function parseEastmoneyIndexPayload(payload) {
     name: String(row.f14 || ''),
     price: numeric(row.f2),
     changePercent: numeric(row.f3),
-    changeAmount: numeric(row.f4)
+    changeAmount: numeric(row.f4),
+    quoteTime: shanghaiQuoteTime(row.f124)
   })).filter((row) => row.code && row.name);
 }
 
@@ -82,7 +90,8 @@ export function parseStockIndexPayload(payload) {
     name,
     price: numeric(row.f43),
     changePercent: numeric(row.f170),
-    changeAmount: numeric(row.f169)
+    changeAmount: numeric(row.f169),
+    quoteTime: shanghaiQuoteTime(row.f86)
   };
 }
 

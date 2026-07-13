@@ -12,9 +12,9 @@ import {
 const parsed = parseEastmoneyIndexPayload({
   data: {
     diff: [
-      { f12: '000001', f14: '上证指数', f2: 3200.1, f3: 0.42, f4: 13.2 },
-      { f12: '399001', f14: '深证成指', f2: 10000.2, f3: 0.61, f4: 60.1 },
-      { f12: '399006', f14: '创业板指', f2: 2200.3, f3: -0.12, f4: -2.7 }
+      { f12: '000001', f14: '上证指数', f2: 3200.1, f3: 0.42, f4: 13.2, f124: 1783930322 },
+      { f12: '399001', f14: '深证成指', f2: 10000.2, f3: 0.61, f4: 60.1, f124: 1783930320 },
+      { f12: '399006', f14: '创业板指', f2: 2200.3, f3: -0.12, f4: -2.7, f124: 1783930287 }
     ]
   }
 });
@@ -22,16 +22,18 @@ const parsed = parseEastmoneyIndexPayload({
 assert.equal(parsed.length, 3);
 assert.equal(parsed[0].name, '上证指数');
 assert.equal(parsed[1].changePercent, 0.61);
+assert.equal(parsed[0].quoteTime, '2026-07-13 16:12:02');
 
 const stockIndex = parseStockIndexPayload({
-  data: { f57: '000001', f58: '上证指数', f43: 3970.88, f169: -19.36, f170: -0.49 }
+  data: { f57: '000001', f58: '上证指数', f43: 3970.88, f169: -19.36, f170: -0.49, f86: 1783930322 }
 });
 assert.deepEqual(stockIndex, {
   code: '000001',
   name: '上证指数',
   price: 3970.88,
   changePercent: -0.49,
-  changeAmount: -19.36
+  changeAmount: -19.36,
+  quoteTime: '2026-07-13 16:12:02'
 });
 
 const boards = parseBoardPayload({
