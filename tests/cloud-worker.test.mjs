@@ -4,6 +4,7 @@ import { createCloudWorker } from '../cloud/worker.mjs';
 class FakeD1 {
   constructor() {
     this.row = null;
+    this.marketRows = new Map();
   }
 
   prepare(sql) {
@@ -15,17 +16,37 @@ class FakeD1 {
         return this;
       },
       async first() {
+        if (/FROM market_snapshots/.test(sql) && /WHERE trade_date = \?/.test(sql)) {
+          return db.marketRows.get(values[0]) || null;
+        }
+        if (/FROM market_snapshots/.test(sql) && /ORDER BY trade_date DESC/.test(sql)) {
+          return [...db.marketRows.values()].sort((a, b) => b.trade_date.localeCompare(a.trade_date))[0] || null;
+        }
         if (!/SELECT payload_json/.test(sql)) throw new Error(`Unexpected first SQL: ${sql}`);
         return db.row;
       },
       async run() {
         if (/CREATE TABLE IF NOT EXISTS tzzb_latest_sync/.test(sql)) return { success: true };
+        if (/CREATE TABLE IF NOT EXISTS market_snapshots/.test(sql)) return { success: true };
         if (/INSERT INTO tzzb_latest_sync/.test(sql)) {
           db.row = {
             target_date: values[0],
             received_at: values[1],
             payload_json: values[2]
           };
+          return { success: true };
+        }
+        if (/INSERT INTO market_snapshots/.test(sql)) {
+          const [tradeDate, updatedAt, finalizedAt, payloadJson] = values;
+          const current = db.marketRows.get(tradeDate);
+          if (!current?.finalized_at) {
+            db.marketRows.set(tradeDate, {
+              trade_date: tradeDate,
+              updated_at: updatedAt,
+              finalized_at: finalizedAt || null,
+              payload_json: payloadJson
+            });
+          }
           return { success: true };
         }
         throw new Error(`Unexpected run SQL: ${sql}`);

@@ -1,4 +1,10 @@
 import { fetchMarketSnapshot } from '../tools/market-public-data.mjs';
+import { createMarketSnapshotStore } from './market-snapshot-store.mjs';
+import {
+  isFinalMarketSnapshot,
+  isValidMarketSnapshot,
+  marketSnapshotTradeDate
+} from './market-snapshot-policy.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from '../tools/tzzb-endpoint-coverage.mjs';
 import { mapTzzbCaptureToReview } from '../tools/tzzb-review-mapper.mjs';
 import { createTzzbSyncStore } from './tzzb-sync-store.mjs';
@@ -157,15 +163,82 @@ async function syncHealth(env) {
   });
 }
 
-async function marketSnapshot(fetchImpl) {
+function shanghaiDate(value) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value);
+  const read = (type) => parts.find((part) => part.type === type)?.value || '';
+  return `${read('year')}-${read('month')}-${read('day')}`;
+}
+
+function isFreshMarketRecord(record, nowDate, ttlMs = 60_000) {
+  const updatedAt = Date.parse(record?.updatedAt || '');
+  if (!Number.isFinite(updatedAt)) return false;
+  const age = nowDate.getTime() - updatedAt;
+  return age >= 0 && age < ttlMs;
+}
+
+function marketRecordResponse(record, options = {}) {
+  const finalized = Boolean(record.finalizedAt);
+  return json(200, {
+    ok: true,
+    market: {
+      ...record.market,
+      tradeDate: record.tradeDate,
+      finalized,
+      finalizedAt: record.finalizedAt || ''
+    },
+    cache: {
+      tradeDate: record.tradeDate,
+      updatedAt: record.updatedAt,
+      finalized,
+      finalizedAt: record.finalizedAt || '',
+      stale: Boolean(options.stale),
+      source: options.source || 'cloud-cache'
+    }
+  });
+}
+
+async function marketSnapshot(fetchImpl, env, url, now) {
+  const nowDate = now();
+  const requestedDate = /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get('date') || '')
+    ? url.searchParams.get('date')
+    : shanghaiDate(nowDate);
+  let store;
+  let cached;
   try {
-    return json(200, { ok: true, market: await fetchMarketSnapshot({ fetchImpl }) });
+    store = createMarketSnapshotStore(env.DB);
+    cached = await store.read(requestedDate);
+  } catch {
+    return json(503, { ok: false, error: '云端市场快照存储暂不可用。' });
+  }
+
+  if (cached?.finalizedAt) return marketRecordResponse(cached);
+  if (isFreshMarketRecord(cached, nowDate)) return marketRecordResponse(cached);
+
+  try {
+    const fetched = await fetchMarketSnapshot({ fetchImpl });
+    if (!isValidMarketSnapshot(fetched)) throw new Error('公开市场快照字段不完整。');
+    const updatedAt = nowDate.toISOString();
+    const market = { ...fetched, updatedAt };
+    const tradeDate = marketSnapshotTradeDate(market) || requestedDate;
+    const finalizedAt = isFinalMarketSnapshot(market) ? updatedAt : '';
+    const stored = await store.write({ tradeDate, updatedAt, finalizedAt, market });
+    return marketRecordResponse(stored, { source: 'upstream' });
   } catch (error) {
+    if (cached) return marketRecordResponse(cached, { stale: true });
     return json(502, { ok: false, error: error.message || '公开市场数据暂不可用。' });
   }
 }
 
-export function createCloudWorker({ indexHtml = '', fetchImpl = globalThis.fetch } = {}) {
+export function createCloudWorker({
+  indexHtml = '',
+  fetchImpl = globalThis.fetch,
+  now = () => new Date()
+} = {}) {
   return {
     async fetch(request, env = {}) {
       const url = new URL(request.url);
@@ -175,7 +248,7 @@ export function createCloudWorker({ indexHtml = '', fetchImpl = globalThis.fetch
       }
 
       if (url.pathname === '/api/market-snapshot' && request.method === 'GET') {
-        return marketSnapshot(fetchImpl);
+        return marketSnapshot(fetchImpl, env, url, now);
       }
 
       const syncRoute = url.pathname === '/api/sync/tzzb'

@@ -141,11 +141,19 @@ test('summarizeHistory calculates 7-day and 30-day trends', () => {
   assert.equal(summary.pnlPositiveDays, 4);
 });
 
-test('auto import retries market fill after the same TZZB capture was already imported', () => {
-  assert.match(
-    scriptMatch[1],
-    /if\(data\.latestReceivedAt === lastTzzbImportedAt\)\{[\s\S]*importMarketSnapshot\(\{silent:true\}\)[\s\S]*return;/,
-    'auto import should keep retrying market fields even when the same capture was already imported'
+test('market snapshots refresh independently from the three-second trade poll', () => {
+  assert.match(scriptMatch[1], /function startMarketAutoImport\(\)/);
+  assert.match(scriptMatch[1], /setInterval\(autoImportMarketSnapshot, 60000\)/);
+  assert.match(scriptMatch[1], /startTzzbAutoImport\(\);[\s\S]*startMarketAutoImport\(\);/);
+  const tradePoll = scriptMatch[1].match(
+    /async function autoImportLatestTzzbData\(\)\{([\s\S]*?)\n\}\nfunction startTzzbAutoImport/
+  );
+  assert.ok(tradePoll, 'trade polling function should exist');
+  assert.match(tradePoll[1], /if\(data\.latestReceivedAt === lastTzzbImportedAt\) return;/);
+  assert.doesNotMatch(
+    tradePoll[1],
+    /importMarketSnapshot/,
+    'three-second trade poll should not request public market data'
   );
 });
 
@@ -200,12 +208,20 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
 });
 
-test('market snapshots do not downgrade live board directions to fallback rankings', () => {
-  assert.equal(context.marketSnapshotQuality({ boardQuality: 'live' }), 2);
-  assert.equal(context.marketSnapshotQuality({ boardQuality: 'fallback' }), 1);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'fallback' }), false);
-  assert.equal(context.shouldApplyMarketSnapshot({ boardQuality: 'live' }), true);
+test('market snapshot application requires both cloud-filled review fields', () => {
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-13T07:05:00.000Z',
+    mainLines: '抗跌板块：传媒、医药',
+    marketOne: '指数弱，市场退潮，适合防守。'
+  }), true);
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-13T07:06:00.000Z',
+    mainLines: '只有主线'
+  }), false);
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-13T07:07:00.000Z',
+    marketOne: '只有判断'
+  }), false);
 });
 
 await assert.rejects(
