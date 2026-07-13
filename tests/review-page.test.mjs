@@ -163,12 +163,35 @@ test('page exposes a holding review module for tomorrow planning', () => {
   assert.match(scriptMatch[1], /function collectHoldingPlan/, 'holding plans should be saved and exported');
 });
 
-test('trade scoring uses three core dimensions and folds mechanical details', () => {
+test('tomorrow planning is consolidated into the holding review module', () => {
+  const holdingIndex = html.indexOf('<h2>持仓复盘与明日预案</h2>');
+  const reflectionIndex = html.indexOf('<h2>今日反思</h2>');
+  const newPlanIndex = html.indexOf('id="newPlan"');
+  const banRuleIndex = html.indexOf('id="banRule"');
+  assert.ok(holdingIndex >= 0 && reflectionIndex > holdingIndex, 'holding and reflection sections should remain ordered');
+  assert.ok(newPlanIndex > holdingIndex && newPlanIndex < reflectionIndex, 'new-position planning should live inside the holding module');
+  assert.ok(banRuleIndex > holdingIndex && banRuleIndex < reflectionIndex, 'tomorrow ban should live inside the holding module');
+  assert.doesNotMatch(html, /<h2>明日操作计划<\/h2>/, 'standalone tomorrow-plan section should be removed');
+  assert.doesNotMatch(html, /id="corePlan"|id="noisePlan"|id="selfTalk"/, 'duplicate and nonessential plan fields should be removed');
+  assert.doesNotMatch(html, /生成明日计划/, 'holding plans should not be copied into duplicate summary fields');
+  assert.doesNotMatch(scriptMatch[1], /function syncHoldingPlanToTomorrow/, 'duplicate plan generator should be removed');
+  const plan = JSON.parse(JSON.stringify(context.collectStructured().plan));
+  assert.deepEqual(Object.keys(plan).sort(), ['banRule', 'newPlan'], 'saved plans should keep only the two global tomorrow fields');
+  assert.doesNotMatch(scriptMatch[1], /八、明日操作计划/, 'text export should merge tomorrow fields into the holding section');
+});
+
+test('trade scoring uses three core dimensions and one compact transaction column', () => {
   assert.doesNotMatch(html, /<th>买卖点<\/th>/, 'trade table should remove the old timing score column');
   assert.doesNotMatch(html, /<th>仓位<\/th>/, 'trade table should remove the old size score column');
   assert.doesNotMatch(scriptMatch[1], /timingScore|sizeScore/, 'trade data should no longer depend on old score dimensions');
   assert.match(scriptMatch[1], /scoreFromCoreDimensions/, '10-point score should be derived from the three core dimensions');
-  assert.match(html, /class="trade-detail-toggle"/, 'price and quantity should be folded under trade details');
+  const tradeHead = html.match(/<table id="tradeTable">[\s\S]*?<thead>([\s\S]*?)<\/thead>/)?.[1] || '';
+  assert.match(tradeHead, /<th>交易<\/th>/, 'side, price, quantity and amount should share one table header');
+  assert.doesNotMatch(tradeHead, /<th>买\/卖<\/th>|<th>金额<\/th>|<th>明细<\/th>/, 'old transaction headers should be removed');
+  const addTradeBody = scriptMatch[1].match(/function addTrade\(data=\{\}\)\{([\s\S]*?)\n\}\nfunction calcAmount/)?.[1] || '';
+  assert.match(addTradeBody, /class="trade-execution-cell"/, 'transaction fields should share one table cell');
+  assert.match(addTradeBody, /class="trade-primary-grid"[\s\S]*class="trade-side"[\s\S]*class="trade-price"/, 'side and price should remain visible');
+  assert.match(addTradeBody, /<details class="trade-detail-toggle">[\s\S]*数量 \/ 金额[\s\S]*class="trade-qty"[\s\S]*class="trade-amount"[\s\S]*<\/details>/, 'quantity and amount should share one folded detail area');
 });
 
 test('secondary tools are folded below the main workflow', () => {

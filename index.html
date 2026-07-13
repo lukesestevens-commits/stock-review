@@ -242,6 +242,12 @@
   }
   td textarea{min-height:52px}
   .holding-table{min-width:1180px}
+  .trade-primary-grid{
+    display:grid;
+    grid-template-columns:72px minmax(90px,1fr) 72px;
+    gap:8px;
+    align-items:start;
+  }
   .trade-detail-toggle{
     margin-top:8px;
     border-radius:12px;
@@ -263,6 +269,7 @@
     gap:8px;
     margin-top:8px;
   }
+  .trade-detail-toggle:not([open]) .trade-detail-grid{display:none}
   .secondary-tools{
     margin-top:16px;
     border-radius:20px;
@@ -860,20 +867,18 @@
   th:nth-child(14),td:nth-child(14){width:70px}
   th:nth-child(15),td:nth-child(15){width:66px}
   #tradeTable{
-    min-width:1440px;
+    min-width:1236px;
   }
-  #tradeTable th:nth-child(1),#tradeTable td:nth-child(1){width:96px}
-  #tradeTable th:nth-child(2),#tradeTable td:nth-child(2){width:150px}
-  #tradeTable th:nth-child(3),#tradeTable td:nth-child(3){width:96px}
-  #tradeTable th:nth-child(4),#tradeTable td:nth-child(4){width:124px}
-  #tradeTable th:nth-child(5),#tradeTable td:nth-child(5){width:124px}
-  #tradeTable th:nth-child(6),#tradeTable td:nth-child(6){width:148px}
-  #tradeTable th:nth-child(7),#tradeTable td:nth-child(7){width:180px}
-  #tradeTable th:nth-child(8),#tradeTable td:nth-child(8),
-  #tradeTable th:nth-child(9),#tradeTable td:nth-child(9),
-  #tradeTable th:nth-child(10),#tradeTable td:nth-child(10){width:112px}
-  #tradeTable th:nth-child(11),#tradeTable td:nth-child(11){width:86px}
-  #tradeTable th:nth-child(12),#tradeTable td:nth-child(12){width:70px}
+  #tradeTable th:nth-child(1),#tradeTable td:nth-child(1){width:88px}
+  #tradeTable th:nth-child(2),#tradeTable td:nth-child(2){width:142px}
+  #tradeTable th:nth-child(3),#tradeTable td:nth-child(3){width:250px}
+  #tradeTable th:nth-child(4),#tradeTable td:nth-child(4){width:138px}
+  #tradeTable th:nth-child(5),#tradeTable td:nth-child(5){width:180px}
+  #tradeTable th:nth-child(6),#tradeTable td:nth-child(6),
+  #tradeTable th:nth-child(7),#tradeTable td:nth-child(7),
+  #tradeTable th:nth-child(8),#tradeTable td:nth-child(8){width:96px}
+  #tradeTable th:nth-child(9),#tradeTable td:nth-child(9){width:82px}
+  #tradeTable th:nth-child(10),#tradeTable td:nth-child(10){width:68px}
   #tradeTable td{
     vertical-align:middle;
   }
@@ -890,8 +895,7 @@
   }
   #tradeTable td input,
   #tradeTable td select,
-  #tradeTable td textarea,
-  #tradeTable .trade-detail-toggle{
+  #tradeTable td textarea{
     height:46px;
     min-height:46px;
   }
@@ -900,9 +904,10 @@
     overflow:auto;
   }
   #tradeTable .trade-detail-toggle{
-    display:flex;
-    align-items:stretch;
+    display:block;
     width:100%;
+    min-height:46px;
+    height:auto;
     margin-top:0;
     padding:0;
   }
@@ -911,8 +916,20 @@
     align-items:center;
     justify-content:center;
     width:100%;
-    height:100%;
-    padding:0 8px;
+    height:46px;
+    padding:0 6px;
+    font-size:11px;
+  }
+  #tradeTable .trade-detail-toggle[open]{
+    grid-column:1 / -1;
+    margin-top:2px;
+  }
+  #tradeTable .trade-detail-grid{
+    padding:0 8px 8px;
+  }
+  #tradeTable .trade-detail-grid input{
+    height:40px;
+    min-height:40px;
   }
   .out{
     min-height:220px;
@@ -1246,9 +1263,7 @@
               <tr>
                 <th>时间</th>
                 <th>股票/ETF</th>
-                <th>买/卖</th>
-                <th>金额</th>
-                <th>明细</th>
+                <th>交易</th>
                 <th>模式</th>
                 <th>理由</th>
                 <th>计划性</th>
@@ -1309,7 +1324,6 @@
         </div>
         <div class="toolbar">
           <button class="btn-soft" onclick="addHoldingReviewRow()">+ 补一只持仓</button>
-          <button class="btn-dark" onclick="syncHoldingPlanToTomorrow()">生成明日计划</button>
           <button class="btn-danger" onclick="clearHoldingPlans()">清空持仓表</button>
         </div>
       </div>
@@ -1331,6 +1345,10 @@
               <tr class="holding-empty"><td colspan="7" class="muted">同步同花顺持仓后会自动生成。也可以手动补充需要跟踪的股票。</td></tr>
             </tbody>
           </table>
+        </div>
+        <div class="grid g2" style="margin-top:14px">
+          <div class="field"><label>明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
+          <div class="field"><label>明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
         </div>
       </div>
     </section>
@@ -1361,29 +1379,6 @@
       <div class="section-head">
         <div class="section-title">
           <div class="section-num">5</div>
-          <div>
-            <h2>明日操作计划</h2>
-            <p>区分主线核心仓、随手单和新开仓方向，让明天不是“临盘乱做”，而是“有准备地出手”。</p>
-          </div>
-        </div>
-      </div>
-      <div class="section-body">
-        <div class="grid g3">
-          <div class="field"><label>主线核心仓怎么处理？</label><textarea id="corePlan" placeholder="例如：江波龙看存储板块强度和自身承接，不追高加仓。"></textarea></div>
-          <div class="field"><label>随手单 / 低质量仓怎么处理？</label><textarea id="noisePlan" placeholder="例如：不补仓，不能证明强就处理。"></textarea></div>
-          <div class="field"><label>明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
-        </div>
-        <div class="grid g2" style="margin-top:14px">
-          <div class="field"><label>明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
-          <div class="field"><label>给明天的自己一句话</label><input id="selfTalk" placeholder="例如：先尊重市场，再表达观点。"></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div class="section-title">
-          <div class="section-num">6</div>
           <div>
             <h2>复盘质量与历史追踪</h2>
             <p>把每天的复盘变成可对比的数据，重点看纪律是否越来越稳定。</p>
@@ -1424,7 +1419,7 @@
     <section class="section">
       <div class="section-head">
         <div class="section-title">
-          <div class="section-num">7</div>
+          <div class="section-num">6</div>
           <div>
             <h2>生成发给 ChatGPT 的复盘文本</h2>
             <p>点一下就能生成固定模板，减少写作压力，留下标准化记录。</p>
@@ -1680,21 +1675,21 @@ function addTrade(data={}){
   tr.innerHTML=`
     <td><input class="trade-time" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
     <td><input class="trade-name" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
-    <td>
-      <select class="trade-side">
-        <option ${side==='买入'?'selected':''}>买入</option>
-        <option ${side==='卖出'?'selected':''}>卖出</option>
-      </select>
-    </td>
-    <td><input class="trade-amount" type="number" step="0.01" placeholder="金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()"></td>
-    <td>
-      <details class="trade-detail-toggle">
-        <summary>价格 / 数量</summary>
-        <div class="trade-detail-grid">
-          <input class="trade-price" type="number" step="0.001" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)">
-          <input class="trade-qty" type="number" placeholder="数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)">
-        </div>
-      </details>
+    <td class="trade-execution-cell">
+      <div class="trade-primary-grid">
+        <select class="trade-side" aria-label="买卖方向">
+          <option ${side==='买入'?'selected':''}>买入</option>
+          <option ${side==='卖出'?'selected':''}>卖出</option>
+        </select>
+        <input class="trade-price" type="number" step="0.001" aria-label="成交价格" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)">
+        <details class="trade-detail-toggle">
+          <summary>数量 / 金额</summary>
+          <div class="trade-detail-grid">
+            <input class="trade-qty" type="number" aria-label="成交数量" placeholder="成交数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)">
+            <input class="trade-amount" type="number" step="0.01" aria-label="成交金额" placeholder="成交金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()">
+          </div>
+        </details>
+      </div>
     </td>
     <td>
       <select class="trade-mode">
@@ -1820,23 +1815,6 @@ function formatHoldingPlanText(holdings=collectHoldingPlan()){
     const title = `${item.name || item.code || '未命名持仓'}${item.weight ? `（${item.weight}）` : ''}`;
     return `${index+1}. ${title}：${item.isCore}，明日${item.tomorrowAction}；逻辑：${item.logic || '未填写'}；触发条件：${item.trigger || '未填写'}`;
   }).join('\n');
-}
-function syncHoldingPlanToTomorrow(){
-  const holdings = collectHoldingPlan();
-  if(!holdings.length){
-    alert('请先同步或填写持仓复盘。');
-    return;
-  }
-  const core = holdings.filter(item=>item.isCore === '核心');
-  const noise = holdings.filter(item=>item.isCore !== '核心');
-  const coreText = core.length
-    ? core.map(item=>`${item.name || item.code}：${item.tomorrowAction}，${item.trigger || '按盘面确认'}`).join('；')
-    : '暂无明确主线核心仓，先观察市场主线是否延续。';
-  const noiseText = noise.length
-    ? noise.map(item=>`${item.name || item.code}：${item.tomorrowAction}，${item.trigger || '弱于预期处理'}`).join('；')
-    : '暂无非核心仓。';
-  document.getElementById('corePlan').value = coreText;
-  document.getElementById('noisePlan').value = noiseText;
 }
 function normalizeNumber(value){
   const raw = String(value ?? '').replace(/,/g,'').match(/[+-]?\d+(?:\.\d+)?/);
@@ -2300,7 +2278,7 @@ function collectStructured(){
     trades,
     holdings: collectHoldingPlan(),
     reflection:{rightThing: val('rightThing'), bigMistake: val('bigMistake')},
-    plan:{corePlan: val('corePlan'), noisePlan: val('noisePlan'), newPlan: val('newPlan'), banRule: val('banRule'), selfTalk: val('selfTalk')},
+    plan:{newPlan: val('newPlan'), banRule: val('banRule')},
     stats: insights.stats,
     quality: insights
   };
@@ -2416,6 +2394,8 @@ ${tradeLines()}
 
 四、持仓复盘与明日预案
 ${holdingText}
+允许新开的仓位/方向：${val('newPlan') || '未填写'}
+明日禁令：${val('banRule') || '未填写'}
 
 五、复盘质量与风险提醒
 截图导入摘要：${importSummary}
@@ -2427,13 +2407,6 @@ ${historyText}
 七、今日反思
 今天做对了什么：${val('rightThing') || '未填写'}
 今天做错了什么：${val('bigMistake') || '未填写'}
-
-八、明日操作计划
-主线核心仓：${val('corePlan') || '未填写'}
-随手单/低质量仓：${val('noisePlan') || '未填写'}
-允许新开的仓位/方向：${val('newPlan') || '未填写'}
-明日禁令：${val('banRule') || '未填写'}
-给明天的自己一句话：${val('selfTalk') || '未填写'}
 
 请你根据以上内容，按市场环境、每笔交易质量、模式分类、风险控制、历史进步/退步、明日计划六个部分帮我复盘，并指出哪些交易可以复制、哪些交易需要禁止重复。`;
   document.getElementById('output').textContent=text;
@@ -2483,11 +2456,8 @@ function applyStructured(record){
   set('marketOne', market.marketOne || '');
   set('rightThing', reflection.rightThing || '');
   set('bigMistake', reflection.bigMistake || '');
-  set('corePlan', plan.corePlan || '');
-  set('noisePlan', plan.noisePlan || '');
   set('newPlan', plan.newPlan || '');
   set('banRule', plan.banRule || '');
-  set('selfTalk', plan.selfTalk || '');
   document.getElementById('tradeBody').innerHTML='';
   (record.trades || []).forEach(trade=>addTrade(trade));
   applyHoldingPlans(record.holdings || []);
