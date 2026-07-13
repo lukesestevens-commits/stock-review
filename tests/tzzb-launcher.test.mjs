@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 const launcher = fs.readFileSync(new URL('../启动复盘助手.command', import.meta.url), 'utf8');
+const helper = fs.readFileSync(new URL('../tools/tzzb-local-helper.mjs', import.meta.url), 'utf8');
 
 assert.match(launcher, /tzzb\.10jqka\.com\.cn\/pc\/index\.html#\/myAccount/, 'launcher should open Tonghuashun Investment Ledger');
 assert.match(launcher, /TZZB_ACCOUNT_NAME="东方"/, 'launcher should target the 东方 account');
@@ -12,6 +13,9 @@ assert.match(launcher, /nohup "\$NODE_BIN" tools\/tzzb-local-helper\.mjs/, 'laun
 assert.match(launcher, /disown "\$SERVER_PID"/, 'launcher should keep the helper running after the terminal exits');
 assert.match(launcher, /closeLauncherWindow/, 'launcher should close the startup terminal window after opening pages');
 assert.match(launcher, /EXPECTED_HELPER_VERSION=/, 'launcher should know the helper version it expects');
+const expectedVersion = launcher.match(/EXPECTED_HELPER_VERSION="([^"]+)"/)?.[1];
+const helperVersion = helper.match(/const helperVersion = '([^']+)'/)?.[1];
+assert.equal(expectedVersion, helperVersion, 'launcher should restart whenever the helper implementation version changes');
 assert.match(launcher, /helperVersion\(\)/, 'launcher should read the running helper version');
 assert.match(launcher, /stopStaleHelper/, 'launcher should restart stale helper processes after code updates');
 assert.match(launcher, /CLOUD_SYNC_ENV_FILE=/, 'launcher should support an optional cloud sync env file');
