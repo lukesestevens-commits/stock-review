@@ -1,4 +1,7 @@
-import { fetchMarketSnapshot } from '../tools/market-public-data.mjs';
+import {
+  fetchMarketSnapshot,
+  MARKET_ALGORITHM_VERSION
+} from '../tools/market-public-data.mjs';
 import { createMarketSnapshotStore } from './market-snapshot-store.mjs';
 import {
   isFinalMarketSnapshot,
@@ -197,6 +200,8 @@ function marketRecordResponse(record, options = {}) {
       finalized,
       finalizedAt: record.finalizedAt || '',
       stale: Boolean(options.stale),
+      versionExpired: Boolean(options.versionExpired),
+      algorithmVersion: record.market?.algorithmVersion || '',
       source: options.source || 'cloud-cache'
     }
   });
@@ -216,8 +221,9 @@ async function marketSnapshot(fetchImpl, env, url, now) {
     return json(503, { ok: false, error: '云端市场快照存储暂不可用。' });
   }
 
-  if (cached?.finalizedAt) return marketRecordResponse(cached);
-  if (isFreshMarketRecord(cached, nowDate)) return marketRecordResponse(cached);
+  const cachedIsCurrent = cached?.market?.algorithmVersion === MARKET_ALGORITHM_VERSION;
+  if (cachedIsCurrent && cached?.finalizedAt) return marketRecordResponse(cached);
+  if (cachedIsCurrent && isFreshMarketRecord(cached, nowDate)) return marketRecordResponse(cached);
 
   try {
     const fetched = await fetchMarketSnapshot({ fetchImpl });
@@ -226,10 +232,22 @@ async function marketSnapshot(fetchImpl, env, url, now) {
     const market = { ...fetched, updatedAt };
     const tradeDate = marketSnapshotTradeDate(market) || requestedDate;
     const finalizedAt = isFinalMarketSnapshot(market) ? updatedAt : '';
-    const stored = await store.write({ tradeDate, updatedAt, finalizedAt, market });
+    const forceVersionUpgrade = Boolean(
+      cached
+      && cached.tradeDate === tradeDate
+      && !cachedIsCurrent
+      && market.algorithmVersion === MARKET_ALGORITHM_VERSION
+    );
+    const stored = await store.write(
+      { tradeDate, updatedAt, finalizedAt, market },
+      { force: forceVersionUpgrade }
+    );
     return marketRecordResponse(stored, { source: 'upstream' });
   } catch (error) {
-    if (cached) return marketRecordResponse(cached, { stale: true });
+    if (cached) return marketRecordResponse(cached, {
+      stale: true,
+      versionExpired: !cachedIsCurrent
+    });
     return json(502, { ok: false, error: error.message || '公开市场数据暂不可用。' });
   }
 }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createCloudWorker } from '../cloud/worker.mjs';
+import { MARKET_ALGORITHM_VERSION } from '../tools/market-public-data.mjs';
 
 class FakeD1 {
   constructor() {
@@ -26,7 +27,8 @@ class FakeD1 {
         if (/INSERT INTO market_snapshots/.test(sql)) {
           const [tradeDate, updatedAt, finalizedAt, payloadJson] = values;
           const current = db.marketRows.get(tradeDate);
-          if (!current?.finalized_at) {
+          const force = !/WHERE market_snapshots\.finalized_at IS NULL/.test(sql);
+          if (force || !current?.finalized_at) {
             db.marketRows.set(tradeDate, {
               trade_date: tradeDate,
               updated_at: updatedAt,
@@ -70,10 +72,12 @@ function createMarketFetch(state) {
       return new Response(tencentPayload(state.quoteStamp), { status: 200 });
     }
     if (value.includes('q.stock.sohu.com')) {
-      return new Response(`
-        <td class="e1">1</td><td class="e2"><a href="bk_3098.shtml">Media</a></td>
-        <td class="e1">2</td><td class="e2"><a href="bk_3100.shtml">Medicine</a></td>
-      `, { status: 200 });
+      return new Response(`<script>PEAK_ODIA(['pllist',
+        ['7741','医药电商','49','14.35','+0.24','3.00%','11596032','116650884','cn_600129','太极集团','17.94','+1.36','8.20%'],
+        ['7970','GPU','13','177.62','+1.96','2.80%','13196240','597412349','cn_688802','沐曦股份-U','972.86','+63.51','6.98%'],
+        ['4485','人工智能','120','20.00','+0.30','2.60%','20000000','800000000','cn_000001','样本股','10.00','+0.10','1.00%'],
+        ['7582','中药概念','131','17.38','+0.02','2.40%','37254681','375952915','cn_300534','陇神戎发','9.00','+1.50','20.00%'],
+        ['4445','华为概念','200','18.00','+0.20','2.20%','50000000','900000000','cn_000002','样本股2','20.00','+0.20','1.00%']]);</script>`, { status: 200 });
     }
     return new Response('unavailable', { status: 502 });
   };
@@ -97,7 +101,8 @@ assert.equal(first.response.status, 200);
 assert.equal(first.body.cache.finalized, false);
 assert.equal(first.body.cache.stale, false);
 assert.equal(first.body.cache.tradeDate, '2026-07-13');
-assert.match(first.body.market.mainLines, /Media/);
+assert.match(first.body.market.mainLines, /^概念：/);
+assert.equal(first.body.market.algorithmVersion, MARKET_ALGORITHM_VERSION);
 assert.equal(state.tencentCalls, 1);
 
 now = new Date('2026-07-13T06:59:50.000Z');
@@ -136,5 +141,30 @@ const staleFallback = await read(staleApp, staleDb);
 assert.equal(staleFallback.response.status, 200);
 assert.equal(staleFallback.body.cache.stale, true);
 assert.equal(staleFallback.body.market.updatedAt, staleSeed.body.market.updatedAt);
+
+let upgradeNow = new Date('2026-07-13T07:10:00.000Z');
+const upgradeState = { fail: false, quoteStamp: '20260713150030', tencentCalls: 0 };
+const upgradeDb = new FakeD1();
+upgradeDb.marketRows.set('2026-07-13', {
+  trade_date: '2026-07-13',
+  updated_at: '2026-07-13T07:00:00.000Z',
+  finalized_at: '2026-07-13T07:00:00.000Z',
+  payload_json: JSON.stringify({
+    mainLines: '抗跌板块：传媒、非银金融、机械设备',
+    marketOne: '旧算法市场判断',
+    updatedAt: '2026-07-13T07:00:00.000Z'
+  })
+});
+const upgradeApp = createCloudWorker({
+  fetchImpl: createMarketFetch(upgradeState),
+  now: () => new Date(upgradeNow)
+});
+const upgraded = await read(upgradeApp, upgradeDb);
+assert.equal(upgraded.response.status, 200);
+assert.equal(upgraded.body.market.algorithmVersion, MARKET_ALGORITHM_VERSION);
+assert.match(upgraded.body.market.mainLines, /^概念：/);
+assert.doesNotMatch(upgraded.body.market.mainLines, /传媒|非银金融|机械设备/);
+assert.equal(upgraded.body.cache.finalized, true);
+assert.equal(upgradeState.tencentCalls, 1, 'old finalized cache should be rebuilt once');
 
 console.log('PASS cloud market snapshot');

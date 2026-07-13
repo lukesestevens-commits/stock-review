@@ -26,6 +26,14 @@ ON CONFLICT(trade_date) DO UPDATE SET
   payload_json = excluded.payload_json
 WHERE market_snapshots.finalized_at IS NULL`;
 
+const FORCE_WRITE_SQL = `
+INSERT INTO market_snapshots (trade_date, updated_at, finalized_at, payload_json)
+VALUES (?, ?, ?, ?)
+ON CONFLICT(trade_date) DO UPDATE SET
+  updated_at = excluded.updated_at,
+  finalized_at = excluded.finalized_at,
+  payload_json = excluded.payload_json`;
+
 function decode(row) {
   if (!row || !row.payload_json) return null;
   return {
@@ -58,9 +66,9 @@ export function createMarketSnapshotStore(db) {
       return decode(await db.prepare(READ_LATEST_SQL).first());
     },
 
-    async write(record) {
+    async write(record, options = {}) {
       await ensureSchema();
-      await db.prepare(WRITE_SQL)
+      await db.prepare(options.force ? FORCE_WRITE_SQL : WRITE_SQL)
         .bind(
           record.tradeDate,
           record.updatedAt,

@@ -31,7 +31,8 @@ class FakeD1 {
           assert.equal(db.schemaReady, true);
           const [tradeDate, updatedAt, finalizedAt, payloadJson] = values;
           const current = db.rows.get(tradeDate);
-          if (!current?.finalized_at) {
+          const force = !/WHERE market_snapshots\.finalized_at IS NULL/.test(sql);
+          if (force || !current?.finalized_at) {
             db.rows.set(tradeDate, {
               trade_date: tradeDate,
               updated_at: updatedAt,
@@ -73,6 +74,19 @@ await store.write({
   market: { mainLines: '错误覆盖', marketOne: '错误覆盖' }
 });
 assert.deepEqual(await store.read('2026-07-13'), finalSnapshot);
+
+const upgradedSnapshot = {
+  ...finalSnapshot,
+  updatedAt: '2026-07-13T08:05:00.000Z',
+  finalizedAt: '2026-07-13T08:05:01.000Z',
+  market: {
+    algorithmVersion: 'concept-ranking-v2',
+    mainLines: '概念：医药电商、GPU、人工智能、中药概念、华为概念',
+    marketOne: '升级后的市场判断'
+  }
+};
+await store.write(upgradedSnapshot, { force: true });
+assert.deepEqual(await store.read('2026-07-13'), upgradedSnapshot);
 assert.throws(() => createMarketSnapshotStore(null), /D1 binding DB is required/);
 
 console.log('PASS market snapshot store');
