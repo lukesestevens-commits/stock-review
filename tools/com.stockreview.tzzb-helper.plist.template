@@ -7,11 +7,11 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>__PROJECT_DIR__/启动复盘助手.command</string>
+    <string>__LAUNCH_HELPER__</string>
     <string>--daemon</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>__PROJECT_DIR__</string>
+  <string>__LAUNCH_PROJECT_DIR__</string>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>

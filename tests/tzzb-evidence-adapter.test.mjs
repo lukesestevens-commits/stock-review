@@ -322,6 +322,34 @@ const failedOnlyEvidence = await normalizeCaptureEvidence({
 assert.equal(failedOnlyEvidence.activeAccountRefs.length, 1, 'the active account remains so missing evidence fails closed');
 assert.deepEqual(failedOnlyEvidence.records, [], 'a failed empty response is never normalized as a valid zero-trade page');
 
+const zeroTradeEvidence = await normalizeCaptureEvidence({
+  records: [
+    {
+      status: 200,
+      capturedAt,
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/account/v1/account_list',
+      responseText: JSON.stringify({ ex_data: { common: [{ access_upload: '1', fund_key: 'zero-trade-fund' }] } })
+    },
+    {
+      status: 200,
+      capturedAt,
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/account/v2/get_money_history',
+      requestPostData: 'fund_key=zero-trade-fund&start_date=20260714&end_date=20260714&page=1&count=200',
+      responseText: JSON.stringify({
+        error_code: '0',
+        ex_data: { page: 0, max_page: 0, total: 0, list: [] }
+      })
+    }
+  ]
+});
+assert.equal(zeroTradeEvidence.activeAccountRefs.length, 1);
+assert.deepEqual(zeroTradeEvidence.records[0]?.payload, {
+  page: 1,
+  maxPage: 1,
+  total: 0,
+  trades: []
+}, 'Tonghuashun page=0/max_page=0 is its complete zero-trade sentinel and must become one canonical empty page');
+
 const serialized = JSON.stringify(evidence);
 for (const secret of [
   'user-secret', 'manual-A', 'fund-A', 'disabled-upload', 'disabled-merge',

@@ -231,6 +231,13 @@ function writeState(stateFile, state) {
   fs.renameSync(temporary, stateFile);
 }
 
+function defaultLauncherPath() {
+  const runtimeLauncher = path.join(projectDir, 'launch-helper.command');
+  return fs.existsSync(runtimeLauncher)
+    ? runtimeLauncher
+    : path.join(projectDir, '启动复盘助手.command');
+}
+
 export function markCurrentSlot({
   now = new Date(),
   stateFile = process.env.TZZB_SCHEDULE_STATE_FILE || defaultStateFile,
@@ -250,7 +257,7 @@ export function runDueCapture({
   stateFile = process.env.TZZB_SCHEDULE_STATE_FILE || defaultStateFile,
   cloudStatusFile = process.env.TZZB_CLOUD_STATUS_FILE || defaultCloudStatusFile,
   calendar = readTradingCalendarState(),
-  launcher = path.join(projectDir, '启动复盘助手.command')
+  launcher = defaultLauncherPath()
 } = {}) {
   const dueSlot = latestDueSlot(now, calendar) || calendarRefreshSlot(now, calendar);
   const state = readState(stateFile);

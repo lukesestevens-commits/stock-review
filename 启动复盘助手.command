@@ -12,7 +12,11 @@ EXPECTED_HELPER_VERSION="2026.07.15-daily-review-private-r11"
 BUNDLED_NODE="/Users/ruiqiwang/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node"
 HELPER_LOG_DIR="$SCRIPT_DIR/logs"
 HELPER_LOG="$HELPER_LOG_DIR/tzzb-local-helper.log"
-CLOUD_SYNC_ENV_FILE="$SCRIPT_DIR/云同步配置.env"
+if [ -f "$SCRIPT_DIR/cloud-sync.env" ]; then
+  CLOUD_SYNC_ENV_FILE="$SCRIPT_DIR/cloud-sync.env"
+else
+  CLOUD_SYNC_ENV_FILE="$SCRIPT_DIR/云同步配置.env"
+fi
 LAUNCH_AGENT_LABEL="com.stockreview.tzzb-autocapture"
 LAUNCH_AGENT_TEMPLATE="$SCRIPT_DIR/tools/${LAUNCH_AGENT_LABEL}.plist.template"
 HELPER_AGENT_LABEL="com.stockreview.tzzb-helper"
@@ -20,6 +24,9 @@ HELPER_AGENT_TEMPLATE="$SCRIPT_DIR/tools/${HELPER_AGENT_LABEL}.plist.template"
 LAUNCH_AGENT_DIR="$HOME/Library/LaunchAgents"
 LAUNCH_AGENT_PLIST="$LAUNCH_AGENT_DIR/${LAUNCH_AGENT_LABEL}.plist"
 HELPER_AGENT_PLIST="$LAUNCH_AGENT_DIR/${HELPER_AGENT_LABEL}.plist"
+LAUNCH_RUNTIME_DIR="$HOME/.stock-review-runtime"
+LAUNCH_PROJECT_DIR="$HOME/.stock-review-runtime/app"
+LAUNCH_HELPER_PATH="$HOME/.stock-review-runtime/app/launch-helper.command"
 TERMINAL_WINDOW_ID="$(/usr/bin/osascript -e 'tell application "Terminal" to id of front window' 2>/dev/null || true)"
 
 if [ -f "$CLOUD_SYNC_ENV_FILE" ]; then
@@ -51,12 +58,16 @@ configureSystemProxy() {
 renderLaunchAgent() {
   local template="$1"
   local destination="$2"
-  local escaped_project escaped_log temporary
+  local escaped_project escaped_launch_project escaped_launch_helper escaped_log temporary
   escaped_project="$(printf '%s' "$SCRIPT_DIR" | /usr/bin/sed 's/[&|]/\\&/g')"
-  escaped_log="$(printf '%s' "$HELPER_LOG_DIR" | /usr/bin/sed 's/[&|]/\\&/g')"
+  escaped_launch_project="$(printf '%s' "$LAUNCH_PROJECT_DIR" | /usr/bin/sed 's/[&|]/\\&/g')"
+  escaped_launch_helper="$(printf '%s' "$LAUNCH_HELPER_PATH" | /usr/bin/sed 's/[&|]/\\&/g')"
+  escaped_log="$(printf '%s' "$LAUNCH_PROJECT_DIR/logs" | /usr/bin/sed 's/[&|]/\\&/g')"
   temporary="${destination}.tmp.$$"
   /usr/bin/sed \
     -e "s|__PROJECT_DIR__|${escaped_project}|g" \
+    -e "s|__LAUNCH_PROJECT_DIR__|${escaped_launch_project}|g" \
+    -e "s|__LAUNCH_HELPER__|${escaped_launch_helper}|g" \
     -e "s|__LOG_DIR__|${escaped_log}|g" \
     "$template" > "$temporary"
   if [ -f "$destination" ] && /usr/bin/cmp -s "$temporary" "$destination"; then
@@ -66,6 +77,28 @@ renderLaunchAgent() {
   /bin/mv -f "$temporary" "$destination"
   /bin/chmod 600 "$destination"
   return 0
+}
+
+installRuntimeMirror() {
+  mkdir -p "$LAUNCH_RUNTIME_DIR" "$LAUNCH_PROJECT_DIR" "$LAUNCH_PROJECT_DIR/logs"
+  /bin/chmod 700 "$LAUNCH_RUNTIME_DIR" "$LAUNCH_PROJECT_DIR"
+
+  if [ ! -d "$LAUNCH_PROJECT_DIR/data/tzzb" ] && [ -d "$SCRIPT_DIR/data/tzzb" ]; then
+    mkdir -p "$LAUNCH_PROJECT_DIR/data"
+    /usr/bin/ditto "$SCRIPT_DIR/data/tzzb" "$LAUNCH_PROJECT_DIR/data/tzzb"
+  fi
+
+  /usr/bin/ditto "$SCRIPT_DIR/tools" "$LAUNCH_PROJECT_DIR/tools"
+  /bin/cp -f "$SCRIPT_DIR/index.html" "$LAUNCH_PROJECT_DIR/index.html"
+  /bin/cp -f "$SCRIPT_DIR/启动复盘助手.command" "$LAUNCH_HELPER_PATH"
+  /bin/chmod 700 "$LAUNCH_HELPER_PATH" "$LAUNCH_PROJECT_DIR/tools/tzzb-scheduled-capture.command"
+
+  if [ -f "$SCRIPT_DIR/云同步配置.env" ]; then
+    /bin/cp -f "$SCRIPT_DIR/云同步配置.env" "$LAUNCH_PROJECT_DIR/cloud-sync.env"
+    /bin/chmod 600 "$LAUNCH_PROJECT_DIR/cloud-sync.env"
+  fi
+
+  /bin/rm -f "$LAUNCH_RUNTIME_DIR/project" "$LAUNCH_RUNTIME_DIR/launch-helper.command"
 }
 
 installLaunchAgent() {
@@ -106,6 +139,7 @@ installCaptureSchedule() {
     return
   fi
 
+  installRuntimeMirror
   mkdir -p "$LAUNCH_AGENT_DIR" "$HELPER_LOG_DIR"
   if installLaunchAgent "$HELPER_AGENT_LABEL" "$HELPER_AGENT_TEMPLATE" "$HELPER_AGENT_PLIST"; then
     echo "已安装本地 helper 常驻服务，登录后自动启动，异常退出后自动恢复。"
@@ -113,7 +147,7 @@ installCaptureSchedule() {
     echo "本地 helper 常驻服务加载失败，本次将使用后台备用方式启动。"
   fi
 
-  "$NODE_BIN" "$SCRIPT_DIR/tools/tzzb-review-schedule.mjs" --mark-current >/dev/null 2>&1 || true
+  "$NODE_BIN" "$LAUNCH_PROJECT_DIR/tools/tzzb-review-schedule.mjs" --mark-current >/dev/null 2>&1 || true
   if installLaunchAgent "$LAUNCH_AGENT_LABEL" "$LAUNCH_AGENT_TEMPLATE" "$LAUNCH_AGENT_PLIST"; then
     echo "已安装收盘自动补抓，登录或唤醒后会补跑最新已到期交易日。"
   else
