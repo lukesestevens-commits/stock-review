@@ -184,7 +184,12 @@ for (const time of CAPTURE_TIMES) {
   assert.match(template, interval, `LaunchAgent should include ${time}`);
 }
 assert.match(template, /tzzb-scheduled-capture\.command/, 'LaunchAgent should run the catch-up guard instead of the interactive launcher directly');
+assert.match(template, /__LAUNCH_PROJECT_DIR__\/tools\/tzzb-scheduled-capture\.command/, 'capture LaunchAgent should execute through an ASCII-only stable project path');
+assert.match(helperTemplate, /<string>__LAUNCH_HELPER__<\/string>/, 'helper LaunchAgent should execute through an ASCII-only stable script path');
+assert.doesNotMatch(template, /__PROJECT_DIR__\/tools\/tzzb-scheduled-capture\.command/, 'capture LaunchAgent must not execute from a possibly non-ASCII project path');
+assert.doesNotMatch(helperTemplate, /启动复盘助手\.command/, 'helper LaunchAgent must not receive a non-ASCII script filename');
 assert.match(runner, /tzzb-review-schedule\.mjs/, 'scheduled runner should delegate due-slot decisions to the tested module');
+assert.match(scheduleSource, /launch-helper\.command/, 'runtime scheduler should prefer the ASCII-only copied launcher');
 assert.match(helperTemplate, /<key>RunAtLoad<\/key>\s*<true\/>/, 'helper daemon must start at login independently of capture-slot deduplication');
 assert.match(helperTemplate, /<key>KeepAlive<\/key>\s*<true\/>/, 'launchd must restart the local helper if it exits');
 assert.match(helperTemplate, /--daemon/, 'the helper LaunchAgent should use the non-interactive daemon launcher mode');

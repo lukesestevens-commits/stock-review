@@ -171,10 +171,13 @@ function rawPayloadIsUsable(endpoint, payload) {
     const page = Number(exData.page);
     const maxPage = Number(exData.max_page);
     const total = Number(exData.total);
-    return Number.isSafeInteger(page) && page >= 1
+    const list = exData.list;
+    const completeZeroTradePage = Array.isArray(list)
+      && page === 0 && maxPage === 0 && total === 0 && list.length === 0;
+    return completeZeroTradePage || (Number.isSafeInteger(page) && page >= 1
       && Number.isSafeInteger(maxPage) && maxPage >= page
       && Number.isSafeInteger(total) && total >= 0
-      && Array.isArray(exData.list);
+      && Array.isArray(list));
   }
   if (endpoint === 'merge_day_trading') return Array.isArray(exData.data);
   if (endpoint === 'stock_position') {
@@ -237,9 +240,13 @@ function safePayload(endpoint, payload) {
       trades: (Array.isArray(exData.data) ? exData.data : []).map(safeTrade)
     };
   }
+  const completeZeroTradePage = Number(exData.page) === 0
+    && Number(exData.max_page) === 0
+    && Number(exData.total) === 0
+    && exData.list.length === 0;
   return {
-    page: Number(exData.page),
-    maxPage: Number(exData.max_page),
+    page: completeZeroTradePage ? 1 : Number(exData.page),
+    maxPage: completeZeroTradePage ? 1 : Number(exData.max_page),
     total: Number(exData.total),
     trades: exData.list.map(safeTrade)
   };

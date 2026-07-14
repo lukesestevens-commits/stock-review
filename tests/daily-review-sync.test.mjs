@@ -222,6 +222,19 @@ function cloneEvidence() {
   return structuredClone(midnightEvidence());
 }
 
+const sameDayCapturedAt = '2026-07-14T08:00:00.000Z';
+
+function cloneSameDayEvidence() {
+  const evidence = cloneEvidence();
+  for (const record of evidence.records) record.capturedAt = sameDayCapturedAt;
+  const calendar = findRecord(evidence, 'last_trading_day', 'c'.repeat(64)).payload;
+  calendar.lastTradingDay = '2026-07-14';
+  calendar.previousTradingDay = '2026-07-13';
+  calendar.beforePreviousTradingDay = '2026-07-12';
+  calendar.systemTime = Date.parse('2026-07-14T16:00:00+08:00');
+  return evidence;
+}
+
 function findRecord(evidence, endpoint, ref = accountRef) {
   return evidence.records.find((record) => record.endpoint === endpoint && record.accountRef === ref);
 }
@@ -245,6 +258,15 @@ async function submit(sync, evidence, idempotencyKey) {
   });
 }
 
+async function submitSameDay(sync, evidence, idempotencyKey) {
+  return sync.submitCapture({
+    idempotencyKey,
+    capturedAt: sameDayCapturedAt,
+    captureDate: '2026-07-14',
+    evidence
+  });
+}
+
 {
   const evidence = cloneEvidence();
   findRecord(evidence, 'get_money_history').payload = { page: 1, maxPage: 1, total: 0, trades: [] };
@@ -254,7 +276,7 @@ async function submit(sync, evidence, idempotencyKey) {
   const latest = await sync.readLatestVerified();
   assert.equal(result.state, 'verified', 'a complete correct-date empty detail response is valid evidence');
   assert.deepEqual(latest.dailyReview.trades, []);
-  assert.ok(result.audit.warnings.some((warning) => warning.code === 'TRADE_SUMMARY_EMPTY'));
+  assert.ok(result.audit.warnings.some((warning) => warning.code === 'TRADE_SUMMARY_UNAVAILABLE_FOR_REVIEW_DATE'));
   assert.equal(store.verifiedWrites, 1);
 }
 
@@ -290,7 +312,16 @@ async function submit(sync, evidence, idempotencyKey) {
   findRecord(evidence, 'merge_day_trading').payload.trades = [];
   const { sync } = makeSync();
   const result = await submit(sync, evidence, 'empty-summary-with-detail');
-  assert.equal(result.state, 'stored-unverified', 'an empty summary conflicts with non-empty ordinary detail trades');
+  assert.equal(result.state, 'verified', 'an unscoped natural-day summary cannot contradict complete prior-trading-day details after midnight');
+  assert.ok(result.audit.warnings.some((warning) => warning.code === 'TRADE_SUMMARY_UNAVAILABLE_FOR_REVIEW_DATE'));
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  findRecord(evidence, 'merge_day_trading').payload.trades = [];
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'same-day-empty-summary-with-detail');
+  assert.equal(result.state, 'stored-unverified', 'a same-day empty summary still contradicts non-empty ordinary detail trades');
   assert.ok(result.audit.issueCodes.includes('TRADE_RECONCILIATION_FAILED'));
 }
 
@@ -425,6 +456,22 @@ async function submit(sync, evidence, idempotencyKey) {
 
 {
   const evidence = cloneEvidence();
+  const position = findRecord(evidence, 'stock_position').payload;
+  position.totalAsset = '0.00';
+  position.totalValue = '0.00';
+  position.positionRate = '';
+  position.cash = '0.00';
+  position.positions = [];
+  findRecord(evidence, 'get_money_history').payload = { page: 1, maxPage: 1, total: 0, trades: [] };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [];
+  const { sync } = makeSync();
+  const result = await submit(sync, evidence, 'zero-position-empty-rate');
+  assert.equal(result.state, 'verified', 'a zero-position account may report an empty rate when both capital identities equal zero');
+  assert.ok(result.audit.warnings.some((warning) => warning.code === 'POSITION_RATE_EMPTY_FOR_ZERO_POSITION'));
+}
+
+{
+  const evidence = cloneEvidence();
   const trend = findRecord(evidence, 'asset_trend').payload;
   for (const rows of [trend.monthProfit, trend.yearProfit, trend.totalAssetHistory]) {
     rows[0].date = '2026-07-12';
@@ -479,19 +526,19 @@ async function submit(sync, evidence, idempotencyKey) {
 }
 
 {
-  const evidence = cloneEvidence();
+  const evidence = cloneSameDayEvidence();
   findRecord(evidence, 'merge_day_trading').payload.trades[0].amount = '-49999';
   const { sync } = makeSync();
-  const result = await submit(sync, evidence, 'trade-summary-conflict');
+  const result = await submitSameDay(sync, evidence, 'trade-summary-conflict');
   assert.equal(result.state, 'stored-unverified');
   assert.ok(result.audit.issueCodes.includes('TRADE_RECONCILIATION_FAILED'));
 }
 
 {
-  const evidence = cloneEvidence();
+  const evidence = cloneSameDayEvidence();
   findRecord(evidence, 'merge_day_trading').payload.trades[0].sequenceId = 'different-sequence';
   const { sync } = makeSync();
-  const result = await submit(sync, evidence, 'trade-sequence-conflict');
+  const result = await submitSameDay(sync, evidence, 'trade-sequence-conflict');
   assert.equal(result.state, 'stored-unverified', 'when either side has a sequenceId, both sequenceIds must match');
   assert.ok(result.audit.issueCodes.includes('TRADE_RECONCILIATION_FAILED'));
 }

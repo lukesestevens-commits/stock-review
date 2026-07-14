@@ -31,6 +31,15 @@ assert.match(launcher, /installCaptureSchedule/, 'manual launcher should install
 assert.match(launcher, /com\.stockreview\.tzzb-autocapture/, 'launcher should use a stable LaunchAgent label');
 assert.match(launcher, /com\.stockreview\.tzzb-helper/, 'launcher should install an independent login-time helper daemon');
 assert.match(launcher, /Library\/LaunchAgents/, 'launcher should install into the current user LaunchAgents folder');
+assert.match(launcher, /LAUNCH_PROJECT_DIR="\$HOME\/\.stock-review-runtime\/app"/, 'launcher should install an ASCII-only runtime mirror outside the protected Desktop folder');
+assert.match(launcher, /LAUNCH_HELPER_PATH="\$HOME\/\.stock-review-runtime\/app\/launch-helper\.command"/, 'launcher should give the runtime helper an ASCII-only filename');
+assert.match(launcher, /installRuntimeMirror/, 'launcher should install a real runtime mirror instead of a Desktop symlink');
+assert.match(launcher, /ditto "\$SCRIPT_DIR\/tools" "\$LAUNCH_PROJECT_DIR\/tools"/, 'runtime mirror should include the helper dependency tree');
+assert.match(launcher, /cp -f "\$SCRIPT_DIR\/启动复盘助手\.command" "\$LAUNCH_HELPER_PATH"/, 'runtime mirror should copy the helper to its ASCII-only entrypoint');
+assert.match(launcher, /cloud-sync\.env/, 'runtime mirror should use an ASCII-only private cloud configuration filename');
+assert.doesNotMatch(launcher, /ln -sfn/, 'LaunchAgents must not depend on symlinks into the protected Desktop folder');
+assert.match(launcher, /__LAUNCH_PROJECT_DIR__/, 'launcher should render the stable launchd path into agent templates');
+assert.match(launcher, /__LAUNCH_HELPER__/, 'launcher should render the ASCII-only helper entrypoint into agent templates');
 assert.match(launcher, /launchctl bootstrap/, 'launcher should load a newly installed user agent');
 assert.match(launcher, /launchctl print/, 'launcher should avoid loading an already active agent twice');
 assert.match(launcher, /--scheduled/, 'scheduled launches should skip recursive LaunchAgent installation');

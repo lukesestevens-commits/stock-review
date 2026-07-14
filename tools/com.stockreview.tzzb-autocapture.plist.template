@@ -7,10 +7,10 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/zsh</string>
-    <string>__PROJECT_DIR__/tools/tzzb-scheduled-capture.command</string>
+    <string>__LAUNCH_PROJECT_DIR__/tools/tzzb-scheduled-capture.command</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>__PROJECT_DIR__</string>
+  <string>__LAUNCH_PROJECT_DIR__</string>
   <key>RunAtLoad</key>
   <true/>
   <key>StartCalendarInterval</key>

@@ -294,11 +294,17 @@ function tradeSignature(trade) {
   ].join('|');
 }
 
-function tradeSummaryResult(records, accountRef, reviewDate, detailTrades) {
+function tradeSummaryResult(records, accountRef, reviewDate, detailTrades, captureDate) {
   const summary = latestRecord(records, 'merge_day_trading', accountRef);
   if (!summary) return { matched: false, empty: false, reason: 'SUMMARY_MISSING' };
   const summaryRows = (summary?.payload?.trades || []).filter((trade) => !reverseRepo(trade));
   const ordinaryDetails = detailTrades.filter((trade) => !reverseRepo(trade));
+  const explicitlyScopedToReviewDate = summary.request?.startDate === reviewDate
+    && summary.request?.endDate === reviewDate;
+  const containsReviewDate = summaryRows.some((trade) => trade.date === reviewDate);
+  if (captureDate !== reviewDate && !explicitlyScopedToReviewDate && !containsReviewDate) {
+    return { matched: true, empty: false, unavailable: true };
+  }
   if (!summaryRows.length) {
     return ordinaryDetails.length
       ? { matched: false, empty: false, reason: 'EMPTY_SUMMARY_WITH_DETAILS' }
@@ -371,8 +377,10 @@ function buildReview({ records, activeAccountRefs, reviewDate, previousReviewDat
     if (!history.complete) issues.push({ code: 'TRADE_HISTORY_INCOMPLETE', accountRef, reviewDate });
     if (!position || !trend || !history.complete) continue;
 
-    const tradeSummary = tradeSummaryResult(records, accountRef, reviewDate, history.trades);
-    if (!tradeSummary.matched) {
+    const tradeSummary = tradeSummaryResult(records, accountRef, reviewDate, history.trades, captureDate);
+    if (tradeSummary.unavailable) {
+      warnings.push({ code: 'TRADE_SUMMARY_UNAVAILABLE_FOR_REVIEW_DATE', accountRef, reviewDate, captureDate });
+    } else if (!tradeSummary.matched) {
       issues.push({
         code: 'TRADE_RECONCILIATION_FAILED',
         accountRef,
@@ -422,8 +430,15 @@ function buildReview({ records, activeAccountRefs, reviewDate, previousReviewDat
       }
     }
 
-    const positionRateText = String(position.payload.positionRate ?? '');
-    if (!positionRateText || accountAsset <= 0n) {
+    const positionRateText = String(position.payload.positionRate ?? '').trim();
+    const zeroPositionRateConfirmed = !positionRateText
+      && accountPositionValue === 0n
+      && Boolean(declaredValueText)
+      && moneyValue(declaredValueText) === 0n
+      && abs(accountAsset - accountCash) <= MONEY_TOLERANCE;
+    if (zeroPositionRateConfirmed) {
+      warnings.push({ code: 'POSITION_RATE_EMPTY_FOR_ZERO_POSITION', accountRef });
+    } else if (!positionRateText || accountAsset <= 0n) {
       issues.push({ code: 'POSITION_RECONCILIATION_FAILED', accountRef, reason: 'POSITION_RATE_MISSING' });
     } else {
       const reportedRate = fixedValue(positionRateText, 6, 'INVALID_POSITION_RATE');
