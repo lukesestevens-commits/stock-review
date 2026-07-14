@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { mapTzzbCaptureToReview } from './tzzb-review-mapper.mjs';
 import { fetchMarketSnapshot } from './market-public-data.mjs';
+import { createMarketSnapshotCache } from './market-snapshot-cache.mjs';
 import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from './tzzb-endpoint-coverage.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -21,6 +22,10 @@ const cloudSyncKey = process.env.TZZB_CLOUD_SYNC_KEY || '';
 const cloudRetryDelayMs = Number(process.env.TZZB_CLOUD_RETRY_DELAY_MS || 1000);
 let cloudUploadTail = Promise.resolve();
 let useFreshCloudUploadProcess = false;
+const marketSnapshots = createMarketSnapshotCache({
+  load: () => fetchMarketSnapshot(),
+  ttlMs: 60_000
+});
 
 const freshCloudUploadSource = `
 const chunks = [];
@@ -415,7 +420,7 @@ async function handleMarketSnapshot(res) {
   try {
     sendJson(res, 200, {
       ok: true,
-      market: await fetchMarketSnapshot()
+      market: await marketSnapshots.get()
     });
   } catch (error) {
     sendJson(res, 502, {

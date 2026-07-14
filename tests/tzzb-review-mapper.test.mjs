@@ -200,6 +200,53 @@ assert.deepEqual(
 assert.equal(enrichedSummaryTrades.tzzb.importAudit.tradeSource, 'merge_day_trading+get_money_history');
 assert.doesNotMatch(enrichedSummaryTrades.trades.map((trade) => trade.name).join(','), /GC001/);
 
+const enrichedDayTrades = mapTzzbCaptureToReview([
+  {
+    capturedAt: '2026-07-10T08:00:00.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v1/merge_day_trading',
+    responseText: JSON.stringify({
+      ex_data: {
+        data: [
+          { zqdm: '002384', zqmc: '东山精密', czlx: '买入', cjjg: '252.680', cjsl: '100', moneychg: '-25268' },
+          { zqdm: '002038', zqmc: '双鹭药业', czlx: '买入', cjjg: '6.220', cjsl: '400', moneychg: '-2488' },
+          { zqdm: '688362', zqmc: '甬矽电子', czlx: '买入', cjjg: '118.010', cjsl: '89', moneychg: '-10502.89' },
+          { zqdm: '300489', zqmc: '光智科技', czlx: '卖出', cjjg: '266.600', cjsl: '100', moneychg: '26660' }
+        ]
+      }
+    })
+  },
+  {
+    capturedAt: '2026-07-10T08:00:01.000Z',
+    url: 'https://tzzb.10jqka.com.cn/api/caishen_fund/pc/account/v2/get_money_history',
+    responseText: JSON.stringify({
+      ex_data: {
+        list: [
+          { code: '204001', entry_date: '2026-07-10', entry_time: '15:02:07', name: 'GC001', op_name: '买入', entry_price: '0.910', entry_count: '170', entry_money: '170000' },
+          { code: '002384', entry_date: '2026-07-10', entry_time: '14:11:01', name: '东山精密', op_name: '买入', entry_price: '252.680', entry_count: '100', entry_money: '25268' },
+          { code: '002038', entry_date: '2026-07-10', entry_time: '09:49:06', name: '双鹭药业', op_name: '买入', entry_price: '6.220', entry_count: '400', entry_money: '2488' },
+          { code: '688362', entry_date: '2026-07-10', entry_time: '09:33:26', name: '甬矽电子', op_name: '买入', entry_price: '118.010', entry_count: '89', entry_money: '10502.89' },
+          { code: '300489', entry_date: '2026-07-10', entry_time: '09:30:59', name: '光智科技', op_name: '卖出', entry_price: '266.600', entry_count: '100', entry_money: '26660' }
+        ]
+      }
+    })
+  }
+], { targetDate: '2026-07-10' });
+assert.deepEqual(
+  enrichedDayTrades.trades.map((trade) => `${trade.time} ${trade.name}`),
+  [
+    '09:30:59 光智科技',
+    '09:33:26 甬矽电子',
+    '09:49:06 双鹭药业',
+    '14:11:01 东山精密'
+  ],
+  'summary-authorized trades should be enriched and sorted by real second-level timestamps'
+);
+assert.doesNotMatch(
+  enrichedDayTrades.trades.map((trade) => trade.name).join(','),
+  /GC001/,
+  'detail-only cash-management rows should not enter the review trade list'
+);
+
 const activeHoldingOnly = mapTzzbCaptureToReview([
   {
     capturedAt: '2026-07-09T10:00:00.000Z',

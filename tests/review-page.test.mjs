@@ -142,18 +142,27 @@ test('summarizeHistory calculates 7-day and 30-day trends', () => {
 });
 
 test('market snapshots refresh independently from the three-second trade poll', () => {
-  assert.match(scriptMatch[1], /function startMarketAutoImport\(\)/);
-  assert.match(scriptMatch[1], /setInterval\(autoImportMarketSnapshot, 60000\)/);
-  assert.match(scriptMatch[1], /startTzzbAutoImport\(\);[\s\S]*startMarketAutoImport\(\);/);
-  const tradePoll = scriptMatch[1].match(
+  const autoImportSource = scriptMatch[1].match(
     /async function autoImportLatestTzzbData\(\)\{([\s\S]*?)\n\}\nfunction startTzzbAutoImport/
   );
-  assert.ok(tradePoll, 'trade polling function should exist');
-  assert.match(tradePoll[1], /if\(data\.latestReceivedAt === lastTzzbImportedAt\) return;/);
+  assert.ok(autoImportSource, 'trade auto-import function should exist');
+  assert.match(
+    autoImportSource[1],
+    /if\(data\.latestReceivedAt === lastTzzbImportedAt\) return;/,
+    'same capture should return without extra work'
+  );
   assert.doesNotMatch(
-    tradePoll[1],
+    autoImportSource[1],
     /importMarketSnapshot/,
-    'three-second trade poll should not request public market data'
+    'trade polls should not call the public market API'
+  );
+  assert.match(scriptMatch[1], /setInterval\(autoImportLatestTzzbData, 3000\)/);
+  assert.match(scriptMatch[1], /setInterval\(autoImportMarketSnapshot, 60000\)/);
+  assert.match(scriptMatch[1], /startTzzbAutoImport\(\);[\s\S]*startMarketAutoImport\(\);/);
+  assert.match(
+    scriptMatch[1],
+    /const applied = await importMarketSnapshot\(\{silent:true\}\);[\s\S]*if\(applied\) setTzzbImportStatus/,
+    'market refresh should only announce snapshots that changed the form'
   );
 });
 
@@ -231,11 +240,23 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
 });
 
-test('market snapshot application requires both cloud-filled review fields', () => {
+test('market snapshot application requires complete cloud fields regardless of source quality', () => {
+  const marketElements = new Map();
+  context.document.getElementById = (id) => {
+    if(!marketElements.has(id)) marketElements.set(id, { value: '' });
+    return marketElements.get(id);
+  };
   assert.equal(context.applyMarketSnapshot({
     updatedAt: '2026-07-13T07:05:00.000Z',
+    boardQuality: 'live',
     mainLines: '抗跌板块：传媒、医药',
     marketOne: '指数弱，市场退潮，适合防守。'
+  }), true);
+  assert.equal(context.applyMarketSnapshot({
+    updatedAt: '2026-07-13T07:05:30.000Z',
+    boardQuality: 'fallback',
+    mainLines: '强势板块：传媒',
+    marketOne: '指数分化，优先跟踪强势方向。'
   }), true);
   assert.equal(context.applyMarketSnapshot({
     updatedAt: '2026-07-13T07:06:00.000Z',
@@ -245,6 +266,16 @@ test('market snapshot application requires both cloud-filled review fields', () 
     updatedAt: '2026-07-13T07:07:00.000Z',
     marketOne: '只有判断'
   }), false);
+  assert.equal(
+    context.applyMarketSnapshot({
+      updatedAt: '2026-07-13T07:05:30.000Z',
+      boardQuality: 'fallback',
+      mainLines: '强势板块：传媒',
+      marketOne: '指数分化，优先跟踪强势方向。'
+    }),
+    false,
+    'an unchanged complete snapshot should not trigger another status update'
+  );
 });
 
 await assert.rejects(

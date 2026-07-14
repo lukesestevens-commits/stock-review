@@ -134,25 +134,29 @@ function mapTrade(row) {
   };
 }
 
+function tradeSortSeconds(trade) {
+  const match = String(trade.time || '').match(/^(\d{2}):(\d{2}):(\d{2})$/);
+  if (!match) return Number.POSITIVE_INFINITY;
+  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
+}
+
 function tradeMatchKey(row) {
-  const identity = String(
-    row.zqmc || row.name || row.zqdm || row.code || row.stock_code || ''
-  ).trim();
+  const code = String(row.zqdm || row.code || row.stock_code || '').trim();
+  const name = String(row.zqmc || row.name || row.stock_name || '').trim();
   const side = normalizeSide(row.czlx || row.op_name || row.op);
   const price = compactMoney(row.cjjg || row.entry_price);
   const qty = compactMoney(row.cjsl || row.entry_count);
-  return [identity, side, price, qty].join('|');
+  return [code || name, side, price, qty].join('|');
 }
 
 function enrichDayTrades(dayTrades, detailTrades) {
   const detailsByKey = new Map();
-  for (const detail of detailTrades) {
+  for (const detail of detailTrades || []) {
     const key = tradeMatchKey(detail);
     if (!detailsByKey.has(key)) detailsByKey.set(key, []);
     detailsByKey.get(key).push(detail);
   }
-
-  return dayTrades.map((summary) => {
+  return (dayTrades || []).map((summary) => {
     const detail = detailsByKey.get(tradeMatchKey(summary))?.shift();
     if (!detail) return summary;
     return {
@@ -160,12 +164,6 @@ function enrichDayTrades(dayTrades, detailTrades) {
       entry_time: detail.entry_time || detail.cjsj || detail.time || ''
     };
   });
-}
-
-function tradeSortSeconds(trade) {
-  const match = String(trade.time || '').match(/^(\d{2}):(\d{2}):(\d{2})$/);
-  if (!match) return Number.POSITIVE_INFINITY;
-  return Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3]);
 }
 
 function mapHolding(row, totalAsset) {
@@ -311,7 +309,7 @@ export function mapTzzbCaptureToReview(records, options = {}) {
     ? enrichDayTrades(todayDayTrades, todayMoneyTrades)
     : todayMoneyTrades;
   const tradeSource = todayDayTrades.length
-    ? `merge_day_trading${todayMoneyTrades.length ? '+get_money_history' : ''}`
+    ? (todayMoneyTrades.length ? 'merge_day_trading+get_money_history' : 'merge_day_trading')
     : (todayMoneyTrades.length ? 'get_money_history' : '');
   const trades = rawTrades
     .map((row, index) => ({ trade: mapTrade(row), index }))
@@ -326,8 +324,8 @@ export function mapTzzbCaptureToReview(records, options = {}) {
   const date = deriveDate(records || [], rawTrades, targetDate);
   const warnings = [];
   if (!trades.length) warnings.push('缺少当天交易记录');
-  const missingTradeTimeCount = trades.filter((trade) => !trade.time).length;
-  if (missingTradeTimeCount) warnings.push(`缺少 ${missingTradeTimeCount} 笔真实成交时间`);
+  const missingRealTimeCount = trades.filter((trade) => !trade.time).length;
+  if (missingRealTimeCount) warnings.push(`缺少 ${missingRealTimeCount} 笔真实成交时间`);
   if (!holdings.length) warnings.push('缺少持仓明细');
   if (!capital.total) warnings.push('缺少账户总资金');
   const importAudit = {

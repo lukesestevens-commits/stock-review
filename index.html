@@ -2565,6 +2565,7 @@ function saveTzzbSyncConfig(){
   setTzzbImportStatus(`已切换为${label}模式，正在重新检查数据。`);
   checkTzzbHelperHealth();
   autoImportLatestTzzbData();
+  autoImportMarketSnapshot();
 }
 async function checkTzzbHelperHealth(){
   const syncConfig = getTzzbSyncConfig();
@@ -2610,7 +2611,7 @@ async function autoImportLatestTzzbData(){
     if(!latest.res.ok || !latest.data.ok || !latest.data.raw?.readyForReview) return;
     applyTzzbReviewData(latest.data.review, latest.data.raw);
     rememberTzzbImport(data.latestReceivedAt);
-    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据。`);
+    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据。指数和强势方向按独立周期刷新。`);
   }catch(error){
     // 自动同步保持安静，按钮导入时再展示详细错误。
   }
@@ -2621,7 +2622,8 @@ function startTzzbAutoImport(){
   tzzbAutoImportTimer = setInterval(autoImportLatestTzzbData, 3000);
 }
 async function autoImportMarketSnapshot(){
-  await importMarketSnapshot({silent:true});
+  const applied = await importMarketSnapshot({silent:true});
+  if(applied) setTzzbImportStatus('已更新指数情况和市场强势方向。');
 }
 function startMarketAutoImport(){
   if(marketAutoImportTimer) clearInterval(marketAutoImportTimer);
@@ -2630,9 +2632,13 @@ function startMarketAutoImport(){
 }
 function applyMarketSnapshot(market){
   if(!market || !String(market.mainLines || '').trim() || !String(market.marketOne || '').trim()) return false;
+  let changed = false;
   const set = (id,value) => {
     const el = document.getElementById(id);
-    if(el && value !== undefined && value !== '') el.value = value;
+    if(el && value !== undefined && value !== '' && el.value !== value){
+      el.value = value;
+      changed = true;
+    }
   };
   set('indexState', market.indexState);
   set('mood', market.mood);
@@ -2640,7 +2646,7 @@ function applyMarketSnapshot(market){
   set('mainLines', market.mainLines);
   set('marketOne', market.marketOne);
   lastMarketImportedAt = market.updatedAt || new Date().toISOString();
-  return true;
+  return changed;
 }
 async function importMarketSnapshot(options={}){
   const silent = Boolean(options.silent);
