@@ -11,167 +11,289 @@ const helperUrl = `http://127.0.0.1:${helperPort}`;
 const cloudUrl = `http://127.0.0.1:${cloudPort}`;
 const nodePath = process.execPath;
 const tempDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tzzb-helper-cloud-upload-test-'));
-const today = new Date().toISOString().slice(0, 10);
-const accessKey = 'upload-secret';
+const outboxDir = path.join(tempDataDir, 'cloud-outbox');
+const statusPath = path.join(tempDataDir, 'cloud-sync-status.json');
+const writeKey = 'write-only-secret';
+const sitesBypassToken = 'sites-bypass-secret';
 const receivedUploads = [];
-let remainingStartupFailures = 1;
 let activeUploads = 0;
 let maxConcurrentUploads = 0;
+let rejectNextUpload = true;
+let invalidateNextUpload = false;
 
-const startupPayload = {
-  source: 'startup-fixture',
-  targetDate: today,
-  pushedAt: `${today}T09:55:00.000Z`,
-  receivedAt: `${today}T09:55:01.000Z`,
-  records: [{
-    capturedAt: `${today}T09:55:00.000Z`,
-    type: 'fetch',
-    method: 'POST',
-    status: 200,
-    url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
-    responseText: JSON.stringify({ ex_data: { total_asset: '10000', position: [] } })
-  }]
+const rawPayload = {
+  source: 'edge-extension',
+  pageUrl: 'https://tzzb.10jqka.com.cn/private-account?user=user-secret&cookie=cookie-secret',
+  pushedAt: '2026-07-14T16:09:01.000Z',
+  capturedAt: '2026-07-14T16:09:00.000Z',
+  captureDate: '2000-01-01',
+  records: [
+    {
+      capturedAt: '2026-07-14T15:59:59.000Z',
+      method: 'POST',
+      status: 200,
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/account/v1/account_list',
+      requestPostData: 'userid=user-secret&manual_id=manual-A&fund_key=fund-A&cookie=cookie-secret',
+      responseText: JSON.stringify({
+        ex_data: { common: [{ manual_id: 'manual-A', fund_key: 'fund-A', user: 'user-secret' }] },
+        cookie: 'cookie-secret'
+      })
+    },
+    {
+      capturedAt: '2026-07-14T15:59:59.500Z',
+      method: 'POST',
+      status: 200,
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/asset/v1/stock_position',
+      requestPostData: 'userid=user-secret&manual_id=manual-A&fund_key=fund-A&cookie=cookie-secret',
+      responseText: JSON.stringify({
+        ex_data: {
+          total_asset: '10000',
+          total_liability: '0',
+          total_value: '9000',
+          position_rate: '0.9',
+          money_remain: '1000',
+          position: [{ code: '000001', name: '脱敏持仓', count: '100', price: '90', value: '9000' }],
+          user: 'user-secret',
+          manual: 'manual-A',
+          fund: 'fund-A',
+          cookie: 'cookie-secret'
+        }
+      })
+    }
+  ]
 };
-await fs.writeFile(path.join(tempDataDir, 'latest-capture.json'), JSON.stringify(startupPayload), 'utf8');
 
-const cloudServer = http.createServer(async (req, res) => {
-  activeUploads += 1;
-  maxConcurrentUploads = Math.max(maxConcurrentUploads, activeUploads);
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  receivedUploads.push({
-    method: req.method,
-    url: req.url,
-    key: req.headers['x-tzzb-sync-key'] || '',
-    uploadProcess: req.headers['x-tzzb-upload-process'] || '',
-    body: JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')
+function helperProcess() {
+  const child = spawn(nodePath, ['tools/tzzb-local-helper.mjs'], {
+    cwd: new URL('..', import.meta.url),
+    env: {
+      ...process.env,
+      TZZB_HELPER_PORT: String(helperPort),
+      TZZB_DATA_DIR: tempDataDir,
+      TZZB_CLOUD_SYNC_URL: cloudUrl,
+      TZZB_CLOUD_SYNC_KEY: writeKey,
+      TZZB_SITES_BYPASS_TOKEN: sitesBypassToken
+    },
+    stdio: ['ignore', 'pipe', 'pipe']
   });
-  await new Promise((resolve) => setTimeout(resolve, 50));
-  activeUploads -= 1;
-  if (remainingStartupFailures > 0) {
-    remainingStartupFailures -= 1;
-    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ ok: false, error: 'temporary edge rejection' }));
-    return;
-  }
-  res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify({ ok: true }));
-});
+  let output = '';
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); });
+  child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  return { child, output: () => output };
+}
 
-await new Promise((resolve) => cloudServer.listen(cloudPort, '127.0.0.1', resolve));
+async function stopHelper(helper) {
+  if (!helper || helper.child.exitCode !== null) return;
+  helper.child.kill();
+  await new Promise((resolve) => helper.child.once('exit', resolve));
+}
 
-const helper = spawn(nodePath, ['tools/tzzb-local-helper.mjs'], {
-  cwd: new URL('..', import.meta.url),
-  env: {
-    ...process.env,
-    TZZB_HELPER_PORT: String(helperPort),
-    TZZB_DATA_DIR: tempDataDir,
-    TZZB_CLOUD_SYNC_URL: cloudUrl,
-    TZZB_CLOUD_SYNC_KEY: accessKey,
-    TZZB_CLOUD_RETRY_DELAY_MS: '10'
-  },
-  stdio: ['ignore', 'pipe', 'pipe']
-});
-
-let helperOutput = '';
-helper.stdout.on('data', (chunk) => { helperOutput += chunk.toString(); });
-helper.stderr.on('data', (chunk) => { helperOutput += chunk.toString(); });
-
-async function waitForHealth() {
+async function waitForHealth(helper) {
   const deadline = Date.now() + 5000;
   let lastError;
   while (Date.now() < deadline) {
     try {
       const res = await fetch(`${helperUrl}/api/tzzb-health`);
-      if (res.ok) return;
+      if (res.ok) return res.json();
       lastError = new Error(`HTTP ${res.status}`);
     } catch (error) {
       lastError = error;
     }
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 50));
   }
-  throw new Error(`helper did not become healthy: ${lastError?.message || helperOutput}`);
+  throw new Error(`helper did not become healthy: ${lastError?.message || helper.output()}`);
+}
+
+async function outboxFiles() {
+  try {
+    return (await fs.readdir(outboxDir)).filter((name) => name.endsWith('.json'));
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  }
 }
 
 async function waitForUploads(count) {
   const deadline = Date.now() + 5000;
   while (Date.now() < deadline) {
     if (receivedUploads.length >= count) return;
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
-  throw new Error(`helper did not complete ${count} startup upload attempts: ${helperOutput}`);
+  throw new Error(`expected ${count} cloud uploads, received ${receivedUploads.length}`);
 }
 
+function allKeys(value, keys = []) {
+  if (Array.isArray(value)) {
+    for (const item of value) allKeys(item, keys);
+  } else if (value && typeof value === 'object') {
+    for (const [key, item] of Object.entries(value)) {
+      keys.push(key);
+      allKeys(item, keys);
+    }
+  }
+  return keys;
+}
+
+let helper = helperProcess();
+let cloudServer;
+
 try {
-  await waitForHealth();
-  const concurrentCapture = fetch(`${helperUrl}/api/tzzb-capture`, {
+  await waitForHealth(helper);
+  const offlineResponse = await fetch(`${helperUrl}/api/tzzb-capture`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      source: 'concurrent-fixture',
-      pushedAt: `${today}T10:00:00.000Z`,
-      records: [{
-        capturedAt: `${today}T10:00:00.000Z`,
-        type: 'fetch',
-        method: 'POST',
-        status: 200,
-        url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/query/v1/status',
-        responseText: JSON.stringify({ ex_data: { status: 1 } })
-      }]
-    })
+    body: JSON.stringify(rawPayload)
   });
-  await waitForUploads(3);
-  assert.equal((await concurrentCapture).status, 200);
-  assert.equal(maxConcurrentUploads, 1, 'startup and live capture uploads must be serialized');
-  assert.equal(receivedUploads[0].method, 'POST');
-  assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
-  assert.equal(receivedUploads[0].key, accessKey);
-  assert.equal(receivedUploads[0].body.source, 'startup-fixture');
-  assert.equal(receivedUploads[0].body.replaceRecords, true);
-  assert.equal(receivedUploads.filter((upload) => upload.body.source === 'startup-fixture').length, 2);
-  assert.equal(receivedUploads.some((upload) => upload.uploadProcess === 'fresh'), true);
-  receivedUploads.length = 0;
+  const offlineResult = await offlineResponse.json();
+  assert.equal(offlineResponse.status, 200, 'cloud outages must not reject the local capture');
+  assert.equal(offlineResult.cloudSync.ok, false);
+  assert.equal(offlineResult.cloudSync.status, 0);
+  assert.equal((await outboxFiles()).length, 1, 'a network failure must retain the atomic outbox attempt');
+  const failedStatus = JSON.parse(await fs.readFile(statusPath, 'utf8'));
+  assert.equal(failedStatus.state, 'upload-failed', 'failed uploads must not claim a verified cloud status');
+  assert.equal(failedStatus.captureDate, '2026-07-15');
+  await stopHelper(helper);
 
-  const capturePayload = {
+  cloudServer = http.createServer(async (req, res) => {
+    activeUploads += 1;
+    maxConcurrentUploads = Math.max(maxConcurrentUploads, activeUploads);
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+    receivedUploads.push({
+      method: req.method,
+      url: req.url,
+      writeKey: req.headers['x-tzzb-sync-key'] || '',
+      sitesAuthorization: req.headers['oai-sites-authorization'] || '',
+      outboxCount: (await outboxFiles()).length,
+      body
+    });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    activeUploads -= 1;
+    if (rejectNextUpload) {
+      rejectNextUpload = false;
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'temporary edge rejection' }));
+      return;
+    }
+    if (invalidateNextUpload) {
+      invalidateNextUpload = false;
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'invalid acceptance body' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: true, state: 'verified', reviewDate: '2026-07-14' }));
+  });
+  await new Promise((resolve) => cloudServer.listen(cloudPort, '127.0.0.1', resolve));
+
+  helper = helperProcess();
+  await waitForHealth(helper);
+  await waitForUploads(1);
+  assert.equal(receivedUploads[0].outboxCount, 1, 'startup replay must read an already durable attempt');
+  assert.equal((await outboxFiles()).length, 1, 'HTTP 403 must retain the outbox attempt');
+
+  const retryResponse = await fetch(`${helperUrl}/api/tzzb-capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(rawPayload)
+  });
+  const retryResult = await retryResponse.json();
+  assert.equal(retryResponse.status, 200);
+  assert.equal(retryResult.cloudSync.ok, true);
+  await waitForUploads(2);
+
+  const [startupUpload, acceptedUpload] = receivedUploads;
+  assert.equal(startupUpload.method, 'POST');
+  assert.equal(startupUpload.url, '/api/sync/tzzb');
+  assert.equal(startupUpload.writeKey, writeKey);
+  assert.equal(startupUpload.sitesAuthorization, `Bearer ${sitesBypassToken}`);
+  assert.deepEqual(Object.keys(startupUpload.body), ['idempotencyKey', 'capturedAt', 'captureDate', 'evidence']);
+  assert.equal(startupUpload.body.captureDate, '2026-07-15', 'captureDate must be derived in Asia/Shanghai');
+  assert.equal(startupUpload.body.idempotencyKey, acceptedUpload.body.idempotencyKey, 'the same content must retain one stable idempotency key');
+  assert.deepEqual(startupUpload.body, acceptedUpload.body);
+  assert.equal((await outboxFiles()).length, 0, 'a 2xx acceptance must delete the durable attempt');
+
+  const forbiddenKeys = new Set(['url', 'responseText', 'pageUrl', 'user', 'manual', 'fund', 'cookie']);
+  for (const key of allKeys(startupUpload.body)) {
+    assert.equal(forbiddenKeys.has(key), false, `cloud payload must not contain raw key ${key}`);
+  }
+  const serializedCloudBody = JSON.stringify(startupUpload.body);
+  for (const secret of ['user-secret', 'manual-A', 'fund-A', 'cookie-secret', 'private-account']) {
+    assert.doesNotMatch(serializedCloudBody, new RegExp(secret), `cloud payload must not contain ${secret}`);
+  }
+
+  const status = JSON.parse(await fs.readFile(statusPath, 'utf8'));
+  assert.equal(status.state, 'verified');
+  assert.equal(status.reviewDate, '2026-07-14');
+  assert.equal(status.captureDate, '2026-07-15');
+  assert.match(status.uploadedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.match(status.contentHash, /^[a-f0-9]{64}$/);
+  assert.equal(status.evidenceRecordCount, 1);
+
+  const health = await (await fetch(`${helperUrl}/api/tzzb-health`)).json();
+  assert.deepEqual(health.cloudSyncStatus, status, 'health must expose the persisted cloud receipt for the scheduler');
+
+  const incrementalPayload = {
     source: 'edge-extension',
-    pageUrl: 'https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/cloud',
-    pushedAt: `${today}T10:01:00.000Z`,
+    pushedAt: '2026-07-14T16:10:01.000Z',
+    capturedAt: '2026-07-14T16:10:00.000Z',
     records: [{
-      capturedAt: `${today}T10:01:00.000Z`,
-      type: 'fetch',
+      capturedAt: '2026-07-14T16:10:00.000Z',
       method: 'POST',
       status: 200,
-      url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
-      responseText: JSON.stringify({
-        ex_data: {
-          total_asset: '10000',
-          total_value: '9000',
-          position: [{ name: '云端持仓', value: '9000', count: '100', price: '90' }]
-        }
-      })
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/asset/v1/asset_trend',
+      requestPostData: 'userid=user-secret&manual_id=manual-A&fund_key=fund-A&cookie=cookie-secret',
+      responseText: JSON.stringify({ ex_data: { month_profit: [], year_profit: [], total_asset: [] } })
     }]
   };
-
-  const postRes = await fetch(`${helperUrl}/api/tzzb-capture`, {
+  invalidateNextUpload = true;
+  const invalidAcceptanceResponse = await fetch(`${helperUrl}/api/tzzb-capture`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(capturePayload)
+    body: JSON.stringify(incrementalPayload)
   });
-  const postData = await postRes.json();
-  assert.equal(postRes.status, 200);
-  assert.equal(postData.ok, true);
+  const invalidAcceptance = await invalidAcceptanceResponse.json();
+  assert.equal(invalidAcceptanceResponse.status, 200);
+  assert.equal(invalidAcceptance.cloudSync.ok, false, 'HTTP 200 without data.ok=true must not acknowledge the outbox');
+  await waitForUploads(3);
+  assert.equal((await outboxFiles()).length, 1);
+  assert.equal((JSON.parse(await fs.readFile(statusPath, 'utf8'))).state, 'upload-failed');
 
-  assert.equal(receivedUploads.length, 1);
-  assert.equal(receivedUploads[0].method, 'POST');
-  assert.equal(receivedUploads[0].url, '/api/sync/tzzb');
-  assert.equal(receivedUploads[0].key, accessKey);
-  assert.equal(receivedUploads[0].body.targetDate, today);
-  assert.equal(receivedUploads[0].body.replaceRecords, true);
-  assert.equal(receivedUploads[0].body.records.length, 3, 'new captures should upload the same-day merged local snapshot');
+  const validRetry = await fetch(`${helperUrl}/api/tzzb-capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(incrementalPayload)
+  });
+  assert.equal(validRetry.status, 200);
+  assert.equal((await validRetry.json()).cloudSync.ok, true);
+  await waitForUploads(4);
+  assert.equal((await outboxFiles()).length, 0);
+  assert.deepEqual(
+    receivedUploads[2].body.evidence.records.map((record) => record.endpoint),
+    ['asset_trend', 'stock_position'],
+    'each outbox attempt must carry the accumulated normalized snapshot, not only the newest extension batch'
+  );
+  assert.equal(receivedUploads[2].body.evidence.activeAccountRefs.length, 1);
+  assert.equal(receivedUploads[2].body.idempotencyKey, receivedUploads[3].body.idempotencyKey);
+
+  const concurrentPayloads = [1, 2].map((offset) => ({
+    ...rawPayload,
+    capturedAt: `2026-07-14T16:1${offset}:00.000Z`,
+    pushedAt: `2026-07-14T16:1${offset}:01.000Z`
+  }));
+  const concurrentResponses = await Promise.all(concurrentPayloads.map((payload) => fetch(`${helperUrl}/api/tzzb-capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })));
+  assert.deepEqual(concurrentResponses.map((response) => response.status), [200, 200]);
+  await waitForUploads(6);
+  assert.equal(maxConcurrentUploads, 1, 'startup and live outbox uploads must remain serialized');
 
   console.log('PASS tzzb helper cloud upload');
 } finally {
-  helper.kill();
-  await new Promise((resolve) => cloudServer.close(resolve));
+  await stopHelper(helper);
+  if (cloudServer) await new Promise((resolve) => cloudServer.close(resolve));
   await fs.rm(tempDataDir, { recursive: true, force: true });
 }

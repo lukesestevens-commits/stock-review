@@ -8,8 +8,9 @@ const helperPort = 8801;
 const helperUrl = `http://127.0.0.1:${helperPort}`;
 const nodePath = process.execPath;
 const tempDataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tzzb-cloud-sync-test-'));
-const today = new Date().toISOString().slice(0, 10);
-const accessKey = 'mobile-sync-secret';
+const accessKey = 'legacy-local-read-secret';
+const accountRef = 'a'.repeat(64);
+const capturedAt = '2026-07-14T16:09:00.000Z';
 
 const helper = spawn(nodePath, ['tools/tzzb-local-helper.mjs'], {
   cwd: new URL('..', import.meta.url),
@@ -42,46 +43,107 @@ async function waitForHealth() {
   throw new Error(`helper did not become healthy: ${lastError?.message || helperOutput}`);
 }
 
-const readyPayload = {
-  source: 'edge-extension',
-  pageUrl: 'https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/cloud',
-  pushedAt: `${today}T10:01:00.000Z`,
+const normalizedEvidence = {
+  activeAccountRefs: [accountRef],
   records: [
     {
-      capturedAt: `${today}T10:01:00.000Z`,
-      type: 'fetch',
-      method: 'POST',
-      status: 200,
-      url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
-      responseText: JSON.stringify({
-        ex_data: {
-          total_asset: '10000',
-          total_value: '9000',
-          position: [{ name: '云端持仓', value: '9000', count: '100', price: '90', position_rate: '0.9000' }]
-        }
-      })
+      endpoint: 'last_trading_day',
+      capturedAt,
+      accountRef: 'c'.repeat(64),
+      request: {},
+      payload: {
+        isTradingDay: true,
+        lastTradingDay: '2026-07-15',
+        previousTradingDay: '2026-07-14',
+        beforePreviousTradingDay: '2026-07-13',
+        systemTime: 1784045384264
+      }
     },
     {
-      capturedAt: `${today}T10:01:01.000Z`,
-      type: 'fetch',
-      method: 'POST',
-      status: 200,
-      url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/get_money_history',
-      responseText: JSON.stringify({
-        ex_data: {
-          list: [{
-            entry_date: today,
-            entry_time: '10:00:00',
-            name: '云端交易',
-            op_name: '买入',
-            entry_price: '10',
-            entry_count: '100',
-            entry_money: '1000'
-          }]
-        }
-      })
+      endpoint: 'stock_position',
+      capturedAt,
+      accountRef,
+      request: {},
+      payload: {
+        totalAsset: '10000',
+        totalLiability: '0',
+        totalValue: '9000',
+        positionRate: '0.9',
+        cash: '1000',
+        positions: [{ code: '000001', name: '云端持仓', quantity: '100', price: '90', value: '9000' }]
+      }
+    },
+    {
+      endpoint: 'asset_trend',
+      capturedAt,
+      accountRef,
+      request: {},
+      payload: {
+        monthProfit: [
+          { date: '2026-07-13', asset: '9950', fundIn: '0', fundOut: '0', profit: '100' },
+          { date: '2026-07-14', asset: '10000', fundIn: '0', fundOut: '0', profit: '150' }
+        ],
+        yearProfit: [
+          { date: '2026-07-13', asset: '9950', fundIn: '0', fundOut: '0', profit: '100' },
+          { date: '2026-07-14', asset: '10000', fundIn: '0', fundOut: '0', profit: '150' }
+        ],
+        totalAssetHistory: [
+          { date: '2026-07-13', asset: '9950', fundIn: '0', fundOut: '0', profit: '100' },
+          { date: '2026-07-14', asset: '10000', fundIn: '0', fundOut: '0', profit: '150' }
+        ]
+      }
+    },
+    {
+      endpoint: 'get_money_history',
+      capturedAt,
+      accountRef,
+      request: { startDate: '2026-07-14', endDate: '2026-07-14', page: 1, count: 200 },
+      payload: {
+        page: 1,
+        maxPage: 1,
+        total: 1,
+        trades: [{
+          code: '000001',
+          name: '云端交易',
+          side: '买入',
+          date: '2026-07-14',
+          time: '10:00:00',
+          price: '90',
+          quantity: '100',
+          amount: '9000',
+          fee: '0',
+          sequenceId: 'trade-1'
+        }]
+      }
+    },
+    {
+      endpoint: 'merge_day_trading',
+      capturedAt,
+      accountRef,
+      request: {},
+      payload: {
+        trades: [{
+          code: '000001',
+          name: '云端交易',
+          side: '买入',
+          date: '',
+          time: '',
+          price: '90',
+          quantity: '100',
+          amount: '9000',
+          fee: '0',
+          sequenceId: 'trade-1'
+        }]
+      }
     }
   ]
+};
+
+const verifiedAttempt = {
+  idempotencyKey: 'local-cloud-capture-1',
+  capturedAt,
+  captureDate: '2026-07-15',
+  evidence: normalizedEvidence
 };
 
 try {
@@ -90,7 +152,7 @@ try {
   const deniedUpload = await fetch(`${helperUrl}/api/sync/tzzb`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(readyPayload)
+    body: JSON.stringify(verifiedAttempt)
   });
   assert.equal(deniedUpload.status, 401);
 
@@ -100,13 +162,29 @@ try {
       'Content-Type': 'application/json',
       'X-TZZB-Sync-Key': accessKey
     },
-    body: JSON.stringify(readyPayload)
+    body: JSON.stringify(verifiedAttempt)
   });
   const upload = await uploadRes.json();
   assert.equal(uploadRes.status, 200);
   assert.equal(upload.ok, true);
-  assert.equal(upload.raw.readyForReview, true);
-  assert.equal(upload.raw.targetDate, today);
+  assert.equal(upload.state, 'verified', JSON.stringify(upload.audit));
+  assert.equal(upload.reviewDate, '2026-07-14');
+
+  const badAttempt = {
+    idempotencyKey: 'local-cloud-capture-2',
+    capturedAt: '2026-07-14T16:10:00.000Z',
+    captureDate: '2026-07-15',
+    evidence: { activeAccountRefs: [], records: [] }
+  };
+  const badUpload = await (await fetch(`${helperUrl}/api/sync/tzzb`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-TZZB-Sync-Key': accessKey
+    },
+    body: JSON.stringify(badAttempt)
+  })).json();
+  assert.equal(badUpload.state, 'stored-unverified');
 
   const wrongKeyLatest = await fetch(`${helperUrl}/api/sync/latest?key=wrong`);
   assert.equal(wrongKeyLatest.status, 401);
@@ -116,16 +194,19 @@ try {
   assert.equal(healthRes.status, 200);
   assert.equal(health.ok, true);
   assert.equal(health.readyForReview, true);
-  assert.deepEqual(health.endpointCoverage.missing, []);
+  assert.equal(health.reviewDate, '2026-07-14');
+  assert.equal(health.pending, true);
 
   const latestRes = await fetch(`${helperUrl}/api/sync/latest?key=${encodeURIComponent(accessKey)}`);
   const latest = await latestRes.json();
   assert.equal(latestRes.status, 200);
   assert.equal(latest.ok, true);
-  assert.equal(latest.raw.readyForReview, true);
-  assert.equal(latest.review.holdings[0].name, '云端持仓');
-  assert.equal(latest.review.holdings[0].weight, '90.0%');
-  assert.equal(latest.review.trades[0].name, '云端交易');
+  assert.equal(latest.dailyReview.reviewDate, '2026-07-14');
+  assert.equal(latest.dailyReview.holdings[0].name, '云端持仓');
+  assert.equal(latest.dailyReview.trades[0].name, '云端交易');
+  assert.equal(latest.audit.status, 'verified');
+  assert.equal(latest.pendingAttempt.state, 'stored-unverified');
+  assert.equal(Object.hasOwn(latest.pendingAttempt, 'normalizedEvidence'), false, 'compatibility reads must not expose normalized evidence');
 
   console.log('PASS tzzb cloud sync server');
 } finally {

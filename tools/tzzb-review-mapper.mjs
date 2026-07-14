@@ -117,7 +117,7 @@ function mapTrade(row) {
   const side = normalizeSide(row.czlx || row.op_name || row.op);
   const price = compactMoney(row.cjjg || row.entry_price);
   const qty = compactMoney(row.cjsl || row.entry_count);
-  const amount = money(row.moneychg || row.entry_money || (numeric(price) * numeric(qty)));
+  const amount = money(Math.abs(numeric(row.moneychg || row.entry_money || (numeric(price) * numeric(qty)))));
   const time = normalizeTime(row.cjsj || row.entry_time || row.time);
   return {
     time,

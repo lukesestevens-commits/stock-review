@@ -8,6 +8,18 @@ const STORAGE_KEYS = {
   helperOnline: 'tzzbHelperOnline'
 };
 let syncTimer = null;
+let helperToken = '';
+
+async function loadHelperToken({ refresh = false } = {}) {
+  if (helperToken && !refresh) return helperToken;
+  const response = await fetch(`${HELPER_BASE}/api/tzzb-extension-info`, { cache: 'no-store' });
+  const data = await response.json();
+  if (!response.ok || !data.ok || !data.helperToken) {
+    throw new Error(data.error || `本机助手令牌读取失败（HTTP ${response.status}）`);
+  }
+  helperToken = String(data.helperToken);
+  return helperToken;
+}
 
 function storageGet(keys) {
   return chrome.storage.local.get(keys);
@@ -64,11 +76,16 @@ async function syncQueue() {
   const payload = queue.buildPayload({ pageUrl: meta[STORAGE_KEYS.lastPageUrl] || '' });
 
   try {
-    const response = await fetch(`${HELPER_BASE}/api/tzzb-capture`, {
+    const send = async (refresh = false) => fetch(`${HELPER_BASE}/api/tzzb-capture`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-TZZB-Helper-Token': await loadHelperToken({ refresh })
+      },
       body: JSON.stringify(payload)
     });
+    let response = await send();
+    if (response.status === 401) response = await send(true);
     const data = await response.json();
     if (!response.ok || !data.ok) throw new Error(data.error || `HTTP ${response.status}`);
     queue.markSynced(payload.records.length);

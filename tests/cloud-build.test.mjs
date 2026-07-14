@@ -26,7 +26,13 @@ assert.match(worker, /export default worker/);
 assert.equal(hosting.d1, 'DB');
 assert.equal(hosting.r2, null);
 
-for (const file of ['cloud/.build-probe', 'tools/tzzb-review-mapper.mjs']) {
+for (const file of [
+  'cloud/.build-probe',
+  'cloud/daily-review-store.mjs',
+  'tools/daily-review-sync.mjs',
+  'tools/tzzb-evidence-adapter.mjs',
+  'tools/tzzb-review-mapper.mjs'
+]) {
   await fs.access(path.join(root, 'dist', 'server', file));
 }
 

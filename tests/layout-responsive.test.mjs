@@ -15,9 +15,12 @@ const viewports = [
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const page = await browser.newPage();
 page.on('dialog', dialog => dialog.accept());
-await page.addInitScript(() => {
-  localStorage.setItem('tzzbSyncModeV1', 'cloud');
-  localStorage.setItem('tzzbCloudSyncBaseUrlV1', 'https://layout-test.invalid');
+await page.route('http://127.0.0.1:8787/**', async (route) => {
+  await route.fulfill({
+    status: 404,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: false, error: 'layout test has no local helper' })
+  });
 });
 
 for (const viewport of viewports) {
@@ -98,7 +101,11 @@ for (const viewport of viewports) {
     return { pageOverflow, wrapOverflow };
   });
   assert.ok(tableCheck.pageOverflow <= 4, `${viewport.name} table wrapper should contain table`);
-  assert.equal(tableCheck.wrapOverflow, true, `${viewport.name} trade table should scroll inside its wrapper`);
+  assert.equal(
+    tableCheck.wrapOverflow,
+    !isDesktop,
+    `${viewport.name} compact trade table should fit desktop and scroll only on narrower screens`
+  );
 
   const tradeControlMetrics = await page.evaluate(() => {
     const table = document.querySelector('#tradeTable');
@@ -113,8 +120,8 @@ for (const viewport of viewports) {
       '.trade-time',
       '.trade-name',
       '.trade-side',
-      '.trade-amount',
-      '.trade-detail-toggle',
+      '.trade-price',
+      '.trade-detail-toggle > summary',
       '.trade-mode',
       '.trade-reason',
       'select.score'
@@ -129,7 +136,10 @@ for (const viewport of viewports) {
     const scoreHeaderWidths = headers
       .filter((header) => ['计划性', '主线', '风控'].includes(header.text))
       .map((header) => header.width);
-    return { available: true, headers, controls, scoreWidths, scoreHeaderWidths };
+    const details = firstRow.querySelector('.trade-detail-toggle');
+    const foldedFields = [...firstRow.querySelectorAll('.trade-qty,.trade-amount')]
+      .map((el) => el.getBoundingClientRect().height);
+    return { available: true, headers, controls, scoreWidths, scoreHeaderWidths, detailsOpen: details.open, foldedFields };
   });
   assert.equal(tradeControlMetrics.available, true, `${viewport.name} trade table should have initial rows`);
   const maxScoreHeader = Math.max(...tradeControlMetrics.scoreHeaderWidths);
@@ -141,9 +151,19 @@ for (const viewport of viewports) {
     Math.max(...controlHeights) - Math.min(...controlHeights) <= 4,
     `${viewport.name} trade controls should align to one height: ${JSON.stringify(tradeControlMetrics.controls)}`
   );
-  const detail = tradeControlMetrics.controls.find((item) => item.selector === '.trade-detail-toggle');
-  const amount = tradeControlMetrics.controls.find((item) => item.selector === '.trade-amount');
-  assert.ok(detail && amount && Math.abs(detail.width - amount.width) <= 8, `${viewport.name} detail button should match input width`);
+  assert.equal(tradeControlMetrics.detailsOpen, false, `${viewport.name} quantity and amount should be folded by default`);
+  assert.ok(tradeControlMetrics.foldedFields.every((height) => height === 0), `${viewport.name} folded quantity and amount should not consume row height`);
+  const transactionHeader = tradeControlMetrics.headers.find((header) => header.text === '交易');
+  assert.ok(transactionHeader && transactionHeader.width >= 220, `${viewport.name} transaction column should fit side and visible price`);
+
+  await page.locator('#tradeTable tbody tr:first-child .trade-detail-toggle > summary').click();
+  const expandedFields = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => (
+    [...row.querySelectorAll('.trade-qty,.trade-amount')].map((el) => {
+      const box = el.getBoundingClientRect();
+      return { width: box.width, height: box.height };
+    })
+  ));
+  assert.ok(expandedFields.every((field) => field.width > 0 && field.height >= 40), `${viewport.name} quantity and amount should be editable when expanded`);
 
   const liquidGlass = await page.evaluate(() => {
     const bodyBefore = getComputedStyle(document.body, '::before');

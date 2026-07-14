@@ -1,4 +1,5 @@
 const DEFAULT_MAX_RECORDS = 200;
+const DEFAULT_RECORD_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const SENSITIVE_KEY_RE = /password|passwd|pwd|token|cookie|secret|auth/i;
 const FUNDS_ENDPOINTS = new Set(['stock_position', 'stock_card', 'asset_trend', 'time_share']);
 const TRADE_ENDPOINTS = new Set(['get_money_history', 'merge_day_trading']);
@@ -39,11 +40,14 @@ export function scheduleSyncDelayMs() {
 export function localDate(value = new Date()) {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('-');
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const fields = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${fields.year}-${fields.month}-${fields.day}`;
 }
 
 export function isSensitiveKey(key) {
@@ -73,8 +77,10 @@ function normalizeMethod(method) {
 }
 
 export function buildCaptureRecord(record = {}) {
+  const capturedAt = record.capturedAt || new Date().toISOString();
   return {
-    capturedAt: record.capturedAt || new Date().toISOString(),
+    capturedAt,
+    captureDate: record.captureDate || localDate(capturedAt),
     type: record.type || 'browser-response',
     method: normalizeMethod(record.method),
     status: Number(record.status || 0),
@@ -91,6 +97,7 @@ function recordKey(record) {
     normalizeMethod(record.method),
     Number(record.status || 0),
     String(record.url || ''),
+    String(record.requestPostData || ''),
     String(record.responseText || '')
   ].join('\u001f');
 }
@@ -113,18 +120,23 @@ export class TzzbSyncQueue {
     capturedCount = 0,
     lastCaptureAt = '',
     lastSyncAt = '',
+    targetDate = '',
     maxRecords = DEFAULT_MAX_RECORDS,
+    recordTtlMs = DEFAULT_RECORD_TTL_MS,
     now = () => new Date().toISOString()
   } = {}) {
     this.maxRecords = maxRecords;
+    this.recordTtlMs = Number.isFinite(Number(recordTtlMs)) && Number(recordTtlMs) >= 0
+      ? Number(recordTtlMs)
+      : DEFAULT_RECORD_TTL_MS;
     this.now = now;
-    this.targetDate = localDate(this.now());
+    this.targetDate = targetDate || localDate(this.now());
     this.records = dedupeRecords(records.map(buildCaptureRecord))
-      .filter((record) => localDate(record.capturedAt) === this.targetDate)
       .slice(-this.maxRecords);
     this.capturedCount = Number(capturedCount || this.records.length || 0);
     this.lastCaptureAt = lastCaptureAt || '';
     this.lastSyncAt = lastSyncAt || '';
+    this.pruneExpired();
   }
 
   static fromSnapshot(snapshot = {}, options = {}) {
@@ -132,13 +144,12 @@ export class TzzbSyncQueue {
   }
 
   enqueue(records = []) {
+    this.pruneExpired();
     this.targetDate = localDate(this.now());
-    this.records = this.records.filter((record) => localDate(record.capturedAt) === this.targetDate);
     const before = new Set(this.records.map(recordKey));
     let accepted = 0;
     for (const input of records) {
       const record = buildCaptureRecord(input);
-      if (localDate(record.capturedAt) !== this.targetDate) continue;
       const key = recordKey(record);
       if (before.has(key)) continue;
       before.add(key);
@@ -148,14 +159,21 @@ export class TzzbSyncQueue {
     }
     this.capturedCount += accepted;
     this.records = this.records.slice(-this.maxRecords);
+    this.pruneExpired();
     return accepted;
   }
 
   buildPayload({ pageUrl = '' } = {}) {
+    this.pruneExpired();
+    const pushedAt = this.now();
+    const lastRecord = this.records[this.records.length - 1];
+    const capturedAt = this.lastCaptureAt || (lastRecord && lastRecord.capturedAt) || pushedAt;
     return {
       source: 'edge-extension',
       pageUrl,
-      pushedAt: this.now(),
+      pushedAt,
+      capturedAt,
+      captureDate: (lastRecord && lastRecord.captureDate) || localDate(capturedAt),
       targetDate: this.targetDate,
       records: this.records
     };
@@ -168,19 +186,38 @@ export class TzzbSyncQueue {
 
   clear() {
     this.records = [];
+    this.lastCaptureAt = '';
+  }
+
+  pruneExpired(referenceTime = this.now()) {
+    const referenceTimestamp = Date.parse(referenceTime);
+    if (!Number.isFinite(referenceTimestamp)) return 0;
+    const cutoff = referenceTimestamp - this.recordTtlMs;
+    const before = this.records.length;
+    this.records = this.records.filter((record) => {
+      const capturedAt = Date.parse(record.capturedAt || '');
+      return Number.isFinite(capturedAt) && capturedAt >= cutoff;
+    });
+    if (this.records.length !== before) {
+      this.lastCaptureAt = this.records.at(-1)?.capturedAt || '';
+    }
+    return before - this.records.length;
   }
 
   snapshot() {
+    this.pruneExpired();
     return {
       records: this.records,
       capturedCount: this.capturedCount,
       lastCaptureAt: this.lastCaptureAt,
       lastSyncAt: this.lastSyncAt,
-      targetDate: this.targetDate
+      targetDate: this.targetDate,
+      recordTtlMs: this.recordTtlMs
     };
   }
 
   stats() {
+    this.pruneExpired();
     return {
       capturedCount: this.capturedCount,
       pendingCount: this.records.length,
