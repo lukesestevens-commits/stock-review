@@ -8,21 +8,30 @@ import {
   isValidMarketSnapshot,
   marketSnapshotTradeDate
 } from './market-snapshot-policy.mjs';
-import { analyzeTzzbEndpointCoverage, mergeCaptureRecords } from '../tools/tzzb-endpoint-coverage.mjs';
-import { mapTzzbCaptureToReview } from '../tools/tzzb-review-mapper.mjs';
-import { createTzzbSyncStore } from './tzzb-sync-store.mjs';
+import { createDailyReviewSync } from '../tools/daily-review-sync.mjs';
+import { normalizeCaptureEvidence } from '../tools/tzzb-evidence-adapter.mjs';
+import { createDailyReviewStore } from './daily-review-store.mjs';
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-TZZB-Sync-Key, Authorization'
+  'Access-Control-Allow-Headers': 'Content-Type, X-TZZB-Sync-Key, OAI-Sites-Authorization'
 };
 
-function json(status, value, headers = {}) {
+function requestCorsHeaders(request) {
+  if (!request) return CORS_HEADERS;
+  const origin = request.headers.get('Origin') || '';
+  const requestOrigin = new URL(request.url).origin;
+  return {
+    ...CORS_HEADERS,
+    ...(origin === requestOrigin ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {})
+  };
+}
+
+function json(status, value, headers = {}, request = null) {
   return new Response(JSON.stringify(value, null, 2), {
     status,
     headers: {
-      ...CORS_HEADERS,
+      ...requestCorsHeaders(request),
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       ...headers
@@ -40,27 +49,6 @@ function html(value) {
   });
 }
 
-function localDate(value = new Date()) {
-  if (typeof value === 'string') {
-    const match = value.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
-  }
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  return [
-    date.getUTCFullYear(),
-    String(date.getUTCMonth() + 1).padStart(2, '0'),
-    String(date.getUTCDate()).padStart(2, '0')
-  ].join('-');
-}
-
-function requestKey(request, url) {
-  const headerKey = request.headers.get('X-TZZB-Sync-Key') || '';
-  const authorization = request.headers.get('Authorization') || '';
-  const bearer = authorization.startsWith('Bearer ') ? authorization.slice(7) : '';
-  return String(headerKey || bearer || url.searchParams.get('key') || '');
-}
-
 function keysEqual(actual, expected) {
   if (!actual || !expected || actual.length !== expected.length) return false;
   let difference = 0;
@@ -70,34 +58,27 @@ function keysEqual(actual, expected) {
   return difference === 0;
 }
 
-function authorize(request, env, url) {
-  const expected = String(env.TZZB_SYNC_ACCESS_KEY || '');
-  if (!expected) return json(503, { ok: false, error: '云同步访问码未配置。' });
-  if (!keysEqual(requestKey(request, url), expected)) {
-    return json(401, { ok: false, error: '云同步访问码无效。' });
+function authorizeWrite(request, env) {
+  const expected = String(env.TZZB_SYNC_WRITE_KEY || env.TZZB_SYNC_ACCESS_KEY || '');
+  const actual = String(request.headers.get('X-TZZB-Sync-Key') || '');
+  if (!expected) return json(503, { ok: false, error: '云同步写入密钥未配置。' }, {}, request);
+  if (!keysEqual(actual, expected)) {
+    return json(401, { ok: false, error: '云同步写入密钥无效。' }, {}, request);
   }
   return null;
 }
 
-function captureResponse(payload, fallbackSource = 'cloud-sync') {
-  const records = Array.isArray(payload.records) ? payload.records : [];
-  const endpointCoverage = analyzeTzzbEndpointCoverage(records);
-  const targetDate = payload.targetDate || localDate(payload.receivedAt || new Date());
-  const review = mapTzzbCaptureToReview(records, { targetDate });
-  return {
-    ok: true,
-    raw: {
-      source: payload.source || fallbackSource,
-      targetDate,
-      receivedAt: payload.receivedAt,
-      pageUrl: payload.pageUrl,
-      records: records.length,
-      readyForReview: endpointCoverage.readyForReview,
-      endpointCoverage,
-      importAudit: review.tzzb.importAudit
-    },
-    review
-  };
+function authorizeRead(request, env) {
+  const expected = String(env.TZZB_OWNER_EMAIL || '').trim().toLowerCase();
+  const actual = String(request.headers.get('oai-authenticated-user-email') || '').trim().toLowerCase();
+  if (!expected) {
+    return json(503, { ok: false, error: '站点所有者账号未配置。' }, {}, request);
+  }
+  if (!actual) return json(401, { ok: false, error: '请先使用本人账号登录。' }, {}, request);
+  if (!keysEqual(actual, expected)) {
+    return json(403, { ok: false, error: '当前账号无权读取此复盘数据。' }, {}, request);
+  }
+  return null;
 }
 
 async function readJson(request) {
@@ -108,62 +89,82 @@ async function readJson(request) {
   }
 }
 
-async function uploadSync(request, env) {
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableValue(value[key])]));
+}
+
+async function stableDigest(value) {
+  const encoded = new TextEncoder().encode(JSON.stringify(stableValue(value)));
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', encoded);
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function pendingSummary(attempt) {
+  if (!attempt) return null;
+  return {
+    state: attempt.state || 'stored-unverified',
+    capturedAt: attempt.capturedAt || '',
+    captureDate: attempt.captureDate || '',
+    reviewDate: attempt.reviewDate || '',
+    audit: attempt.audit || null
+  };
+}
+
+async function uploadSync(request, sync, now) {
   const payload = await readJson(request);
   if (!payload || typeof payload !== 'object') {
-    return json(400, { ok: false, error: '同步数据格式无效。' });
+    return json(400, { ok: false, error: '同步数据格式无效。' }, {}, request);
   }
 
-  const targetDate = payload.targetDate || localDate(payload.pushedAt || new Date());
-  if (!targetDate) return json(400, { ok: false, error: '同步日期无效。' });
-
-  const store = createTzzbSyncStore(env.DB);
-  const existing = await store.readLatest();
-  const existingRecords = payload.replaceRecords !== true
-    && existing?.targetDate === targetDate
-    && Array.isArray(existing.records)
-    ? existing.records
-    : [];
-  const records = mergeCaptureRecords(existingRecords, Array.isArray(payload.records) ? payload.records : [], {
-    targetDate
-  });
-  const { replaceRecords: _replaceRecords, ...incoming } = payload;
-  const stored = {
-    ...(existing?.targetDate === targetDate ? existing : {}),
-    ...incoming,
-    source: payload.source || 'cloud-sync',
-    targetDate,
-    receivedAt: new Date().toISOString(),
-    records,
-    endpointCoverage: analyzeTzzbEndpointCoverage(records)
-  };
-  await store.writeLatest(stored);
-  return json(200, captureResponse(stored));
+  const capturedAt = String(payload.capturedAt || payload.pushedAt || now().toISOString());
+  const capturedDate = new Date(capturedAt);
+  if (Number.isNaN(capturedDate.getTime())) {
+    return json(400, { ok: false, error: '捕获时间无效。' }, {}, request);
+  }
+  const captureDate = String(payload.captureDate || shanghaiDate(capturedDate));
+  const evidence = payload.evidence && typeof payload.evidence === 'object'
+    ? payload.evidence
+    : await normalizeCaptureEvidence({ ...payload, capturedAt });
+  const idempotencyKey = String(
+    payload.idempotencyKey
+    || `legacy-${await stableDigest({ capturedAt, captureDate, evidence })}`
+  );
+  const result = await sync.submitCapture({ idempotencyKey, capturedAt, captureDate, evidence });
+  return json(200, { ok: true, ...result }, {}, request);
 }
 
-async function latestSync(env) {
-  const payload = await createTzzbSyncStore(env.DB).readLatest();
-  if (!payload) return json(404, { ok: false, error: '云端还没有收到同花顺同步数据。' });
-  return json(200, captureResponse(payload));
-}
-
-async function syncHealth(env) {
-  const payload = await createTzzbSyncStore(env.DB).readLatest();
-  if (!payload) return json(404, { ok: false, error: '云端还没有收到同花顺同步数据。' });
-
-  const records = Array.isArray(payload.records) ? payload.records : [];
-  const endpointCoverage = analyzeTzzbEndpointCoverage(records);
-  const targetDate = payload.targetDate || localDate(payload.receivedAt || new Date());
-  const review = mapTzzbCaptureToReview(records, { targetDate });
+async function latestSync(request, sync) {
+  const latest = await sync.readLatestVerified();
+  if (!latest?.dailyReview && !latest?.pendingAttempt) {
+    return json(404, { ok: false, error: '云端还没有收到可用的复盘数据。' }, {}, request);
+  }
   return json(200, {
     ok: true,
-    targetDate,
-    latestReceivedAt: payload.receivedAt || '',
-    latestRecordCount: records.length,
-    readyForReview: endpointCoverage.readyForReview,
-    endpointCoverage,
-    importAudit: review.tzzb.importAudit
-  });
+    dailyReview: latest.dailyReview || null,
+    audit: latest.audit || null,
+    pendingAttempt: pendingSummary(latest.pendingAttempt)
+  }, {}, request);
+}
+
+async function syncHealth(request, sync) {
+  const latest = await sync.readLatestVerified();
+  if (!latest?.dailyReview && !latest?.pendingAttempt) {
+    return json(404, { ok: false, error: '云端还没有收到可用的复盘数据。' }, {}, request);
+  }
+  const pending = pendingSummary(latest.pendingAttempt);
+  const audit = latest.audit || pending?.audit || null;
+  return json(200, {
+    ok: true,
+    reviewDate: latest.dailyReview?.reviewDate || audit?.reviewDate || pending?.reviewDate || '',
+    latestReceivedAt: latest.dailyReview?.capturedAt || audit?.capturedAt || pending?.capturedAt || '',
+    readyForReview: Boolean(latest.dailyReview && latest.audit?.status === 'verified'),
+    pending: Boolean(pending),
+    issueCodes: pending?.audit?.issueCodes || audit?.issueCodes || []
+  }, {}, request);
 }
 
 function shanghaiDate(value) {
@@ -175,6 +176,13 @@ function shanghaiDate(value) {
   }).formatToParts(value);
   const read = (type) => parts.find((part) => part.type === type)?.value || '';
   return `${read('year')}-${read('month')}-${read('day')}`;
+}
+
+function dateBefore(date, days) {
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) throw new TypeError('scheduled retention date is invalid');
+  parsed.setUTCDate(parsed.getUTCDate() - days);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function isFreshMarketRecord(record, nowDate, ttlMs = 60_000) {
@@ -255,14 +263,16 @@ async function marketSnapshot(fetchImpl, env, url, now) {
 export function createCloudWorker({
   indexHtml = '',
   fetchImpl = globalThis.fetch,
-  now = () => new Date()
+  now = () => new Date(),
+  dailyReviewStoreFactory = ({ db }) => createDailyReviewStore(db),
+  dailyReviewSyncFactory = ({ db }) => createDailyReviewSync({ store: dailyReviewStoreFactory({ db }), now })
 } = {}) {
   return {
     async fetch(request, env = {}) {
       const url = new URL(request.url);
 
       if (request.method === 'OPTIONS') {
-        return new Response(null, { status: 204, headers: CORS_HEADERS });
+        return new Response(null, { status: 204, headers: requestCorsHeaders(request) });
       }
 
       if (url.pathname === '/api/market-snapshot' && request.method === 'GET') {
@@ -273,21 +283,34 @@ export function createCloudWorker({
         || url.pathname === '/api/sync/latest'
         || url.pathname === '/api/sync/health';
       if (syncRoute) {
-        const denied = authorize(request, env, url);
-        if (denied) return denied;
         try {
           if (url.pathname === '/api/sync/tzzb' && request.method === 'POST') {
-            return await uploadSync(request, env);
+            const denied = authorizeWrite(request, env);
+            if (denied) return denied;
+            const sync = dailyReviewSyncFactory({ db: env.DB, env });
+            return await uploadSync(request, sync, now);
           }
           if (url.pathname === '/api/sync/latest' && request.method === 'GET') {
-            return await latestSync(env);
+            const denied = authorizeRead(request, env);
+            if (denied) return denied;
+            const sync = dailyReviewSyncFactory({ db: env.DB, env });
+            return await latestSync(request, sync);
           }
           if (url.pathname === '/api/sync/health' && request.method === 'GET') {
-            return await syncHealth(env);
+            const denied = authorizeRead(request, env);
+            if (denied) return denied;
+            const sync = dailyReviewSyncFactory({ db: env.DB, env });
+            return await syncHealth(request, sync);
           }
-          return json(405, { ok: false, error: 'Method Not Allowed' });
-        } catch {
-          return json(503, { ok: false, error: '云端同步存储暂不可用。' });
+          return json(405, { ok: false, error: 'Method Not Allowed' }, {}, request);
+        } catch (error) {
+          if (error?.code === 'IDEMPOTENCY_CONFLICT') {
+            return json(409, { ok: false, error: '同一批次的数据内容不一致。' }, {}, request);
+          }
+          if (['IDEMPOTENCY_KEY_REQUIRED', 'INVALID_CAPTURED_AT', 'CAPTURE_DATE_MISMATCH'].includes(error?.code)) {
+            return json(400, { ok: false, error: error.message }, {}, request);
+          }
+          return json(503, { ok: false, error: '云端同步存储暂不可用。' }, {}, request);
         }
       }
 
@@ -296,6 +319,22 @@ export function createCloudWorker({
       }
 
       return json(404, { ok: false, error: 'Not Found' });
+    },
+
+    async scheduled(controller = {}, env = {}, ctx = {}) {
+      const scheduledTime = Number(controller.scheduledTime);
+      let current = new Date(scheduledTime);
+      if (!Number.isFinite(scheduledTime) || scheduledTime <= 0) {
+        const fallbackNow = now();
+        current = fallbackNow instanceof Date ? fallbackNow : new Date(fallbackNow);
+      }
+      const beforeDate = dateBefore(shanghaiDate(current), 90);
+      const cleanup = Promise.resolve().then(() => {
+        const store = dailyReviewStoreFactory({ db: env.DB, env });
+        return store.pruneCandidates(beforeDate);
+      });
+      if (typeof ctx.waitUntil === 'function') ctx.waitUntil(cleanup);
+      return cleanup;
     }
   };
 }

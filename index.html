@@ -327,6 +327,39 @@
     background:linear-gradient(180deg,#fff,#f9fbff);
     padding:14px;
   }
+  .sync-proof-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+    margin-top:14px;
+  }
+  .sync-proof{
+    min-width:0;
+    border:1px solid #e7edf7;
+    border-radius:14px;
+    padding:11px 12px;
+    background:#f8fbff;
+  }
+  .sync-proof span{
+    display:block;
+    color:#7a8699;
+    font-size:11px;
+    font-weight:700;
+    margin-bottom:5px;
+  }
+  .sync-proof strong{
+    display:block;
+    color:#1f2a44;
+    font-size:13px;
+    line-height:1.45;
+    overflow-wrap:anywhere;
+  }
+  .sync-proof-wide{grid-column:1 / -1}
+  .sync-proof[data-state="verified"]{background:#f0fdf8;border-color:#bbf7d0}
+  .sync-proof[data-state="pending"]{background:#fffaf0;border-color:#fed7aa}
+  .sync-proof[data-state="error"]{background:#fff1f2;border-color:#fecdd3}
+  @media(max-width:840px){.sync-proof-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:540px){.sync-proof-grid{grid-template-columns:1fr}.sync-proof-wide{grid-column:auto}}
   .out{
     min-height:260px;
     white-space:pre-wrap;
@@ -1178,35 +1211,17 @@
             </div>
             <div class="toolbar">
               <button class="btn-dark" onclick="importLatestTzzbData()">读取最新同花顺数据</button>
-              <button class="btn-soft" onclick="showTzzbExtensionHelp()">安装/检查捕获扩展</button>
-              <button class="btn-light" onclick="clearTzzbCaptureData()">清理本地捕获</button>
+              <button class="btn-soft" id="tzzbExtensionButton" onclick="showTzzbExtensionHelp()">安装/检查捕获扩展</button>
+              <button class="btn-light" id="tzzbClearButton" onclick="clearTzzbCaptureData()">清理本地捕获</button>
             </div>
           </div>
-          <details class="secondary-tools" style="margin-top:12px;background:#f8fbff;color:#334155;border-color:#e6edf7">
-            <summary style="color:#334155">同步来源设置</summary>
-            <div class="secondary-tools-body">
-              <div class="grid g3">
-                <div class="field">
-                  <label>同步模式</label>
-                  <select id="tzzbSyncMode">
-                    <option value="local">本地助手</option>
-                    <option value="cloud">云端同步</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label>云端地址</label>
-                  <input id="tzzbCloudSyncBaseUrl" placeholder="例如 https://review.example.com">
-                </div>
-                <div class="field">
-                  <label>访问码</label>
-                  <input id="tzzbCloudSyncKey" type="password" placeholder="部署时设置的访问码">
-                </div>
-              </div>
-              <div class="toolbar" style="margin-top:12px">
-                <button class="btn-dark" onclick="saveTzzbSyncConfig()">保存同步设置</button>
-              </div>
-            </div>
-          </details>
+          <div class="sync-proof-grid" aria-label="同花顺对账状态" aria-live="polite">
+            <div class="sync-proof"><span>复盘日</span><strong id="tzzbReviewDate">等待数据</strong></div>
+            <div class="sync-proof"><span>捕获时间</span><strong id="tzzbCapturedAt">—</strong></div>
+            <div class="sync-proof" id="tzzbVerificationCard"><span>对账状态</span><strong id="tzzbVerificationState">待核验</strong></div>
+            <div class="sync-proof"><span>逆回购占用额</span><strong id="tzzbReverseRepoValue">¥0.00</strong></div>
+            <div class="sync-proof sync-proof-wide"><span>核验说明</span><strong id="tzzbAuditReasons">尚未收到已核验的收盘数据。</strong></div>
+          </div>
         </div>
 
         <div class="grid g3" style="margin-top:14px">
@@ -1574,13 +1589,9 @@ const QUOTES = [
 const STORAGE_CURRENT = 'tradeReviewDataV3';
 const STORAGE_HISTORY = 'tradeReviewHistoryV1';
 const STORAGE_OCR_PREFS = 'ocrImportPrefsV1';
-const STORAGE_TZZB_IMPORT = 'tzzbLastImportedAtV1';
-const STORAGE_TZZB_SYNC_MODE = 'tzzbSyncModeV1';
-const STORAGE_TZZB_CLOUD_BASE = 'tzzbCloudSyncBaseUrlV1';
-const STORAGE_TZZB_CLOUD_KEY = 'tzzbCloudSyncKeyV1';
 let ocrFiles = [];
 let lastOcrResult = {trades:[], asset:{}, warnings:[]};
-let lastTzzbImportedAt = localStorage.getItem(STORAGE_TZZB_IMPORT) || '';
+let lastTzzbImportedAt = '';
 let lastMarketImportedAt = '';
 let tzzbAutoImportTimer = null;
 let marketAutoImportTimer = null;
@@ -1639,7 +1650,8 @@ function todayStr(){ return formatDate(new Date()); }
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('date').value = todayStr();
   loadOcrPrefs();
-  loadTzzbSyncConfig();
+  clearLegacyTzzbCloudCredentials();
+  configureTzzbSurface();
   initDailyQuote();
   addTrade({time:'09:30',name:'',side:'买入'});
   addTrade({time:'09:35',name:'',side:'卖出'});
@@ -1648,6 +1660,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   checkTzzbHelperHealth();
   startTzzbAutoImport();
   startMarketAutoImport();
+  window.addEventListener('focus', autoImportLatestTzzbData);
 });
 
 function scoreSelect(value=1){
@@ -1670,6 +1683,9 @@ function esc(value){
 }
 function addTrade(data={}){
   const tr=document.createElement('tr');
+  tr.dataset.accountRef = String(data.accountRef || '');
+  tr.dataset.sequenceId = String(data.sequenceId || '');
+  tr.dataset.code = String(data.code || '');
   const side = data.side === '卖出' ? '卖出' : '买入';
   const mode = data.mode || '趋势波段';
   tr.innerHTML=`
@@ -2172,6 +2188,9 @@ function getTradeRowsData(){
   return [...document.querySelectorAll('#tradeBody tr')].map(tr=>{
     const scores=[...tr.querySelectorAll('select.score')].map(s=>parseFloat(s.value)||0);
     return {
+      accountRef: tr.dataset.accountRef || '',
+      sequenceId: tr.dataset.sequenceId || '',
+      code: tr.dataset.code || '',
       time: tr.querySelector('.trade-time')?.value.trim() || '',
       name: tr.querySelector('.trade-name')?.value.trim() || '',
       side: tr.querySelector('.trade-side')?.value || '买入',
@@ -2186,6 +2205,95 @@ function getTradeRowsData(){
       score: scoreFromCoreDimensions(scores)
     };
   });
+}
+const TZZB_TRADE_MANUAL_FIELDS = ['mode','reason','planScore','lineScore','riskScore'];
+const TZZB_HOLDING_MANUAL_FIELDS = ['isCore','logic','tomorrowAction','trigger'];
+function syncText(value){
+  return String(value ?? '').trim();
+}
+function syncNumberKey(value){
+  const normalized = normalizeNumber(value);
+  if(!normalized) return '';
+  const number = Number(normalized);
+  return Number.isFinite(number) ? String(number) : normalized;
+}
+function syncTimeKey(value){
+  const match = syncText(value).match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if(!match) return syncText(value);
+  return `${match[1].padStart(2,'0')}:${match[2]}${match[3] ? `:${match[3]}` : ''}`;
+}
+function tradePrimaryIdentity(trade={}){
+  const accountRef = syncText(trade.accountRef);
+  const sequenceId = syncText(trade.sequenceId);
+  return accountRef && sequenceId ? `${accountRef}|${sequenceId}` : '';
+}
+function tradeFallbackIdentity(trade={}){
+  const code = syncText(trade.code).toUpperCase();
+  const name = syncText(trade.name);
+  const security = code ? `code:${code}` : (name ? `name:${name}` : '');
+  if(!security) return '';
+  return [
+    security,
+    normalizeSide(trade.side),
+    syncNumberKey(trade.price),
+    syncNumberKey(trade.qty ?? trade.quantity),
+    syncNumberKey(trade.amount),
+    syncTimeKey(trade.time)
+  ].join('|');
+}
+function mergeSyncedTrades(cloudTrades=[], localTrades=[]){
+  const local = Array.isArray(localTrades) ? localTrades : [];
+  const used = new Set();
+  return (Array.isArray(cloudTrades) ? cloudTrades : []).map(cloudTrade=>{
+    const primary = tradePrimaryIdentity(cloudTrade);
+    let matchIndex = primary
+      ? local.findIndex((candidate,index)=>!used.has(index) && tradePrimaryIdentity(candidate) === primary)
+      : -1;
+    if(matchIndex < 0){
+      const fallback = tradeFallbackIdentity(cloudTrade);
+      if(fallback){
+        matchIndex = local.findIndex((candidate,index)=>!used.has(index) && tradeFallbackIdentity(candidate) === fallback);
+      }
+    }
+    if(matchIndex < 0) return {...cloudTrade};
+    used.add(matchIndex);
+    const merged = {...cloudTrade};
+    for(const field of TZZB_TRADE_MANUAL_FIELDS){
+      if(local[matchIndex][field] !== undefined) merged[field] = local[matchIndex][field];
+    }
+    return merged;
+  });
+}
+function holdingSyncIdentity(holding={}){
+  const code = syncText(holding.code).toUpperCase();
+  if(code) return `code:${code}`;
+  const name = syncText(holding.name);
+  return name ? `name:${name}` : '';
+}
+function mergeSyncedHoldings(cloudHoldings=[], localHoldings=[]){
+  const local = Array.isArray(localHoldings) ? localHoldings : [];
+  const used = new Set();
+  return (Array.isArray(cloudHoldings) ? cloudHoldings : []).map(cloudHolding=>{
+    const identity = holdingSyncIdentity(cloudHolding);
+    const matchIndex = identity
+      ? local.findIndex((candidate,index)=>!used.has(index) && holdingSyncIdentity(candidate) === identity)
+      : -1;
+    if(matchIndex < 0) return {...cloudHolding};
+    used.add(matchIndex);
+    const merged = {...cloudHolding};
+    for(const field of TZZB_HOLDING_MANUAL_FIELDS){
+      if(local[matchIndex][field] !== undefined) merged[field] = local[matchIndex][field];
+    }
+    return merged;
+  });
+}
+function mergeSyncedSection(cloudSection={}, localSection={}){
+  const merged = {...(localSection || {})};
+  for(const [field,value] of Object.entries(cloudSection || {})){
+    if(value === undefined || value === null || (typeof value === 'string' && !value.trim())) continue;
+    merged[field] = value;
+  }
+  return merged;
 }
 function buildQualityInsights(input){
   const trades = input.trades || [];
@@ -2471,40 +2579,115 @@ function setTzzbImportAudit(message){
   const el = document.getElementById('tzzbImportAudit');
   if(el) el.textContent = message;
 }
-function formatTzzbAudit(raw={}, audit={}){
-  const coverage = raw.endpointCoverage || {};
-  const parts = [
-    `日期 ${raw.targetDate || audit.targetDate || todayStr()}`,
-    `记录 ${raw.records ?? 0} 条`,
-    `资金 ${audit.capitalSource || '未知'}`,
-    `持仓 ${audit.holdingSource || '未知'}`,
-    `交易 ${audit.tradeSource || '未知'}`
-  ];
-  if(raw.receivedAt) parts.push(`捕获 ${new Date(raw.receivedAt).toLocaleString()}`);
-  if(coverage.endpointCounts){
-    parts.push(`接口 ${Object.keys(coverage.endpointCounts).length} 类`);
+function formatSyncTime(value){
+  if(!value) return '—';
+  const parsed = new Date(value);
+  if(Number.isNaN(parsed.getTime())) return String(value);
+  return parsed.toLocaleString('zh-CN', {timeZone:'Asia/Shanghai', hour12:false});
+}
+function readVerifiedEnvelope(data={}){
+  const nested = data.latestVerified || {};
+  const dailyReview = data.dailyReview || nested.dailyReview || data.review || null;
+  const audit = data.audit
+    || data.reconciliationAudit
+    || nested.audit
+    || nested.reconciliationAudit
+    || dailyReview?.tzzb?.importAudit
+    || data.raw?.importAudit
+    || {};
+  const pendingAttempt = data.pendingAttempt || data.pending || null;
+  const pendingAudit = pendingAttempt ? (pendingAttempt.audit || pendingAttempt) : null;
+  const raw = data.raw || {};
+  const capturedAt = audit.capturedAt || dailyReview?.capturedAt || raw.receivedAt || '';
+  const reviewDate = dailyReview?.reviewDate || dailyReview?.date || audit.reviewDate || raw.targetDate || '';
+  const verifiedAt = audit.verifiedAt || dailyReview?.verifiedAt || raw.receivedAt || capturedAt;
+  const displayAudit = pendingAudit || audit;
+  const displayCapturedAt = pendingAttempt?.capturedAt || pendingAudit?.capturedAt || capturedAt;
+  const displayReviewDate = pendingAttempt?.reviewDate || pendingAudit?.reviewDate || reviewDate;
+  const reverseRepoValue = dailyReview?.capital?.reverseRepoValue
+    ?? dailyReview?.tzzb?.reverseRepoValue
+    ?? audit.metrics?.reverseRepoValue
+    ?? '0.00';
+  const legacyVerified = Boolean(data.review && raw.readyForReview);
+  const status = audit.status || audit.verdict || (dailyReview && (legacyVerified || !data.raw) ? 'verified' : 'unverified');
+  return {
+    dailyReview, audit, pendingAttempt, raw, capturedAt, reviewDate, verifiedAt, reverseRepoValue, status,
+    displayAudit, displayCapturedAt, displayReviewDate
+  };
+}
+const TZZB_AUDIT_LABELS = {
+  ACTIVE_ACCOUNTS_MISSING:'未识别到全部有效账户',
+  TRADING_CALENDAR_MISSING:'交易日历缺失',
+  TRADING_CALENDAR_STALE:'交易日历不是本次捕获日的数据',
+  STOCK_POSITION_MISSING:'账户持仓数据缺失',
+  ASSET_TREND_MISSING:'账户盈亏历史缺失',
+  TRADE_HISTORY_INCOMPLETE:'成交明细或分页不完整',
+  TRADE_RECONCILIATION_FAILED:'成交摘要与逐笔明细不一致',
+  CAPITAL_IDENTITY_CONFLICT:'总资产、现金与持仓市值不一致',
+  POSITION_RECONCILIATION_FAILED:'仓位比例交叉核验不一致',
+  UNKNOWN_LIABILITY:'融资负债口径缺失',
+  NONZERO_LIABILITY:'存在尚未确认口径的融资负债',
+  MONTH_PNL_MISSING:'缺少权威盈亏历史',
+  PNL_RECONCILIATION_FAILED:'盈亏交叉核验不一致',
+  EVIDENCE_CALCULATION_ERROR:'证据中存在无法计算的数值',
+  DISPLAY_PNL_MISMATCH:'账本展示盈亏与历史权威值不一致',
+  TRADE_SUMMARY_EMPTY:'已核验为零成交'
+};
+function auditReasonLabel(reason){
+  const code = typeof reason === 'object' && reason ? reason.code : String(reason || '');
+  return TZZB_AUDIT_LABELS[code] || code;
+}
+function auditReasons(audit={}, pendingAttempt=null){
+  const reasons = [
+    ...(audit.issueCodes || audit.codes || []),
+    ...(audit.warnings || [])
+  ].map(auditReasonLabel).filter(Boolean);
+  if(pendingAttempt){
+    reasons.push(...(pendingAttempt.issueCodes || pendingAttempt.audit?.issueCodes || []).map(auditReasonLabel));
   }
-  const warnings = audit.warnings?.length ? `；提醒：${audit.warnings.join('、')}` : '';
-  return `${parts.join('｜')}${warnings}`;
+  return [...new Set(reasons)];
+}
+function renderTzzbVerification(envelope={}){
+  const setText = (id,value) => {
+    const element = document.getElementById(id);
+    if(element) element.textContent = value;
+  };
+  const verified = envelope.status === 'verified' && Boolean(envelope.dailyReview);
+  const pending = Boolean(envelope.pendingAttempt);
+  setText('tzzbReviewDate', envelope.displayReviewDate || envelope.reviewDate || '等待数据');
+  setText('tzzbCapturedAt', formatSyncTime(envelope.displayCapturedAt || envelope.capturedAt));
+  setText('tzzbVerificationState', pending
+    ? (verified ? '已核验 · 有新数据待对账' : '待对账')
+    : (verified ? '已核验' : '尚未核验'));
+  setText('tzzbReverseRepoValue', `¥${Number(envelope.reverseRepoValue || 0).toFixed(2)}`);
+  const reasons = auditReasons(envelope.displayAudit || envelope.audit);
+  setText('tzzbAuditReasons', reasons.length
+    ? reasons.join('、')
+    : (verified ? '盈亏、成交、资产与仓位恒等式已通过。' : '等待收盘后采集与对账。'));
+  const card = document.getElementById('tzzbVerificationCard');
+  if(card) card.dataset.state = pending ? 'pending' : (verified ? 'verified' : 'error');
+}
+function formatTzzbAudit(raw={}, audit={}){
+  const envelope = readVerifiedEnvelope({raw, audit});
+  const reasons = auditReasons(audit);
+  const parts = [
+    `复盘日 ${envelope.reviewDate || audit.targetDate || '待确定'}`,
+    `捕获 ${formatSyncTime(envelope.capturedAt)}`,
+    `状态 ${audit.status === 'verified' ? '已核验' : '待核验'}`
+  ];
+  return `${parts.join('｜')}${reasons.length ? `；${reasons.join('、')}` : ''}`;
 }
 function rememberTzzbImport(importedAt){
   if(!importedAt) return;
   lastTzzbImportedAt = importedAt;
-  localStorage.setItem(STORAGE_TZZB_IMPORT, importedAt);
 }
 async function fetchTzzbApi(path, options={}){
   const syncConfig = getTzzbSyncConfig();
   if(syncConfig.mode === 'cloud'){
     const cloudPath = mapTzzbCloudPath(path);
     if(!cloudPath) throw new Error('云端模式不支持当前操作。');
-    if(!syncConfig.baseUrl) throw new Error('请先填写云同步地址。');
-    if(!syncConfig.key) throw new Error('请先填写云同步访问码。');
     const url = new URL(cloudPath, syncConfig.baseUrl);
-    const headers = {
-      ...(options.headers || {}),
-      'X-TZZB-Sync-Key': syncConfig.key
-    };
-    const res = await fetch(url.toString(), {...options, headers});
+    const res = await fetch(url.toString(), {...options, credentials:'same-origin'});
     const data = await res.json();
     return {res, data};
   }
@@ -2529,9 +2712,8 @@ function isHostedReviewSite(){
 function getTzzbSyncConfig(){
   const hosted = isHostedReviewSite();
   return {
-    mode: localStorage.getItem(STORAGE_TZZB_SYNC_MODE) || (hosted ? 'cloud' : 'local'),
-    baseUrl: localStorage.getItem(STORAGE_TZZB_CLOUD_BASE) || (hosted ? location.origin : ''),
-    key: localStorage.getItem(STORAGE_TZZB_CLOUD_KEY) || ''
+    mode: hosted ? 'cloud' : 'local',
+    baseUrl: hosted ? location.origin : ''
   };
 }
 function tzzbSyncSourceLabel(config=getTzzbSyncConfig()){
@@ -2543,32 +2725,24 @@ function mapTzzbCloudPath(path){
   if(path === '/api/market-snapshot') return '/api/market-snapshot';
   return '';
 }
-function loadTzzbSyncConfig(){
-  const config = getTzzbSyncConfig();
-  const mode = document.getElementById('tzzbSyncMode');
-  const baseUrl = document.getElementById('tzzbCloudSyncBaseUrl');
-  const key = document.getElementById('tzzbCloudSyncKey');
-  if(mode) mode.value = config.mode;
-  if(baseUrl) baseUrl.value = config.baseUrl;
-  if(key) key.value = config.key;
+function clearLegacyTzzbCloudCredentials(){
+  localStorage.removeItem('tzzbSyncModeV1');
+  localStorage.removeItem('tzzbCloudSyncBaseUrlV1');
+  localStorage.removeItem('tzzbCloudSyncKeyV1');
 }
-function saveTzzbSyncConfig(){
-  const mode = document.getElementById('tzzbSyncMode')?.value || 'local';
-  const baseUrl = (document.getElementById('tzzbCloudSyncBaseUrl')?.value || '').trim().replace(/\/+$/,'');
-  const key = (document.getElementById('tzzbCloudSyncKey')?.value || '').trim();
-  localStorage.setItem(STORAGE_TZZB_SYNC_MODE, mode);
-  localStorage.setItem(STORAGE_TZZB_CLOUD_BASE, baseUrl);
-  localStorage.setItem(STORAGE_TZZB_CLOUD_KEY, key);
-  lastTzzbImportedAt = '';
-  localStorage.removeItem(STORAGE_TZZB_IMPORT);
-  const label = mode === 'cloud' ? '云端同步' : '本地助手';
-  setTzzbImportStatus(`已切换为${label}模式，正在重新检查数据。`);
-  checkTzzbHelperHealth();
-  autoImportLatestTzzbData();
-  autoImportMarketSnapshot();
+function configureTzzbSurface(){
+  if(!isHostedReviewSite()) return;
+  for(const id of ['tzzbExtensionButton','tzzbClearButton']){
+    const element = document.getElementById(id);
+    if(element) element.hidden = true;
+  }
 }
 async function checkTzzbHelperHealth(){
   const syncConfig = getTzzbSyncConfig();
+  if(syncConfig.mode === 'cloud'){
+    setTzzbImportStatus('正在读取云端已核验收盘数据...');
+    return;
+  }
   const sourceLabel = tzzbSyncSourceLabel(syncConfig);
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-health');
@@ -2595,31 +2769,59 @@ async function checkTzzbHelperHealth(){
   }
 }
 function tzzbMissingMessage(data){
-  const missing = data?.endpointCoverage?.missing || data?.raw?.endpointCoverage?.missing || ['资金/持仓', '交易记录'];
-  return `缺少${missing.join('、')}，请刷新或重新打开同花顺投资账本，等页面加载完成后再读取。`;
+  const envelope = readVerifiedEnvelope(data);
+  const missing = auditReasons(envelope.displayAudit || envelope.audit);
+  return missing.length
+    ? `对账未通过：${missing.join('、')}。`
+    : '尚未收到完整的收盘数据。';
 }
-async function autoImportLatestTzzbData(){
+async function autoImportLatestTzzbData(options={}){
+  if(tzzbAutoImportTimer){
+    clearTimeout(tzzbAutoImportTimer);
+    tzzbAutoImportTimer = null;
+  }
   try{
-    const {res, data} = await fetchTzzbApi('/api/tzzb-health');
-    if(!res.ok || !data.ok || !data.latestReceivedAt) return;
-    if(data.latestReceivedAt === lastTzzbImportedAt) return;
-    if(!data.readyForReview){
-      setTzzbImportStatus(`已连接本地助手，但${tzzbMissingMessage(data)}`);
-      return;
-    }
     const latest = await fetchTzzbApi('/api/tzzb-latest');
-    if(!latest.res.ok || !latest.data.ok || !latest.data.raw?.readyForReview) return;
-    applyTzzbReviewData(latest.data.review, latest.data.raw);
-    rememberTzzbImport(data.latestReceivedAt);
-    setTzzbImportStatus(`已自动同步 ${latest.data.raw?.targetDate || '当天'} 同花顺数据。指数和强势方向按独立周期刷新。`);
+    if(!latest.res.ok || !latest.data.ok){
+      if(latest.res.status === 404){
+        setTzzbImportStatus('云端还没有已核验的收盘数据。');
+        scheduleTzzbAutoImport({pending:true});
+        return;
+      }
+      throw new Error(latest.data.error || '同步服务未响应。');
+    }
+    const envelope = readVerifiedEnvelope(latest.data);
+    renderTzzbVerification(envelope);
+    const importKey = `${envelope.reviewDate}|${envelope.verifiedAt}`;
+    if(envelope.dailyReview && envelope.status === 'verified' && options.apply !== false && importKey !== lastTzzbImportedAt){
+      applyTzzbReviewData(envelope.dailyReview, {...envelope.raw, audit:envelope.audit});
+      rememberTzzbImport(importKey);
+    }
+    if(envelope.pendingAttempt){
+      setTzzbImportStatus(envelope.dailyReview
+        ? `已保留 ${envelope.reviewDate} 已核验结果；较新数据正在对账，不会覆盖当前表单。`
+        : '已收到数据，正在对账，暂不写入表单。');
+    }else if(envelope.dailyReview){
+      setTzzbImportStatus(`已同步 ${envelope.reviewDate} 已核验同花顺数据。`);
+    }
+    scheduleTzzbAutoImport({pending:Boolean(envelope.pendingAttempt)});
   }catch(error){
-    // 自动同步保持安静，按钮导入时再展示详细错误。
+    renderTzzbVerification({status:'unverified', audit:{issueCodes:[error.message]}});
+    scheduleTzzbAutoImport({retry:true});
   }
 }
+function scheduleTzzbAutoImport({pending=false,retry=false}={}){
+  if(tzzbAutoImportTimer) clearTimeout(tzzbAutoImportTimer);
+  if(isHostedReviewSite()){
+    if(!pending && !retry) return;
+    tzzbAutoImportTimer = setTimeout(autoImportLatestTzzbData, 30000);
+    return;
+  }
+  tzzbAutoImportTimer = setTimeout(autoImportLatestTzzbData, 3000);
+}
 function startTzzbAutoImport(){
-  if(tzzbAutoImportTimer) clearInterval(tzzbAutoImportTimer);
+  if(tzzbAutoImportTimer) clearTimeout(tzzbAutoImportTimer);
   autoImportLatestTzzbData();
-  tzzbAutoImportTimer = setInterval(autoImportLatestTzzbData, 3000);
 }
 async function autoImportMarketSnapshot(){
   const applied = await importMarketSnapshot({silent:true});
@@ -2665,14 +2867,22 @@ function applyTzzbReviewData(review, raw={}){
     setTzzbImportStatus('没有可导入的同花顺数据。');
     return;
   }
+  const current = collectStructured();
+  const reviewDate = review.reviewDate || review.date || todayStr();
+  const preserveLocalDraft = current.date === reviewDate;
+  const cloudMarket = review.market || {};
+  const cloudReflection = review.reflection || {};
+  const cloudPlan = review.plan || {};
+  const cloudHoldings = review.holdings || review.tzzb?.holdings || [];
+  const cloudTrades = review.trades || [];
   const record = {
-    date: review.date || todayStr(),
+    date: reviewDate,
     basic: review.basic || {},
-    market: review.market || collectStructured().market || {},
-    reflection: {},
-    plan: {},
-    holdings: review.holdings || review.tzzb?.holdings || [],
-    trades: review.trades || []
+    market: preserveLocalDraft ? mergeSyncedSection(cloudMarket, current.market) : cloudMarket,
+    reflection: preserveLocalDraft ? mergeSyncedSection(cloudReflection, current.reflection) : cloudReflection,
+    plan: preserveLocalDraft ? mergeSyncedSection(cloudPlan, current.plan) : cloudPlan,
+    holdings: preserveLocalDraft ? mergeSyncedHoldings(cloudHoldings, current.holdings) : cloudHoldings,
+    trades: preserveLocalDraft ? mergeSyncedTrades(cloudTrades, current.trades) : cloudTrades
   };
   applyStructured(record);
   const summary = review.importSummary || `同花顺导入：${record.trades.length} 笔成交。`;
@@ -2690,17 +2900,20 @@ async function importLatestTzzbData(){
     if(!res.ok || !data.ok){
       throw new Error(data.error || '本地助手暂时没有可导入数据。');
     }
-    if(!data.raw?.readyForReview){
+    const envelope = readVerifiedEnvelope(data);
+    renderTzzbVerification(envelope);
+    if(!envelope.dailyReview || envelope.status !== 'verified'){
       setTzzbImportStatus(`暂不写入表单：${tzzbMissingMessage(data)}当前页面内容已保留。`);
+      scheduleTzzbAutoImport({pending:true});
       return;
     }
-    applyTzzbReviewData(data.review, data.raw);
+    applyTzzbReviewData(envelope.dailyReview, {...envelope.raw, audit:envelope.audit});
     const marketImported = await importMarketSnapshot();
-    rememberTzzbImport(data.raw?.receivedAt);
+    rememberTzzbImport(`${envelope.reviewDate}|${envelope.verifiedAt}`);
     if(marketImported) setTzzbImportStatus('已读取最新同花顺数据，并填写指数情况和市场强势方向。');
   }catch(error){
     const guidance = syncConfig.mode === 'cloud'
-      ? '请确认访问码正确，并在电脑端启动复盘助手完成上传。'
+      ? '请确认已用本人账号登录，并在可信电脑启动复盘助手。'
       : '请确认本地复盘助手已启动，并已在同花顺页面推送数据。';
     setTzzbImportStatus(`读取失败：${error.message} ${guidance}`);
   }
@@ -2710,7 +2923,6 @@ async function clearTzzbCaptureData(){
   try{
     const {res, data} = await fetchTzzbApi('/api/tzzb-clear', {method:'POST'});
     if(!res.ok || !data.ok) throw new Error(data.error || '清理失败');
-    localStorage.removeItem(STORAGE_TZZB_IMPORT);
     lastTzzbImportedAt = '';
     setTzzbImportStatus('已清理本机保存的同花顺捕获数据，当前复盘表单内容已保留。');
     setTzzbImportAudit('等待新的当天捕获数据。');

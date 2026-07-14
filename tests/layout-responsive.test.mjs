@@ -15,9 +15,12 @@ const viewports = [
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const page = await browser.newPage();
 page.on('dialog', dialog => dialog.accept());
-await page.addInitScript(() => {
-  localStorage.setItem('tzzbSyncModeV1', 'cloud');
-  localStorage.setItem('tzzbCloudSyncBaseUrlV1', 'https://layout-test.invalid');
+await page.route('http://127.0.0.1:8787/**', async (route) => {
+  await route.fulfill({
+    status: 404,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: false, error: 'layout test has no local helper' })
+  });
 });
 
 for (const viewport of viewports) {

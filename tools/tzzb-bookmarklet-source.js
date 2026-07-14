@@ -1,5 +1,6 @@
 (function installTzzbAutoPush() {
   const helperUrl = 'http://127.0.0.1:8787/api/tzzb-capture';
+  const helperToken = '__TZZB_HELPER_TOKEN__';
 
   if (window.__tzzbAutoPush && window.__tzzbAutoPush.installed) {
     window.__tzzbAutoPush.push();
@@ -40,7 +41,10 @@
 
     const response = await fetch(helperUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-TZZB-Helper-Token': helperToken
+      },
       body: JSON.stringify(payload)
     });
 

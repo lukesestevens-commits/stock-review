@@ -12,7 +12,9 @@ await fs.cp(path.join(root, 'cloud'), path.join(serverDir, 'cloud'), { recursive
 await fs.mkdir(path.join(serverDir, 'tools'), { recursive: true });
 
 for (const file of [
+  'daily-review-sync.mjs',
   'market-public-data.mjs',
+  'tzzb-evidence-adapter.mjs',
   'tzzb-endpoint-coverage.mjs',
   'tzzb-review-mapper.mjs'
 ]) {

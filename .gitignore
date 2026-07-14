@@ -1,6 +1,11 @@
 data/tzzb/*.json
 data/tzzb/*.csv
 data/tzzb/*.local.*
+data/tzzb/raw-captures/
+data/tzzb/cloud-outbox/
+data/tzzb/daily-state/
+data/tzzb/**
+!data/tzzb/.gitkeep
 云同步配置.env
 .DS_Store
 .superpowers/

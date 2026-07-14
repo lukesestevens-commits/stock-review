@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import { createCloudWorker } from '../cloud/worker.mjs';
 
-class FakeD1 {
+class MarketD1 {
   constructor() {
-    this.row = null;
     this.marketRows = new Map();
   }
 
@@ -22,31 +21,18 @@ class FakeD1 {
         if (/FROM market_snapshots/.test(sql) && /ORDER BY trade_date DESC/.test(sql)) {
           return [...db.marketRows.values()].sort((a, b) => b.trade_date.localeCompare(a.trade_date))[0] || null;
         }
-        if (!/SELECT payload_json/.test(sql)) throw new Error(`Unexpected first SQL: ${sql}`);
-        return db.row;
+        throw new Error(`Unexpected first SQL: ${sql}`);
       },
       async run() {
-        if (/CREATE TABLE IF NOT EXISTS tzzb_latest_sync/.test(sql)) return { success: true };
         if (/CREATE TABLE IF NOT EXISTS market_snapshots/.test(sql)) return { success: true };
-        if (/INSERT INTO tzzb_latest_sync/.test(sql)) {
-          db.row = {
-            target_date: values[0],
-            received_at: values[1],
-            payload_json: values[2]
-          };
-          return { success: true };
-        }
         if (/INSERT INTO market_snapshots/.test(sql)) {
           const [tradeDate, updatedAt, finalizedAt, payloadJson] = values;
-          const current = db.marketRows.get(tradeDate);
-          if (!current?.finalized_at) {
-            db.marketRows.set(tradeDate, {
-              trade_date: tradeDate,
-              updated_at: updatedAt,
-              finalized_at: finalizedAt || null,
-              payload_json: payloadJson
-            });
-          }
+          db.marketRows.set(tradeDate, {
+            trade_date: tradeDate,
+            updated_at: updatedAt,
+            finalized_at: finalizedAt || null,
+            payload_json: payloadJson
+          });
           return { success: true };
         }
         throw new Error(`Unexpected run SQL: ${sql}`);
@@ -55,66 +41,8 @@ class FakeD1 {
   }
 }
 
-const accessKey = 'mobile-sync-secret';
-const firstDate = '2026-07-10';
-const secondDate = '2026-07-11';
-
-function stockRecord(date, name = '云端持仓') {
-  return {
-    capturedAt: `${date}T02:01:00.000Z`,
-    type: 'fetch',
-    method: 'POST',
-    status: 200,
-    url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/stock_position',
-    responseText: JSON.stringify({
-      ex_data: {
-        total_asset: '10000',
-        total_value: '9000',
-        position: [{ name, value: '9000', count: '100', price: '90', position_rate: '0.9000' }]
-      }
-    })
-  };
-}
-
-function tradeRecord(date, name = '云端交易', time = '10:00:00') {
-  return {
-    capturedAt: `${date}T02:01:01.000Z`,
-    type: 'fetch',
-    method: 'POST',
-    status: 200,
-    url: 'https://tzzb.10jqka.com.cn/caishen_httpserver/tzzb/caishen_fund/pc/asset/v1/get_money_history',
-    responseText: JSON.stringify({
-      ex_data: {
-        list: [{
-          entry_date: date,
-          entry_time: time,
-          name,
-          op_name: '买入',
-          entry_price: '10',
-          entry_count: '100',
-          entry_money: '1000'
-        }]
-      }
-    })
-  };
-}
-
-function payload(date, records) {
-  return {
-    source: 'edge-extension',
-    targetDate: date,
-    pageUrl: 'https://tzzb.10jqka.com.cn/pc/index.html#/myAccount/a/cloud',
-    pushedAt: `${date}T02:01:00.000Z`,
-    records
-  };
-}
-
-function jsonRequest(path, options = {}) {
+function request(path, options = {}) {
   return new Request(`https://review.example.com${path}`, options);
-}
-
-async function body(response) {
-  return response.json();
 }
 
 async function marketFetch(url) {
@@ -138,123 +66,119 @@ async function marketFetch(url) {
   return new Response('not found', { status: 404 });
 }
 
+const submitted = [];
+let latest = { dailyReview: null, audit: null, pendingAttempt: null };
+const sync = {
+  async submitCapture(input) {
+    submitted.push(input);
+    latest = {
+      dailyReview: null,
+      audit: null,
+      pendingAttempt: {
+        state: 'stored-unverified',
+        capturedAt: input.capturedAt,
+        captureDate: input.captureDate,
+        reviewDate: '2026-07-14',
+        normalizedEvidence: input.evidence,
+        audit: { status: 'held', reviewDate: '2026-07-14', issueCodes: ['ASSET_TREND_MISSING'] }
+      }
+    };
+    return { state: 'stored-unverified', reviewDate: '2026-07-14', audit: latest.pendingAttempt.audit };
+  },
+  async readLatestVerified() {
+    return structuredClone(latest);
+  }
+};
+
 const app = createCloudWorker({
   indexHtml: '<!doctype html><h1>今日复盘工作台</h1>',
-  fetchImpl: marketFetch
+  fetchImpl: marketFetch,
+  dailyReviewSyncFactory: () => sync
 });
-const env = { DB: new FakeD1(), TZZB_SYNC_ACCESS_KEY: accessKey };
+const env = {
+  DB: new MarketD1(),
+  TZZB_SYNC_WRITE_KEY: 'write-only-secret',
+  TZZB_OWNER_EMAIL: 'owner@example.com'
+};
+const ownerHeaders = { 'oai-authenticated-user-email': 'owner@example.com' };
 
-const home = await app.fetch(jsonRequest('/'), env);
+const home = await app.fetch(request('/'), env);
 assert.equal(home.status, 200);
 assert.match(await home.text(), /今日复盘工作台/);
-assert.match(home.headers.get('content-type'), /text\/html/);
 
-const preflight = await app.fetch(jsonRequest('/api/sync/tzzb', { method: 'OPTIONS' }), env);
+const preflight = await app.fetch(request('/api/sync/tzzb', {
+  method: 'OPTIONS',
+  headers: { Origin: 'https://review.example.com' }
+}), env);
 assert.equal(preflight.status, 204);
+assert.equal(preflight.headers.get('access-control-allow-origin'), 'https://review.example.com');
 assert.match(preflight.headers.get('access-control-allow-headers'), /X-TZZB-Sync-Key/i);
 
-const missingServerKey = await app.fetch(jsonRequest('/api/sync/latest'), { DB: new FakeD1() });
-assert.equal(missingServerKey.status, 503);
+assert.equal((await app.fetch(request('/api/sync/latest'), env)).status, 401);
+assert.equal((await app.fetch(request('/api/sync/latest?key=write-only-secret'), env)).status, 401);
+assert.equal((await app.fetch(request('/api/sync/latest', {
+  headers: { 'oai-authenticated-user-email': 'other@example.com' }
+}), env)).status, 403);
+assert.equal((await app.fetch(request('/api/sync/latest', { headers: ownerHeaders }), env)).status, 404);
 
-const denied = await app.fetch(jsonRequest('/api/sync/latest'), env);
-assert.equal(denied.status, 401);
-
-const wrong = await app.fetch(jsonRequest('/api/sync/latest?key=wrong'), env);
-assert.equal(wrong.status, 401);
-
-const empty = await app.fetch(jsonRequest(`/api/sync/latest?key=${accessKey}`), env);
-assert.equal(empty.status, 404);
-
-const invalidUpload = await app.fetch(jsonRequest('/api/sync/tzzb', {
+const invalidUpload = await app.fetch(request('/api/sync/tzzb', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-TZZB-Sync-Key': accessKey
-  },
+  headers: { 'Content-Type': 'application/json', 'X-TZZB-Sync-Key': 'write-only-secret' },
   body: '{'
 }), env);
 assert.equal(invalidUpload.status, 400);
 
-const unavailable = await app.fetch(jsonRequest(`/api/sync/latest?key=${accessKey}`), {
-  TZZB_SYNC_ACCESS_KEY: accessKey,
-  DB: { prepare() { throw new Error('database unavailable'); } }
-});
-assert.equal(unavailable.status, 503);
-
-const firstUpload = await app.fetch(jsonRequest('/api/sync/tzzb', {
+const deniedBearer = await app.fetch(request('/api/sync/tzzb', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-TZZB-Sync-Key': accessKey
-  },
-  body: JSON.stringify(payload(firstDate, [stockRecord(firstDate), tradeRecord(firstDate)]))
+  headers: { 'Content-Type': 'application/json', Authorization: 'Bearer write-only-secret' },
+  body: '{}'
 }), env);
-const firstUploadBody = await body(firstUpload);
-assert.equal(firstUpload.status, 200);
-assert.equal(firstUploadBody.ok, true);
-assert.equal(firstUploadBody.raw.readyForReview, true);
-assert.equal(firstUploadBody.raw.records, 2);
+assert.equal(deniedBearer.status, 401, 'the independent write key is accepted only in its dedicated header');
 
-const mergedUpload = await app.fetch(jsonRequest('/api/sync/tzzb', {
+const capturedAt = '2026-07-14T16:09:44.269Z';
+const legacyUpload = await app.fetch(request('/api/sync/tzzb', {
   method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessKey}`
-  },
-  body: JSON.stringify(payload(firstDate, [tradeRecord(firstDate, '第二笔交易', '10:05:00')]))
-}), env);
-const mergedUploadBody = await body(mergedUpload);
-assert.equal(mergedUpload.status, 200);
-assert.equal(mergedUploadBody.raw.records, 3);
-assert.equal(mergedUploadBody.review.trades.length, 2);
-
-const health = await app.fetch(jsonRequest(`/api/sync/health?key=${accessKey}`), env);
-const healthBody = await body(health);
-assert.equal(health.status, 200);
-assert.equal(healthBody.targetDate, firstDate);
-assert.equal(healthBody.latestRecordCount, 3);
-assert.equal(healthBody.readyForReview, true);
-
-const latest = await app.fetch(jsonRequest(`/api/sync/latest?key=${accessKey}`), env);
-const latestBody = await body(latest);
-assert.equal(latest.status, 200);
-assert.equal(latestBody.review.holdings[0].name, '云端持仓');
-assert.equal(latestBody.review.holdings[0].weight, '90.0%');
-assert.deepEqual(latestBody.review.trades.map((item) => item.name), ['云端交易', '第二笔交易']);
-
-const sameDaySnapshotReplacement = await app.fetch(jsonRequest('/api/sync/tzzb', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-TZZB-Sync-Key': accessKey
-  },
+  headers: { 'Content-Type': 'application/json', 'X-TZZB-Sync-Key': 'write-only-secret' },
   body: JSON.stringify({
-    ...payload(firstDate, [stockRecord(firstDate, '完整快照持仓')]),
-    replaceRecords: true
+    pushedAt: capturedAt,
+    records: [{
+      capturedAt,
+      status: 200,
+      url: 'https://tzzb.10jqka.com.cn/caishen_fund/pc/asset/v1/stock_position',
+      requestPostData: 'manual_id=private-account&token=do-not-keep',
+      responseText: JSON.stringify({ ex_data: { total_asset: '10000', total_value: '0', money_remain: '10000', position_rate: '0', position: [] } })
+    }]
   })
 }), env);
-const sameDaySnapshotReplacementBody = await body(sameDaySnapshotReplacement);
-assert.equal(sameDaySnapshotReplacement.status, 200);
-assert.equal(sameDaySnapshotReplacementBody.raw.records, 1);
-assert.equal(sameDaySnapshotReplacementBody.review.holdings[0].name, '完整快照持仓');
-assert.equal(sameDaySnapshotReplacementBody.review.trades.length, 0);
+const legacyBody = await legacyUpload.json();
+assert.equal(legacyUpload.status, 200);
+assert.equal(legacyBody.state, 'stored-unverified');
+assert.equal(submitted.length, 1);
+assert.equal(submitted[0].captureDate, '2026-07-15');
+assert.match(submitted[0].idempotencyKey, /^legacy-[a-f0-9]{64}$/);
+assert.equal(submitted[0].evidence.records.length, 1);
+assert.doesNotMatch(JSON.stringify(submitted[0].evidence), /private-account|do-not-keep/);
 
-const replacement = await app.fetch(jsonRequest('/api/sync/tzzb', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'X-TZZB-Sync-Key': accessKey
-  },
-  body: JSON.stringify(payload(secondDate, [stockRecord(secondDate, '新交易日持仓')]))
-}), env);
-const replacementBody = await body(replacement);
-assert.equal(replacement.status, 200);
-assert.equal(replacementBody.raw.targetDate, secondDate);
-assert.equal(replacementBody.raw.records, 1);
-assert.equal(replacementBody.raw.readyForReview, false);
+const pendingRead = await app.fetch(request('/api/sync/latest', { headers: ownerHeaders }), env);
+const pendingBody = await pendingRead.json();
+assert.equal(pendingRead.status, 200);
+assert.equal(pendingBody.pendingAttempt.reviewDate, '2026-07-14');
+assert.equal(Object.hasOwn(pendingBody.pendingAttempt, 'normalizedEvidence'), false, 'candidate evidence must not be returned to the page');
 
-const market = await app.fetch(jsonRequest('/api/market-snapshot'), env);
-const marketBody = await body(market);
+latest = {
+  dailyReview: { reviewDate: '2026-07-14', capturedAt, basic: { pnl: '+2462.39' } },
+  audit: { status: 'verified', reviewDate: '2026-07-14', capturedAt, issueCodes: [] },
+  pendingAttempt: null
+};
+const health = await app.fetch(request('/api/sync/health', { headers: ownerHeaders }), env);
+const healthBody = await health.json();
+assert.equal(health.status, 200);
+assert.equal(healthBody.reviewDate, '2026-07-14');
+assert.equal(healthBody.readyForReview, true);
+assert.equal(healthBody.pending, false);
+
+const market = await app.fetch(request('/api/market-snapshot'), env);
+const marketBody = await market.json();
 assert.equal(market.status, 200);
 assert.equal(marketBody.ok, true);
 assert.equal(marketBody.market.indexState, '指数强');
