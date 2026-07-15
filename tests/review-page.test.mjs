@@ -226,6 +226,13 @@ test('trade scoring uses six compact user-facing columns', () => {
   assert.match(collectTradeBody, /code:\s*tr\.dataset\.code/, 'saved local drafts should carry the security code across imports');
 });
 
+test('generated review requests the seven user-specified analysis sections', () => {
+  const requestedStructure = '市场环境—每笔交易—模式分类—风险控制—明日计划—相见龙虎榜—明日早报持仓';
+  assert.match(html, new RegExp(requestedStructure), 'the on-page helper should preview the final review structure');
+  assert.match(scriptMatch[1], new RegExp(`严格按照“${requestedStructure}”七个部分进行复盘`), 'generated text should request the exact seven-part structure');
+  assert.doesNotMatch(scriptMatch[1], /按市场环境、每笔交易质量、模式分类、风险控制、历史进步\/退步、明日计划六个部分/, 'the old six-part instruction should be removed');
+});
+
 test('verified cloud revisions preserve local trade and holding review fields', () => {
   const mergedTrades = context.mergeSyncedTrades([
     {

@@ -47,7 +47,14 @@ async function assertMobileSurface(viewport) {
     const fieldWidths = settingsFields.map((settingsField) => settingsField.getBoundingClientRect().width);
     const controlHeights = settingsControls.map((control) => control.getBoundingClientRect().height);
     const sectionStyle = getComputedStyle(document.querySelector('.section'));
-    const innerFieldStyle = getComputedStyle(document.querySelector('.section .field'));
+    const innerField = document.querySelector('.section .field');
+    const innerFieldStyle = getComputedStyle(innerField);
+    const innerControlStyle = getComputedStyle(innerField.querySelector('input,select,textarea'));
+    const sectionHeadStyle = getComputedStyle(document.querySelector('.section-head'));
+    const mainLines = document.querySelector('#mainLines');
+    mainLines.value = '存储芯片、液冷、CPO、PCB、券商、机器人、低空经济、半导体设备、人工智能';
+    mainLines.scrollLeft = mainLines.scrollWidth;
+    const mainLinesStyle = getComputedStyle(mainLines);
     const viewportMeta = document.querySelector('meta[name="viewport"]').content;
     return {
       viewportContent: viewportMeta,
@@ -66,7 +73,15 @@ async function assertMobileSurface(viewport) {
       sectionBackground: sectionStyle.backgroundColor,
       sectionBorder: sectionStyle.borderColor,
       fieldBackground: innerFieldStyle.backgroundColor,
-      fieldBorder: innerFieldStyle.borderColor
+      fieldBorderWidth: innerFieldStyle.borderTopWidth,
+      controlBackground: innerControlStyle.backgroundColor,
+      controlBorderWidth: innerControlStyle.borderTopWidth,
+      sectionHeadBorderWidth: sectionHeadStyle.borderBottomWidth,
+      mainLinesOverflowX: mainLinesStyle.overflowX,
+      mainLinesWhiteSpace: mainLinesStyle.whiteSpace,
+      mainLinesScrollWidth: mainLines.scrollWidth,
+      mainLinesClientWidth: mainLines.clientWidth,
+      mainLinesScrollLeft: mainLines.scrollLeft
     };
   });
 
@@ -80,15 +95,67 @@ async function assertMobileSurface(viewport) {
   assert.equal(metrics.shellTallerThanViewport, true, `WebKit ${viewport.width}x${viewport.height} shell should expand with its content`);
   assert.ok(metrics.pageOverflow <= 1, `WebKit ${viewport.width}x${viewport.height} should not overflow horizontally`);
   assert.ok(metrics.editableFontSizes.every((size) => size >= 16), `WebKit ${viewport.width}x${viewport.height} controls should avoid iOS focus zoom`);
-  assert.equal(metrics.escapedSettingsControlCount, 0, `WebKit ${viewport.width}x${viewport.height} discipline controls should stay inside both card layers`);
+  assert.equal(metrics.escapedSettingsControlCount, 0, `WebKit ${viewport.width}x${viewport.height} discipline controls should stay inside their module`);
   assert.ok(metrics.fieldWidthSpread <= 1, `WebKit ${viewport.width}x${viewport.height} discipline cards should align evenly`);
   assert.ok(metrics.controlHeightSpread <= 1, `WebKit ${viewport.width}x${viewport.height} discipline controls should share one height`);
-  assert.notEqual(metrics.sectionBackground, metrics.fieldBackground, `WebKit ${viewport.width}x${viewport.height} outer and inner cards should use distinct surfaces`);
-  assert.notEqual(metrics.sectionBorder, metrics.fieldBorder, `WebKit ${viewport.width}x${viewport.height} outer and inner cards should use distinct borders`);
+  assert.equal(metrics.fieldBackground, 'rgba(0, 0, 0, 0)', `WebKit ${viewport.width}x${viewport.height} field wrappers should not draw a second box`);
+  assert.equal(Number.parseFloat(metrics.fieldBorderWidth), 0, `WebKit ${viewport.width}x${viewport.height} field wrappers should not add an outline`);
+  assert.notEqual(metrics.controlBackground, 'rgba(0, 0, 0, 0)', `WebKit ${viewport.width}x${viewport.height} controls should keep their own surface`);
+  assert.ok(Number.parseFloat(metrics.controlBorderWidth) >= 1, `WebKit ${viewport.width}x${viewport.height} controls should keep their own outline`);
+  assert.notEqual(metrics.sectionBackground, metrics.controlBackground, `WebKit ${viewport.width}x${viewport.height} modules and controls should use distinct surfaces`);
+  assert.equal(Number.parseFloat(metrics.sectionHeadBorderWidth), 0, `WebKit ${viewport.width}x${viewport.height} section headings should not add a connected divider`);
+  assert.equal(metrics.mainLinesOverflowX, 'auto', `WebKit ${viewport.width}x${viewport.height} long market lines should declare horizontal scrolling`);
+  assert.equal(metrics.mainLinesWhiteSpace, 'nowrap', `WebKit ${viewport.width}x${viewport.height} long market lines should remain on one line`);
+  if (viewport.width <= 620) {
+    assert.ok(metrics.mainLinesScrollWidth > metrics.mainLinesClientWidth, `WebKit ${viewport.width}x${viewport.height} long market lines should overflow only inside their input`);
+    assert.ok(metrics.mainLinesScrollLeft > 0, `WebKit ${viewport.width}x${viewport.height} long market lines should scroll horizontally`);
+  }
 }
 
 try {
   await assertMobileSurface({ width: 390, height: 844 });
+
+  const tradeCard = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => {
+    const wrapper = row.closest('.trade-table-wrap');
+    const wrapperStyle = getComputedStyle(wrapper);
+    const rowStyle = getComputedStyle(row);
+    const rowBox = row.getBoundingClientRect();
+    const nextRow = row.nextElementSibling;
+    const sideBox = row.querySelector('.trade-side').getBoundingClientRect();
+    const priceBox = row.querySelector('.trade-price').getBoundingClientRect();
+    const timeBox = row.querySelector('.trade-time').getBoundingClientRect();
+    const deleteBox = row.querySelector('.trade-action-cell .btn-danger').getBoundingClientRect();
+    return {
+      wrapperBackground: wrapperStyle.backgroundColor,
+      wrapperShadow: wrapperStyle.boxShadow,
+      rowBackground: rowStyle.backgroundColor,
+      rowBorderWidth: rowStyle.borderTopWidth,
+      rowGap: nextRow ? nextRow.getBoundingClientRect().top - rowBox.bottom : Number.POSITIVE_INFINITY,
+      sidePriceWidthSpread: Math.abs(sideBox.width - priceBox.width),
+      actionDisplay: getComputedStyle(row.querySelector('.trade-action-cell')).display,
+      deleteTopDelta: Math.abs(deleteBox.top - timeBox.top),
+      deleteBottomDelta: Math.abs(deleteBox.bottom - timeBox.bottom),
+      wrapperOverflow: wrapper.scrollWidth - wrapper.clientWidth
+    };
+  });
+  assert.equal(tradeCard.wrapperBackground, 'rgba(0, 0, 0, 0)', 'WebKit trade wrapper should stay transparent around rounded cards');
+  assert.equal(tradeCard.wrapperShadow, 'none', 'WebKit trade wrapper should not visually connect separate records');
+  assert.notEqual(tradeCard.rowBackground, 'rgba(0, 0, 0, 0)', 'WebKit each trade record should paint its own card');
+  assert.ok(Number.parseFloat(tradeCard.rowBorderWidth) >= 1, 'WebKit each trade record should keep its own outline');
+  assert.ok(tradeCard.rowGap >= 8, 'WebKit trade records should keep a visible gap');
+  assert.ok(tradeCard.sidePriceWidthSpread <= 1, 'WebKit buy/sell and visible transaction value should use equal widths');
+  assert.equal(tradeCard.actionDisplay, 'flex', 'WebKit delete action should align as a field row');
+  assert.ok(tradeCard.deleteTopDelta <= 1 && tradeCard.deleteBottomDelta <= 1, 'WebKit delete action should align with the first input row');
+  assert.ok(tradeCard.wrapperOverflow <= 1, 'WebKit trade cards should not overflow horizontally');
+
+  const scoreTiles = await page.locator('.scorebar').evaluate((scorebar) => {
+    const boxes = [...scorebar.querySelectorAll('.score-item')].map((item) => item.getBoundingClientRect());
+    return boxes.map((box) => ({ left: box.left, top: box.top, width: box.width, height: box.height }));
+  });
+  const [firstScore, secondScore, thirdScore, fourthScore] = scoreTiles;
+  assert.ok(Math.abs(firstScore.top - secondScore.top) <= 1 && Math.abs(thirdScore.top - fourthScore.top) <= 1, 'WebKit scores should form two rows');
+  assert.ok(Math.abs(firstScore.left - thirdScore.left) <= 1 && Math.abs(secondScore.left - fourthScore.left) <= 1, 'WebKit scores should form two columns');
+  assert.ok(Math.abs(firstScore.width - secondScore.width) <= 1 && Math.abs(firstScore.height - secondScore.height) <= 1, 'WebKit score tiles should be equally sized');
 
   await page.evaluate(() => {
     if (!document.querySelector('#holdingBody tr:not(.holding-empty)')) {

@@ -226,16 +226,49 @@ for (const viewport of viewports) {
   } else {
     const card = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => {
       const style = getComputedStyle(row);
+      const wrapper = row.closest('.trade-table-wrap');
+      const wrapperStyle = getComputedStyle(wrapper);
       const labels = [...row.querySelectorAll('td')].map((cell) => cell.dataset.label);
       const controls = [...row.querySelectorAll('input,select,textarea,summary,button')]
         .map((element) => element.getBoundingClientRect().height)
         .filter((height) => height > 0);
-      return { display: style.display, backgroundColor: style.backgroundColor, labels, controls, height: row.getBoundingClientRect().height };
+      const sideBox = row.querySelector('.trade-side').getBoundingClientRect();
+      const priceBox = row.querySelector('.trade-price').getBoundingClientRect();
+      const timeBox = row.querySelector('.trade-time').getBoundingClientRect();
+      const deleteBox = row.querySelector('.trade-action-cell .btn-danger').getBoundingClientRect();
+      const actionStyle = getComputedStyle(row.querySelector('.trade-action-cell'));
+      const nextRow = row.nextElementSibling;
+      const rowBox = row.getBoundingClientRect();
+      return {
+        display: style.display,
+        backgroundColor: style.backgroundColor,
+        borderWidth: parseFloat(style.borderTopWidth),
+        labels,
+        controls,
+        height: rowBox.height,
+        wrapperBackgroundColor: wrapperStyle.backgroundColor,
+        wrapperShadow: wrapperStyle.boxShadow,
+        sideWidth: sideBox.width,
+        priceWidth: priceBox.width,
+        deleteTopDelta: Math.abs(deleteBox.top - timeBox.top),
+        deleteBottomDelta: Math.abs(deleteBox.bottom - timeBox.bottom),
+        actionDisplay: actionStyle.display,
+        rowGap: nextRow ? nextRow.getBoundingClientRect().top - rowBox.bottom : Number.POSITIVE_INFINITY
+      };
     });
     assert.equal(card.display, 'grid', `${viewport.name} should render each trade as a grid card`);
     assert.notEqual(card.backgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} trade cards should be opaque`);
+    assert.equal(card.wrapperBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} trade wrapper should stay transparent around rounded cards`);
+    assert.equal(card.wrapperShadow, 'none', `${viewport.name} trade wrapper should not visually connect separate rows`);
+    assert.ok(card.borderWidth >= 1, `${viewport.name} every trade card should keep its own outline`);
+    assert.ok(card.rowGap >= 8, `${viewport.name} trade cards should remain visibly separated, gap=${card.rowGap}`);
     assert.deepEqual(card.labels, ['时间','股票/ETF','成交','复盘','交易质量','操作']);
     assert.ok(card.controls.every((height) => height >= 44), `${viewport.name} visible card controls should be at least 44px high`);
+    assert.equal(card.actionDisplay, 'flex', `${viewport.name} delete control should use the same aligned field row`);
+    assert.ok(card.deleteTopDelta <= 1 && card.deleteBottomDelta <= 1, `${viewport.name} delete button should align with the first input row`);
+    if (viewport.width <= 899) {
+      assert.ok(Math.abs(card.sideWidth - card.priceWidth) <= 1, `${viewport.name} side and visible transaction value should use equal widths`);
+    }
     if (viewport.width <= 480) {
       assert.ok(card.height <= 360, `${viewport.name} trade cards should stay compact, height=${card.height}`);
     }
@@ -365,6 +398,40 @@ for (const viewport of viewports) {
     assert.equal(holdingLayout.rowDisplay, 'table-row', `${viewport.name} should keep the compact holding table at 1120px and wider`);
   }
 
+  const marketLineScroll = await page.locator('#mainLines').evaluate((input) => {
+    input.value = '存储芯片、液冷、CPO、PCB、券商、机器人、低空经济、半导体设备、人工智能';
+    input.scrollLeft = input.scrollWidth;
+    const style = getComputedStyle(input);
+    return {
+      overflowX: style.overflowX,
+      whiteSpace: style.whiteSpace,
+      scrollWidth: input.scrollWidth,
+      clientWidth: input.clientWidth,
+      scrollLeft: input.scrollLeft
+    };
+  });
+  assert.match(marketLineScroll.overflowX, /auto|scroll|clip/, `${viewport.name} market line input should avoid visible text overflow`);
+  assert.equal(marketLineScroll.whiteSpace, 'nowrap', `${viewport.name} market line input should stay on one scrollable line`);
+  if (viewport.width <= 620) {
+    assert.ok(marketLineScroll.scrollWidth > marketLineScroll.clientWidth, `${viewport.name} long market lines should remain horizontally scrollable`);
+    assert.ok(marketLineScroll.scrollLeft > 0, `${viewport.name} long market lines should move horizontally`);
+  }
+
+  const scoreLayout = await page.locator('.scorebar').evaluate((scorebar) => {
+    const boxes = [...scorebar.querySelectorAll('.score-item')].map((item) => item.getBoundingClientRect());
+    return {
+      boxes: boxes.map((box) => ({ left: box.left, top: box.top, width: box.width, height: box.height })),
+      overflow: scorebar.scrollWidth - scorebar.clientWidth
+    };
+  });
+  assert.ok(scoreLayout.overflow <= 1, `${viewport.name} score summary should never overflow horizontally`);
+  if (viewport.width <= 620) {
+    const [first, second, third, fourth] = scoreLayout.boxes;
+    assert.ok(Math.abs(first.top - second.top) <= 1 && Math.abs(third.top - fourth.top) <= 1, `${viewport.name} score cards should form two aligned rows`);
+    assert.ok(Math.abs(first.left - third.left) <= 1 && Math.abs(second.left - fourth.left) <= 1, `${viewport.name} score cards should form two aligned columns`);
+    assert.ok(Math.abs(first.width - second.width) <= 1 && Math.abs(first.height - second.height) <= 1, `${viewport.name} score cards should use equal compact tiles`);
+  }
+
   const liquidGlass = await page.evaluate(() => {
     const bodyBefore = getComputedStyle(document.body, '::before');
     const bodyAfter = getComputedStyle(document.body, '::after');
@@ -373,7 +440,10 @@ for (const viewport of viewports) {
     const heroBefore = getComputedStyle(document.querySelector('.hero'), '::before');
     const hero = getComputedStyle(document.querySelector('.hero'));
     const section = getComputedStyle(document.querySelector('.section'));
-    const field = getComputedStyle(document.querySelector('.field'));
+    const fieldElement = document.querySelector('.field');
+    const field = getComputedStyle(fieldElement);
+    const fieldControl = getComputedStyle(fieldElement.querySelector('input,select,textarea'));
+    const sectionHead = getComputedStyle(document.querySelector('.section-head'));
     const panel = getComputedStyle(document.querySelector('.panel'));
     const tableWrap = getComputedStyle(document.querySelector('.table-wrap'));
     const shell = getComputedStyle(document.querySelector('.shell'));
@@ -399,9 +469,13 @@ for (const viewport of viewports) {
         return blur === 'none';
       }),
       fieldBackgroundColor: field.backgroundColor,
+      fieldBorderWidth: field.borderTopWidth,
+      fieldControlBackgroundColor: fieldControl.backgroundColor,
+      fieldControlBorderWidth: fieldControl.borderTopWidth,
       sectionBackgroundColor: section.backgroundColor,
       fieldBorderColor: field.borderColor,
-      sectionBorderColor: section.borderColor
+      sectionBorderColor: section.borderColor,
+      sectionHeadBorderWidth: sectionHead.borderBottomWidth
     };
   });
   assert.equal(liquidGlass.documentScrolls, true, `${viewport.name} should use native document scrolling`);
@@ -421,21 +495,20 @@ for (const viewport of viewports) {
   assert.equal(liquidGlass.heroReadableContrast, true, `${viewport.name} hero should keep a dark readable glass base`);
   assert.equal(liquidGlass.sectionBlur, 'none', `${viewport.name} sections should remain opaque content surfaces`);
   assert.equal(liquidGlass.sectionPaintsImmediately, true, `${viewport.name} sections should not defer painting during scroll`);
-  assert.notEqual(liquidGlass.fieldBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} fields should be opaque`);
+  assert.equal(liquidGlass.fieldBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} field wrappers should not draw a second box around inputs`);
+  assert.equal(parseFloat(liquidGlass.fieldBorderWidth), 0, `${viewport.name} field wrappers should not add an outer outline`);
+  assert.notEqual(liquidGlass.fieldControlBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} form controls should keep an opaque inner surface`);
+  assert.ok(parseFloat(liquidGlass.fieldControlBorderWidth) >= 1, `${viewport.name} form controls should keep their own outline`);
+  assert.equal(parseFloat(liquidGlass.sectionHeadBorderWidth), 0, `${viewport.name} section headings should not draw a connected line above fields`);
   assert.notEqual(liquidGlass.sectionBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} sections should be opaque`);
   assert.notEqual(
     liquidGlass.sectionBackgroundColor,
-    liquidGlass.fieldBackgroundColor,
-    `${viewport.name} outer sections should use a darker surface than inner fields`
+    liquidGlass.fieldControlBackgroundColor,
+    `${viewport.name} outer sections should use a darker surface than inner controls`
   );
   assert.ok(
-    colorLuminance(liquidGlass.sectionBackgroundColor) < colorLuminance(liquidGlass.fieldBackgroundColor),
-    `${viewport.name} outer section surface should be darker than the inner field surface`
-  );
-  assert.notEqual(
-    liquidGlass.sectionBorderColor,
-    liquidGlass.fieldBorderColor,
-    `${viewport.name} outer section borders should be visually distinct from inner field borders`
+    colorLuminance(liquidGlass.sectionBackgroundColor) < colorLuminance(liquidGlass.fieldControlBackgroundColor),
+    `${viewport.name} outer section surface should be darker than the inner control surface`
   );
 }
 
