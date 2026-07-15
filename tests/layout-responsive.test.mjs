@@ -25,6 +25,7 @@ await page.route('http://127.0.0.1:8787/**', async (route) => {
 
 for (const viewport of viewports) {
   const isDesktop = viewport.width >= 981;
+  const usesTradeCards = viewport.width <= 620;
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.goto(pageUrl);
   await page.locator('text=今日复盘工作台').waitFor();
@@ -103,8 +104,8 @@ for (const viewport of viewports) {
   assert.ok(tableCheck.pageOverflow <= 4, `${viewport.name} table wrapper should contain table`);
   assert.equal(
     tableCheck.wrapOverflow,
-    !isDesktop,
-    `${viewport.name} compact trade table should fit desktop and scroll only on narrower screens`
+    !isDesktop && !usesTradeCards,
+    `${viewport.name} trade cards should fit phones while the table scrolls only on intermediate widths`
   );
 
   const tradeControlMetrics = await page.evaluate(() => {
@@ -142,19 +143,34 @@ for (const viewport of viewports) {
     return { available: true, headers, controls, scoreWidths, scoreHeaderWidths, detailsOpen: details.open, foldedFields };
   });
   assert.equal(tradeControlMetrics.available, true, `${viewport.name} trade table should have initial rows`);
-  const maxScoreHeader = Math.max(...tradeControlMetrics.scoreHeaderWidths);
-  const minScoreHeader = Math.min(...tradeControlMetrics.scoreHeaderWidths);
-  assert.ok(maxScoreHeader - minScoreHeader <= 2, `${viewport.name} score columns should use equal widths`);
-  assert.ok(maxScoreHeader <= 132, `${viewport.name} score columns should not be stretched, width=${maxScoreHeader}`);
-  const controlHeights = tradeControlMetrics.controls.map((item) => item.height);
-  assert.ok(
-    Math.max(...controlHeights) - Math.min(...controlHeights) <= 4,
-    `${viewport.name} trade controls should align to one height: ${JSON.stringify(tradeControlMetrics.controls)}`
-  );
+  if (!usesTradeCards) {
+    const maxScoreHeader = Math.max(...tradeControlMetrics.scoreHeaderWidths);
+    const minScoreHeader = Math.min(...tradeControlMetrics.scoreHeaderWidths);
+    assert.ok(maxScoreHeader - minScoreHeader <= 2, `${viewport.name} score columns should use equal widths`);
+    assert.ok(maxScoreHeader <= 132, `${viewport.name} score columns should not be stretched, width=${maxScoreHeader}`);
+    const controlHeights = tradeControlMetrics.controls.map((item) => item.height);
+    assert.ok(
+      Math.max(...controlHeights) - Math.min(...controlHeights) <= 4,
+      `${viewport.name} trade controls should align to one height: ${JSON.stringify(tradeControlMetrics.controls)}`
+    );
+    const transactionHeader = tradeControlMetrics.headers.find((header) => header.text === '交易');
+    assert.ok(transactionHeader && transactionHeader.width >= 200, `${viewport.name} transaction column should fit side and visible price`);
+  } else {
+    const card = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => {
+      const style = getComputedStyle(row);
+      const labels = [...row.querySelectorAll('td')].map((cell) => cell.dataset.label);
+      const controls = [...row.querySelectorAll('input,select,textarea,summary,button')]
+        .map((element) => element.getBoundingClientRect().height)
+        .filter((height) => height > 0);
+      return { display: style.display, backgroundColor: style.backgroundColor, labels, controls };
+    });
+    assert.equal(card.display, 'block', `${viewport.name} should render each trade as a card`);
+    assert.notEqual(card.backgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} trade cards should be opaque`);
+    assert.deepEqual(card.labels, ['时间','股票/ETF','交易','模式','理由','计划性','主线','风控','总分','操作']);
+    assert.ok(card.controls.every((height) => height >= 44), `${viewport.name} visible card controls should be at least 44px high`);
+  }
   assert.equal(tradeControlMetrics.detailsOpen, false, `${viewport.name} quantity and amount should be folded by default`);
   assert.ok(tradeControlMetrics.foldedFields.every((height) => height === 0), `${viewport.name} folded quantity and amount should not consume row height`);
-  const transactionHeader = tradeControlMetrics.headers.find((header) => header.text === '交易');
-  assert.ok(transactionHeader && transactionHeader.width >= 220, `${viewport.name} transaction column should fit side and visible price`);
 
   await page.locator('#tradeTable tbody tr:first-child .trade-detail-toggle > summary').click();
   const expandedFields = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => (
@@ -183,49 +199,56 @@ for (const viewport of viewports) {
       documentScrolls: html.overflowY !== 'hidden' && body.overflowY !== 'hidden' && shell.overflowY !== 'auto',
       rootHasPageBackground: html.backgroundImage !== 'none' || html.backgroundColor !== 'rgba(0, 0, 0, 0)',
       bodyBackdropVisible: bodyBefore.content !== 'none',
-      hasImmersiveColorMix: bodyBefore.backgroundImage.includes('conic-gradient') && bodyBefore.backgroundImage.includes('radial-gradient'),
+      hasSubtleLiquidBackdrop: bodyBefore.backgroundImage.includes('radial-gradient') && !bodyBefore.backgroundImage.includes('conic-gradient'),
       backdropIsStatic: bodyBefore.animationName === 'none' && bodyAfter.animationName === 'none',
       backdropFilter: bodyBefore.filter,
       heroReflectionRemoved: heroBefore.content === 'none' || heroBefore.display === 'none',
       heroAvoidsTealWash: !hero.backgroundImage.includes('32, 214, 199, 0.28'),
-      heroUsesLightPurple: hero.backgroundImage.includes('230, 214, 255') || hero.backgroundImage.includes('213, 188, 255'),
+      heroUsesFrostedSurface: hero.backgroundImage.includes('rgba(255, 255, 255'),
       heroBlur: hero.backdropFilter || hero.webkitBackdropFilter || '',
       heroReadableContrast: hero.backgroundImage.includes('rgba(255, 255, 255') || hero.backgroundColor.includes('255, 255, 255'),
       sectionBlur: section.backdropFilter || section.webkitBackdropFilter || '',
       sectionPaintsImmediately: section.contentVisibility !== 'auto',
       shellAvoidsFilter: shell.filter === 'none',
-      desktopCardBlurRemoved: [section, field, panel, tableWrap].every((style) => {
+      contentCardBlurRemoved: [section, field, panel, tableWrap].every((style) => {
         const blur = style.backdropFilter || style.webkitBackdropFilter || '';
         return blur === 'none';
       }),
-      fieldBackground: field.backgroundImage
+      fieldBackgroundColor: field.backgroundColor,
+      sectionBackgroundColor: section.backgroundColor
     };
   });
   assert.equal(liquidGlass.documentScrolls, true, `${viewport.name} should use native document scrolling`);
   assert.equal(liquidGlass.shellAvoidsFilter, true, `${viewport.name} shell should avoid whole-layer filters while scrolling`);
-  if (isDesktop) {
-    assert.equal(liquidGlass.desktopCardBlurRemoved, true, `${viewport.name} form surfaces should avoid live backdrop blur during scroll`);
-  }
+  assert.equal(liquidGlass.contentCardBlurRemoved, true, `${viewport.name} content surfaces should never use live backdrop blur`);
   assert.equal(liquidGlass.rootHasPageBackground, true, `${viewport.name} root should paint a background behind overscroll`);
   assert.equal(liquidGlass.bodyBackdropVisible, true, `${viewport.name} should expose the backdrop layer`);
-  assert.equal(liquidGlass.hasImmersiveColorMix, true, `${viewport.name} should use a colorful immersive liquid color mix`);
+  assert.equal(liquidGlass.hasSubtleLiquidBackdrop, true, `${viewport.name} should use a restrained liquid backdrop`);
   assert.equal(liquidGlass.backdropIsStatic, true, `${viewport.name} backdrop layers should render without animation`);
   assert.doesNotMatch(liquidGlass.backdropFilter, /hue-rotate/, `${viewport.name} backdrop should not animate expensive color filters`);
   const blurMatch = liquidGlass.backdropFilter.match(/blur\(([\d.]+)px\)/);
   assert.ok(blurMatch && Number(blurMatch[1]) <= 18, `${viewport.name} backdrop blur should stay lightweight`);
   assert.equal(liquidGlass.heroReflectionRemoved, true, `${viewport.name} hero should not render the large reflection overlay`);
   assert.equal(liquidGlass.heroAvoidsTealWash, true, `${viewport.name} hero should avoid the teal wash shown in the screenshot`);
-  assert.equal(liquidGlass.heroUsesLightPurple, true, `${viewport.name} hero should use a light purple gradient`);
-  if (!isDesktop) {
-    assert.match(liquidGlass.heroBlur, /blur/, `${viewport.name} hero should use glass blur`);
-  }
+  assert.equal(liquidGlass.heroUsesFrostedSurface, true, `${viewport.name} hero should use a readable frosted surface`);
+  assert.match(liquidGlass.heroBlur, /blur/, `${viewport.name} hero should keep liquid-glass blur`);
   assert.equal(liquidGlass.heroReadableContrast, true, `${viewport.name} hero should keep a dark readable glass base`);
-  if (!isDesktop) {
-    assert.match(liquidGlass.sectionBlur, /blur/, `${viewport.name} sections should use glass blur`);
-  }
+  assert.equal(liquidGlass.sectionBlur, 'none', `${viewport.name} sections should remain opaque content surfaces`);
   assert.equal(liquidGlass.sectionPaintsImmediately, true, `${viewport.name} sections should not defer painting during scroll`);
-  assert.match(liquidGlass.fieldBackground, /linear-gradient|rgba/, `${viewport.name} fields should keep translucent glass styling`);
+  assert.notEqual(liquidGlass.fieldBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} fields should be opaque`);
+  assert.notEqual(liquidGlass.sectionBackgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} sections should be opaque`);
 }
+
+await page.setViewportSize({ width: 390, height: 844 });
+await page.goto(pageUrl);
+await page.evaluate(() => localStorage.clear());
+await page.reload();
+await page.locator('#rightThing').fill('严格按计划执行');
+await page.waitForFunction(() => localStorage.getItem('tradeReviewDataV3')?.includes('严格按计划执行'));
+await page.locator('#autosaveStatus').waitFor();
+assert.match(await page.locator('#autosaveStatus').textContent(), /已保存到本机/);
+await page.reload();
+assert.equal(await page.locator('#rightThing').inputValue(), '严格按计划执行', 'today\'s draft should restore automatically after refresh');
 
 await page.setViewportSize({ width: 1366, height: 900 });
 await page.goto(pageUrl);

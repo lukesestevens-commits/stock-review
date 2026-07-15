@@ -336,6 +336,76 @@ async function submitSameDay(sync, evidence, idempotencyKey) {
 }
 
 {
+  const evidence = cloneSameDayEvidence();
+  const history = findRecord(evidence, 'get_money_history');
+  const ordinary = { ...history.payload.trades[0], sequenceId: '' };
+  const repo = { ...history.payload.trades[1] };
+  history.payload = {
+    page: 1,
+    maxPage: 1,
+    total: 3,
+    trades: [ordinary, { ...ordinary }, repo]
+  };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [
+    { ...ordinary, date: '', time: '', amount: `-${ordinary.amount}` },
+    { ...ordinary, date: '', time: '', amount: `-${ordinary.amount}` }
+  ];
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'identical-no-sequence-occurrences');
+  assert.equal(
+    result.state,
+    'verified',
+    'two endpoints that both declare identical no-sequence occurrences are evidence of two trades'
+  );
+  assert.equal((await sync.readLatestVerified()).dailyReview.trades.length, 2);
+  assert.ok(
+    result.audit.warnings.some((warning) => warning.code === 'TRADE_HISTORY_IDENTICAL_OCCURRENCES_PRESERVED')
+  );
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  const history = findRecord(evidence, 'get_money_history');
+  const ordinary = { ...history.payload.trades[0], sequenceId: '' };
+  history.payload = {
+    page: 1,
+    maxPage: 1,
+    total: 2,
+    trades: [ordinary, { ...ordinary }, { ...history.payload.trades[1] }]
+  };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [
+    { ...ordinary, date: '', time: '', amount: `-${ordinary.amount}` },
+    { ...ordinary, date: '', time: '', amount: `-${ordinary.amount}` }
+  ];
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'undeclared-identical-occurrence-remains-held');
+  assert.equal(result.state, 'stored-unverified', 'identical rows cannot bypass the broker declared total');
+  assert.ok(result.audit.issueCodes.includes('TRADE_HISTORY_INCOMPLETE'));
+}
+
+{
+  const evidence = cloneEvidence();
+  const currentPage = findRecord(evidence, 'get_money_history');
+  evidence.records.push({
+    ...structuredClone(currentPage),
+    capturedAt: '2026-07-14T15:00:00.000Z',
+    payload: {
+      page: 1,
+      maxPage: 1,
+      total: 1,
+      trades: [{
+        code: '600000', name: '过期页面成交', side: '买入', date: '2026-07-14', time: '09:40:00',
+        price: '10', quantity: '100', amount: '1000', fee: '0', sequenceId: 'stale-trade'
+      }]
+    }
+  });
+  const { sync } = makeSync();
+  const result = await submit(sync, evidence, 'latest-page-snapshot-only');
+  assert.equal(result.state, 'verified', 'repeated captures of one page must use only its latest snapshot');
+  assert.deepEqual((await sync.readLatestVerified()).dailyReview.trades.map((trade) => trade.code), ['000001']);
+}
+
+{
   const evidence = cloneEvidence();
   const trades = Array.from({ length: 35 }, (_, index) => ({
     code: String(600000 + index),
@@ -483,6 +553,95 @@ async function submitSameDay(sync, evidence, idempotencyKey) {
     'stored-unverified',
     'three internally consistent multi-day deltas cannot stand in for the previous trading day'
   );
+  assert.ok(result.audit.issueCodes.includes('MONTH_PNL_MISSING'));
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  const position = findRecord(evidence, 'stock_position').payload;
+  position.totalAsset = '0';
+  position.totalLiability = '0';
+  position.totalValue = '0';
+  position.positionRate = '';
+  position.cash = '0';
+  position.positions = [];
+  findRecord(evidence, 'get_money_history').payload = { page: 1, maxPage: 1, total: 0, trades: [] };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [];
+  const trend = findRecord(evidence, 'asset_trend').payload;
+  trend.monthProfit = [{ date: '2026-07-13', asset: '0', fundIn: '0', fundOut: '0', profit: '0' }];
+  trend.yearProfit = structuredClone(trend.monthProfit);
+  trend.totalAssetHistory = structuredClone(trend.monthProfit);
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'missing-month-pnl-for-confirmed-empty-account');
+  assert.equal(result.state, 'verified', 'a zero-balance account proven empty by position and trade endpoints has zero P&L');
+  assert.equal((await sync.readLatestVerified()).dailyReview.pnl, '0.00');
+  assert.ok(result.audit.warnings.some((warning) => warning.code === 'MONTH_PNL_DERIVED_ZERO_BALANCE_ACCOUNT'));
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  const position = findRecord(evidence, 'stock_position').payload;
+  position.totalAsset = '0';
+  position.totalLiability = '0';
+  position.totalValue = '0';
+  position.positionRate = '';
+  position.cash = '0';
+  position.positions = [];
+  findRecord(evidence, 'get_money_history').payload = { page: 1, maxPage: 1, total: 0, trades: [] };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [];
+  const trend = findRecord(evidence, 'asset_trend').payload;
+  trend.monthProfit = [{ date: '2026-07-13', asset: '0', fundIn: '0', fundOut: '0', profit: '0' }];
+  trend.yearProfit = [
+    { date: '2026-07-13', asset: '0', fundIn: '0', fundOut: '0', profit: '0' },
+    { date: '2026-07-14', asset: '0', fundIn: '0', fundOut: '0', profit: '100' }
+  ];
+  trend.totalAssetHistory = structuredClone(trend.yearProfit);
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'zero-account-with-nonzero-pnl-cross-check');
+  assert.equal(result.state, 'stored-unverified', 'nonzero trend evidence must block a derived zero P&L');
+  assert.ok(result.audit.issueCodes.includes('PNL_RECONCILIATION_FAILED'));
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  const position = findRecord(evidence, 'stock_position').payload;
+  position.totalAsset = '0';
+  position.totalLiability = '0';
+  position.totalValue = '0';
+  position.positionRate = '';
+  position.cash = '0';
+  position.positions = [];
+  const history = findRecord(evidence, 'get_money_history');
+  history.payload = { page: 1, maxPage: 1, total: 1, trades: [history.payload.trades[0]] };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [findRecord(evidence, 'merge_day_trading').payload.trades[0]];
+  const trend = findRecord(evidence, 'asset_trend').payload;
+  trend.monthProfit = [{ date: '2026-07-13', asset: '0', fundIn: '0', fundOut: '0', profit: '0' }];
+  trend.yearProfit = structuredClone(trend.monthProfit);
+  trend.totalAssetHistory = structuredClone(trend.monthProfit);
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'missing-month-pnl-empty-position-with-trade');
+  assert.equal(result.state, 'stored-unverified', 'an account with target-day trades is not a proven empty account');
+  assert.ok(result.audit.issueCodes.includes('MONTH_PNL_MISSING'));
+}
+
+{
+  const evidence = cloneSameDayEvidence();
+  const position = findRecord(evidence, 'stock_position').payload;
+  position.totalAsset = '0.01';
+  position.totalLiability = '0';
+  position.totalValue = '0';
+  position.positionRate = '';
+  position.cash = '0.01';
+  position.positions = [];
+  findRecord(evidence, 'get_money_history').payload = { page: 1, maxPage: 1, total: 0, trades: [] };
+  findRecord(evidence, 'merge_day_trading').payload.trades = [];
+  const trend = findRecord(evidence, 'asset_trend').payload;
+  trend.monthProfit = [{ date: '2026-07-13', asset: '0', fundIn: '0', fundOut: '0', profit: '0' }];
+  trend.yearProfit = structuredClone(trend.monthProfit);
+  trend.totalAssetHistory = structuredClone(trend.monthProfit);
+  const { sync } = makeSync();
+  const result = await submitSameDay(sync, evidence, 'missing-month-pnl-with-nonzero-cash');
+  assert.equal(result.state, 'stored-unverified', 'any nonzero balance keeps missing P&L fail-closed');
   assert.ok(result.audit.issueCodes.includes('MONTH_PNL_MISSING'));
 }
 

@@ -271,7 +271,7 @@ const secondBatchPayload = {
 try {
   const health = await waitForHealth();
   assert.equal(health.ok, true);
-  assert.equal(health.version, '2026.07.15-daily-review-private-r11');
+  assert.equal(health.version, '2026.07.15-daily-review-private-r12');
   assert.equal(typeof health.latestRecordCount, 'number');
 
   for (const sensitivePath of ['/云同步配置.env', '/.git/config', '/data/tzzb/latest-capture.json']) {

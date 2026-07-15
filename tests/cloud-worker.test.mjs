@@ -90,10 +90,37 @@ const sync = {
   }
 };
 
+class MemoryDraftStore {
+  constructor() {
+    this.drafts = new Map();
+  }
+
+  async read(reviewDate) {
+    return structuredClone(this.drafts.get(reviewDate) || null);
+  }
+
+  async save({ reviewDate, record, expectedVersion, updatedAt }) {
+    const current = this.drafts.get(reviewDate) || null;
+    const currentVersion = Number(current?.version || 0);
+    if (expectedVersion !== currentVersion) {
+      const error = new Error('draft version conflict');
+      error.code = 'DRAFT_VERSION_CONFLICT';
+      error.current = structuredClone(current);
+      throw error;
+    }
+    const draft = { reviewDate, version: currentVersion + 1, updatedAt, record: structuredClone(record) };
+    this.drafts.set(reviewDate, draft);
+    return structuredClone(draft);
+  }
+}
+
+const draftStore = new MemoryDraftStore();
+
 const app = createCloudWorker({
   indexHtml: '<!doctype html><h1>今日复盘工作台</h1>',
   fetchImpl: marketFetch,
-  dailyReviewSyncFactory: () => sync
+  dailyReviewSyncFactory: () => sync,
+  reviewDraftStoreFactory: () => draftStore
 });
 const env = {
   DB: new MarketD1(),
@@ -120,6 +147,53 @@ assert.equal((await app.fetch(request('/api/sync/latest', {
   headers: { 'oai-authenticated-user-email': 'other@example.com' }
 }), env)).status, 403);
 assert.equal((await app.fetch(request('/api/sync/latest', { headers: ownerHeaders }), env)).status, 404);
+
+assert.equal((await app.fetch(request('/api/review-draft?date=2026-07-14'), env)).status, 401);
+assert.equal((await app.fetch(request('/api/review-draft?date=2026-07-14', { headers: ownerHeaders }), env)).status, 404);
+
+const savedDraftResponse = await app.fetch(request('/api/review-draft', {
+  method: 'PUT',
+  headers: { ...ownerHeaders, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    reviewDate: '2026-07-14',
+    expectedVersion: 0,
+    record: { date: '2026-07-14', reflection: { rightThing: '按计划执行' } }
+  })
+}), env);
+const savedDraft = await savedDraftResponse.json();
+assert.equal(savedDraftResponse.status, 200);
+assert.equal(savedDraft.draft.version, 1);
+
+const readDraftResponse = await app.fetch(request('/api/review-draft?date=2026-07-14', {
+  headers: ownerHeaders
+}), env);
+const readDraft = await readDraftResponse.json();
+assert.equal(readDraftResponse.status, 200);
+assert.equal(readDraft.draft.record.reflection.rightThing, '按计划执行');
+
+const conflictedDraftResponse = await app.fetch(request('/api/review-draft', {
+  method: 'PUT',
+  headers: { ...ownerHeaders, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    reviewDate: '2026-07-14',
+    expectedVersion: 0,
+    record: { date: '2026-07-14', reflection: { rightThing: '过期写入' } }
+  })
+}), env);
+const conflictedDraft = await conflictedDraftResponse.json();
+assert.equal(conflictedDraftResponse.status, 409);
+assert.equal(conflictedDraft.current.version, 1, 'a conflicting device receives the current cloud version');
+
+const mismatchedDraftResponse = await app.fetch(request('/api/review-draft', {
+  method: 'PUT',
+  headers: { ...ownerHeaders, 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    reviewDate: '2026-07-16',
+    expectedVersion: 0,
+    record: { date: '2026-07-15', reflection: { rightThing: '错误日期分区' } }
+  })
+}), env);
+assert.equal(mismatchedDraftResponse.status, 400, 'record.date must match the review-date partition');
 
 const invalidUpload = await app.fetch(request('/api/sync/tzzb', {
   method: 'POST',

@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>A股每日交易复盘模板｜焕新版</title>
+<title>A股每日复盘工作台</title>
+<meta name="description" content="私有的 A 股收盘复盘工作台，自动同步同花顺数据并保存云端草稿。">
 <style>
   :root{
     --bg1:#0b1020;
@@ -492,7 +493,7 @@
   .modal-head h2{margin:0;font-size:20px}
   .modal-head p{margin:6px 0 0;color:#667085;font-size:13px;line-height:1.6}
   .icon-btn{
-    width:38px;height:38px;border-radius:50%;
+    width:44px;min-width:44px;height:44px;flex:0 0 44px;border-radius:50%;
     padding:0;
     display:flex;align-items:center;justify-content:center;
     background:#f3f6fb;color:#334155;font-size:20px;
@@ -1123,6 +1124,243 @@
     textarea{max-height:112px}
     .out{max-height:260px}
   }
+
+  /* Liquid glass is reserved for navigation and status controls. */
+  :root{
+    --background:#f4f1ea;
+    --surface:#fffefb;
+    --surface-muted:#ece8df;
+    --text:#181817;
+    --text-muted:#6b6861;
+    --border:#dcd6ca;
+    --primary:#3158d3;
+    --primary-hover:#2748b3;
+    --warning:#b8740a;
+    --danger:#c33b32;
+    --market-up:#d64035;
+    --market-down:#14845f;
+  }
+  html{
+    background:var(--background);
+  }
+  body{
+    color:var(--text);
+    background:
+      radial-gradient(circle at 14% 4%, rgba(49,88,211,.12), transparent 26%),
+      radial-gradient(circle at 88% 10%, rgba(157,123,215,.12), transparent 24%),
+      linear-gradient(180deg,#ebe7de 0,var(--background) 34%,#f7f4ee 100%);
+  }
+  body::before{
+    background:
+      radial-gradient(circle at 16% 18%,rgba(92,126,224,.20),transparent 30%),
+      radial-gradient(circle at 82% 12%,rgba(198,171,235,.22),transparent 28%),
+      radial-gradient(circle at 76% 76%,rgba(221,184,122,.14),transparent 30%);
+    filter:blur(14px) saturate(108%);
+    opacity:.72;
+  }
+  body::after{
+    background:linear-gradient(115deg,rgba(255,255,255,.28),rgba(255,255,255,.04) 48%,rgba(255,255,255,.18));
+    opacity:.62;
+  }
+  .shell{max-width:1280px}
+  .hero{
+    color:var(--text);
+    background:
+      linear-gradient(135deg,rgba(255,255,255,.78),rgba(246,241,255,.64) 50%,rgba(235,242,255,.58));
+    border:1px solid rgba(255,255,255,.82);
+    box-shadow:0 16px 40px rgba(49,55,78,.12),inset 0 1px 0 rgba(255,255,255,.92);
+    backdrop-filter:blur(14px) saturate(125%);
+    -webkit-backdrop-filter:blur(14px) saturate(125%);
+  }
+  .title-wrap p{color:var(--text-muted)}
+  .workbench-state{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:12px;
+  }
+  .autosave-status,.privacy-status{
+    display:inline-flex;
+    align-items:center;
+    min-height:36px;
+    padding:7px 11px;
+    border-radius:999px;
+    border:1px solid rgba(49,88,211,.18);
+    background:rgba(255,255,255,.58);
+    color:#3f4755;
+    font-size:12px;
+    font-weight:750;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .autosave-status::before{
+    content:"";
+    width:7px;
+    height:7px;
+    margin-right:7px;
+    border-radius:50%;
+    background:var(--primary);
+  }
+  .autosave-status[data-state="saved"]::before{background:#5373ce}
+  .autosave-status[data-state="error"]::before{background:var(--danger)}
+  .hero-tag,.btn-hero,.secondary-tools,.modal,.fab{
+    backdrop-filter:blur(12px) saturate(120%);
+    -webkit-backdrop-filter:blur(12px) saturate(120%);
+  }
+  .hero-tag,.btn-hero{
+    color:#31364a;
+    background:rgba(255,255,255,.56);
+    border-color:rgba(49,88,211,.16);
+  }
+  .secondary-tools{
+    color:#30364a;
+    background:rgba(255,255,255,.42);
+    border-color:rgba(255,255,255,.72);
+  }
+  .secondary-tools summary{color:#343a4d;min-height:44px}
+  .section,.field,.panel,.dash,.quote-card,.quality-box,.score-item,.history-kpi,.table-wrap,.sync-proof,th{
+    background:var(--surface);
+    background-image:none;
+    border-color:var(--border);
+    box-shadow:0 8px 22px rgba(58,53,45,.055);
+    backdrop-filter:none;
+    -webkit-backdrop-filter:none;
+  }
+  .section::before{display:none}
+  .section{border-radius:16px}
+  .field,.panel,.quality-box,.score-item,.history-kpi,.table-wrap,.dash,.quote-card{border-radius:14px}
+  .dash .k,.quote-body .label,.quote-body .sub{color:var(--text-muted)}
+  .dash .v,.quote-body .text{color:var(--text)}
+  .section-num{
+    background:var(--primary);
+    box-shadow:none;
+  }
+  input,select,textarea{
+    min-height:44px;
+    color:var(--text);
+    background:#fff;
+    border-color:#d6d0c4;
+    box-shadow:none;
+    font-variant-numeric:tabular-nums;
+  }
+  textarea{min-height:82px}
+  input:focus,select:focus,textarea:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 3px rgba(49,88,211,.16);
+    transform:none;
+  }
+  button,.trade-detail-toggle summary{
+    min-height:44px;
+  }
+  button:hover{transform:none}
+  button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+    outline:3px solid rgba(49,88,211,.32);
+    outline-offset:2px;
+  }
+  .btn-red,.btn-dark{
+    color:#fff;
+    background:var(--primary);
+    box-shadow:0 8px 18px rgba(49,88,211,.16);
+  }
+  .btn-red:hover,.btn-dark:hover{background:var(--primary-hover)}
+  .btn-soft{color:#2748b3;background:#edf1ff}
+  .btn-light{color:#393832;background:#f1eee7}
+  .btn-danger{
+    min-width:44px;
+    color:var(--danger);
+    background:#fff2f0;
+    border-color:#efc6c1;
+  }
+  th{
+    color:#5b5953;
+    background:#f3efe7;
+  }
+  #tradeTable{width:100%;min-width:1160px}
+  #tradeTable th:nth-child(2),#tradeTable td:nth-child(2){width:134px}
+  #tradeTable th:nth-child(3),#tradeTable td:nth-child(3){width:228px}
+  #tradeTable th:nth-child(4),#tradeTable td:nth-child(4){width:130px}
+  #tradeTable th:nth-child(5),#tradeTable td:nth-child(5){width:164px}
+  .sync-proof-grid{background:transparent}
+  .sync-proof{background:#f8f5ef}
+  .table-wrap{overflow:auto}
+  .sr-only{
+    position:absolute!important;
+    width:1px!important;
+    height:1px!important;
+    padding:0!important;
+    margin:-1px!important;
+    overflow:hidden!important;
+    clip:rect(0,0,0,0)!important;
+    white-space:nowrap!important;
+    border:0!important;
+  }
+  .modal{
+    background:rgba(255,254,251,.86);
+    border-color:rgba(255,255,255,.84);
+  }
+  .modal-head{background:rgba(255,254,251,.88);border-color:var(--border)}
+  .fab{background:rgba(49,88,211,.84);color:#fff}
+
+  @media(max-width:620px){
+    .workbench-state{display:grid;grid-template-columns:1fr}
+    .autosave-status,.privacy-status{justify-content:center}
+    .trade-table-wrap{overflow:visible}
+    #tradeTable{
+      display:block;
+      width:100%;
+      min-width:0;
+      table-layout:auto;
+    }
+    #tradeTable thead{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+    #tradeTable tbody{
+      display:grid;
+      gap:12px;
+      width:100%;
+    }
+    #tradeTable tbody tr{
+      display:block;
+      width:100%;
+      padding:12px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:var(--surface);
+    }
+    #tradeTable td,
+    #tradeTable td:nth-child(n){
+      display:grid;
+      grid-template-columns:76px minmax(0,1fr);
+      align-items:center;
+      gap:8px;
+      width:auto!important;
+      min-width:0;
+      padding:6px 0;
+      border:0;
+    }
+    #tradeTable td::before{
+      content:attr(data-label);
+      color:var(--text-muted);
+      font-size:12px;
+      font-weight:800;
+    }
+    #tradeTable .trade-primary-grid{width:100%;grid-template-columns:1fr 1fr}
+    #tradeTable .trade-detail-toggle{grid-column:1 / -1}
+    #tradeTable .trade-reason{min-height:72px;height:auto}
+    #tradeTable .rowScore{justify-self:start}
+    #tradeTable td:last-child .btn-danger{justify-self:start}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
+  }
 </style>
 </head>
 <body>
@@ -1131,7 +1369,11 @@
       <div class="hero-top">
         <div class="title-wrap">
           <h1>今日复盘工作台</h1>
-          <p>面向收盘后的快速记录：先导入账户与成交，再补充交易理由、计划性和明日动作。少做机械填写，多做真正有价值的判断。</p>
+          <p>收盘后自动读取账户、成交和市场数据；你只需补充理由、评分和明日动作。已核验数据与手工复盘草稿分开保护。</p>
+          <div class="workbench-state">
+            <div id="autosaveStatus" class="autosave-status" role="status" aria-live="polite" aria-atomic="true">正在准备自动保存…</div>
+            <div class="privacy-status">私有空间 · 仅本人可读</div>
+          </div>
         </div>
         <div class="tag-group">
           <div class="hero-tag">趋势波段</div>
@@ -1191,15 +1433,15 @@
       </div>
       <div class="section-body">
         <div class="grid g4">
-          <div class="field"><label>复盘日期 <span class="tip">自动填充</span></label><input id="date" type="date"></div>
-          <div class="field"><label>账户总资金 <span class="tip">例如 200000</span></label><input id="capital" type="number" placeholder="例如 200000"></div>
-          <div class="field"><label>收盘总仓位 <span class="tip">整体仓位</span></label>
+          <div class="field"><label for="date">复盘日期 <span class="tip">自动填充</span></label><input id="date" type="date"></div>
+          <div class="field"><label for="capital">账户总资金 <span class="tip">例如 200000</span></label><input id="capital" type="number" placeholder="例如 200000"></div>
+          <div class="field"><label for="position">收盘总仓位 <span class="tip">整体仓位</span></label>
             <select id="position">
               <option>空仓</option><option>1成</option><option>2成</option><option>3成</option><option>4成</option>
               <option selected>5成</option><option>6成</option><option>7成</option><option>8成</option><option>满仓</option>
             </select>
           </div>
-          <div class="field"><label>今日盈亏 <span class="tip">例如 +1200 / -800</span></label><input id="pnl" placeholder="例如 +1200"></div>
+          <div class="field"><label for="pnl">今日盈亏 <span class="tip">例如 +1200 / -800</span></label><input id="pnl" placeholder="例如 +1200"></div>
         </div>
 
         <div class="panel" style="margin-top:14px">
@@ -1225,17 +1467,17 @@
         </div>
 
         <div class="grid g3" style="margin-top:14px">
-          <div class="field"><label>今日指数状态</label>
+          <div class="field"><label for="indexState">今日指数状态</label>
             <select id="indexState">
               <option>指数强</option><option>指数弱</option><option>震荡</option><option>冲高回落</option><option>探底回升</option>
             </select>
           </div>
-          <div class="field"><label>市场情绪</label>
+          <div class="field"><label for="mood">市场情绪</label>
             <select id="mood">
               <option>普涨</option><option selected>分化</option><option>退潮</option><option>抱团核心</option><option>冰点修复</option>
             </select>
           </div>
-          <div class="field"><label>适合动作</label>
+          <div class="field"><label for="actionEnv">适合动作</label>
             <select id="actionEnv">
               <option>进攻</option><option selected>只做核心</option><option>防守</option><option>空仓观察</option><option>低吸不追高</option>
             </select>
@@ -1244,11 +1486,11 @@
 
         <div class="grid g2" style="margin-top:14px">
           <div class="field">
-            <label>今日主线 / 强势方向 <span class="tip">逗号分隔</span></label>
+            <label for="mainLines">今日主线 / 强势方向 <span class="tip">逗号分隔</span></label>
             <input id="mainLines" placeholder="例如：存储芯片、液冷、CPO、PCB、券商">
           </div>
           <div class="field">
-            <label>一句话市场判断 <span class="tip">简洁即可</span></label>
+            <label for="marketOne">一句话市场判断 <span class="tip">简洁即可</span></label>
             <textarea id="marketOne" placeholder="例如：指数强但个股分化，资金抱团科技核心，适合做主线核心，不适合追后排。"></textarea>
           </div>
         </div>
@@ -1272,20 +1514,21 @@
           <button class="btn-soft" onclick="recalc()">重新计算评分</button>
           <button class="btn-danger" onclick="clearTrades()">清空交易表</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap trade-table-wrap">
           <table id="tradeTable">
+            <caption class="sr-only">今日成交记录与评分</caption>
             <thead>
               <tr>
-                <th>时间</th>
-                <th>股票/ETF</th>
-                <th>交易</th>
-                <th>模式</th>
-                <th>理由</th>
-                <th>计划性</th>
-                <th>主线</th>
-                <th>风控</th>
-                <th>总分</th>
-                <th></th>
+                <th scope="col">时间</th>
+                <th scope="col">股票/ETF</th>
+                <th scope="col">交易</th>
+                <th scope="col">模式</th>
+                <th scope="col">理由</th>
+                <th scope="col">计划性</th>
+                <th scope="col">主线</th>
+                <th scope="col">风控</th>
+                <th scope="col">总分</th>
+                <th scope="col"><span class="sr-only">操作</span></th>
               </tr>
             </thead>
             <tbody id="tradeBody"></tbody>
@@ -1345,15 +1588,16 @@
       <div class="section-body">
         <div class="table-wrap">
           <table id="holdingTable" class="holding-table">
+            <caption class="sr-only">当前持仓复盘与明日计划</caption>
             <thead>
               <tr>
-                <th>股票/ETF</th>
-                <th>市值 / 仓位</th>
-                <th>是否核心</th>
-                <th>持仓逻辑是否成立</th>
-                <th>明日处理</th>
-                <th>触发条件</th>
-                <th></th>
+                <th scope="col">股票/ETF</th>
+                <th scope="col">市值 / 仓位</th>
+                <th scope="col">是否核心</th>
+                <th scope="col">持仓逻辑是否成立</th>
+                <th scope="col">明日处理</th>
+                <th scope="col">触发条件</th>
+                <th scope="col"><span class="sr-only">操作</span></th>
               </tr>
             </thead>
             <tbody id="holdingBody">
@@ -1362,8 +1606,8 @@
           </table>
         </div>
         <div class="grid g2" style="margin-top:14px">
-          <div class="field"><label>明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
-          <div class="field"><label>明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
+          <div class="field"><label for="newPlan">明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
+          <div class="field"><label for="banRule">明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
         </div>
       </div>
     </section>
@@ -1384,8 +1628,8 @@
       </div>
       <div class="section-body">
         <div class="grid g2">
-          <div class="field"><label>今天做对了什么？</label><textarea id="rightThing" placeholder="例如：提前关注到存储/液冷主线，方向判断不错。"></textarea></div>
-          <div class="field"><label>今天做错了什么？</label><textarea id="bigMistake" placeholder="例如：高价股一手占比过高，开盘确认不足就重仓。"></textarea></div>
+          <div class="field"><label for="rightThing">今天做对了什么？</label><textarea id="rightThing" placeholder="例如：提前关注到存储/液冷主线，方向判断不错。"></textarea></div>
+          <div class="field"><label for="bigMistake">今天做错了什么？</label><textarea id="bigMistake" placeholder="例如：高价股一手占比过高，开盘确认不足就重仓。"></textarea></div>
         </div>
       </div>
     </section>
@@ -1444,7 +1688,7 @@
           <button class="btn-red" onclick="generateText()">生成复盘文本</button>
           <button class="btn-dark" onclick="copyText()">复制文本</button>
           <button class="btn-light" onclick="downloadText()">下载 TXT</button>
-          <button class="btn-soft" onclick="saveLocal()">保存到本机浏览器</button>
+          <button id="manualDraftSaveButton" class="btn-soft" onclick="saveLocal()">立即保存草稿</button>
           <button class="btn-soft" onclick="loadLocal()">读取上次保存</button>
         </div>
       </div>
@@ -1482,7 +1726,7 @@
           <div class="drop-zone">
             <div class="grid g2">
               <div class="field">
-                <label>截图版式</label>
+                <label for="ocrLayout">截图版式</label>
                 <select id="ocrLayout" onchange="saveOcrPrefs()">
                   <option value="auto">自动判断</option>
                   <option value="mobile">手机 App</option>
@@ -1490,7 +1734,7 @@
                 </select>
               </div>
               <div class="field">
-                <label>写入方式</label>
+                <label for="ocrWriteMode">写入方式</label>
                 <select id="ocrWriteMode">
                   <option value="append">追加到现有交易</option>
                   <option value="replace">替换现有交易</option>
@@ -1498,11 +1742,11 @@
               </div>
             </div>
             <div class="field" style="margin-top:12px">
-              <label>上传成交 / 持仓 / 资产截图 <span class="tip">可多选</span></label>
+              <label for="ocrFiles">上传成交 / 持仓 / 资产截图 <span class="tip">可多选</span></label>
               <input id="ocrFiles" type="file" accept="image/*" multiple onchange="handleOcrFiles(this)">
             </div>
             <div class="preview-strip" id="ocrImagePreviews"></div>
-            <div class="ocr-status" id="ocrStatus">选择截图后点击“开始本地识别”。如果网络无法加载识别资源，也可以把文字粘贴到右侧后解析。</div>
+            <div class="ocr-status" id="ocrStatus" role="status" aria-live="polite">选择截图后点击“开始本地识别”。如果无法加载识别资源，也可以把文字粘贴到右侧后解析。</div>
             <div class="toolbar" style="margin-top:12px">
               <button class="btn-red" onclick="runOcr()">开始本地识别</button>
               <button class="btn-soft" onclick="parseManualOcrText()">解析右侧文本</button>
@@ -1510,15 +1754,15 @@
           </div>
 
           <div class="field">
-            <label>OCR 原始文本 <span class="tip">可手动修正后重新解析</span></label>
+            <label for="ocrRawText">OCR 原始文本 <span class="tip">可手动修正后重新解析</span></label>
             <textarea id="ocrRawText" style="min-height:252px" placeholder="识别后的文字会出现在这里。也可以直接粘贴券商截图识别文本，然后点击“解析右侧文本”。"></textarea>
           </div>
         </div>
 
         <div class="grid g3" style="margin-top:14px">
-          <div class="field"><label>识别账户总资金</label><input id="ocrCapitalPreview" placeholder="未识别"></div>
-          <div class="field"><label>识别今日盈亏</label><input id="ocrPnlPreview" placeholder="未识别"></div>
-          <div class="field"><label>识别收盘仓位</label>
+          <div class="field"><label for="ocrCapitalPreview">识别账户总资金</label><input id="ocrCapitalPreview" placeholder="未识别"></div>
+          <div class="field"><label for="ocrPnlPreview">识别今日盈亏</label><input id="ocrPnlPreview" placeholder="未识别"></div>
+          <div class="field"><label for="ocrPositionPreview">识别收盘仓位</label>
             <select id="ocrPositionPreview">
               <option value="">未识别</option>
               <option>空仓</option><option>1成</option><option>2成</option><option>3成</option><option>4成</option>
@@ -1529,9 +1773,10 @@
 
         <div class="table-wrap" style="margin-top:14px">
           <table class="preview-table">
+            <caption class="sr-only">OCR 成交识别预览</caption>
             <thead>
               <tr>
-                <th>时间</th><th>股票/ETF</th><th>买/卖</th><th>价格</th><th>数量</th><th>金额</th><th>置信度</th><th></th>
+                <th scope="col">时间</th><th scope="col">股票/ETF</th><th scope="col">买/卖</th><th scope="col">价格</th><th scope="col">数量</th><th scope="col">金额</th><th scope="col">置信度</th><th scope="col"><span class="sr-only">操作</span></th>
               </tr>
             </thead>
             <tbody id="ocrTradePreviewBody">
@@ -1555,7 +1800,8 @@
 
 <script>
 function scrollReviewToTop(){
-  window.scrollTo({top:0,behavior:'smooth'});
+  const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  window.scrollTo({top:0,behavior:reduced ? 'auto' : 'smooth'});
 }
 
 const QUOTES = [
@@ -1589,12 +1835,23 @@ const QUOTES = [
 const STORAGE_CURRENT = 'tradeReviewDataV3';
 const STORAGE_HISTORY = 'tradeReviewHistoryV1';
 const STORAGE_OCR_PREFS = 'ocrImportPrefsV1';
+const STORAGE_DRAFT_CONFLICT = 'tradeReviewDraftConflictV1';
 let ocrFiles = [];
 let lastOcrResult = {trades:[], asset:{}, warnings:[]};
 let lastTzzbImportedAt = '';
 let lastMarketImportedAt = '';
 let tzzbAutoImportTimer = null;
 let marketAutoImportTimer = null;
+let autosaveTimer = null;
+let autosaveReady = false;
+let autosaveSuppressed = true;
+let autosaveCloudVersion = 0;
+let autosaveReviewDate = '';
+let autosaveCloudReady = false;
+let autosaveConflict = false;
+let autosaveConflictCurrent = null;
+let autosaveWriteTail = Promise.resolve();
+let reviewDateSwitchTail = Promise.resolve();
 
 function shuffle(arr){
   const a=[...arr];
@@ -1647,24 +1904,406 @@ function initDailyQuote(){
 }
 
 function todayStr(){ return formatDate(new Date()); }
-document.addEventListener('DOMContentLoaded',()=>{
+function setAutosaveStatus(message,state='idle'){
+  const status = document.getElementById('autosaveStatus');
+  if(!status) return;
+  status.textContent = message;
+  status.dataset.state = state;
+}
+function draftStorageKey(reviewDate){
+  return `tradeReviewDraftV5:${reviewDate}`;
+}
+function readLocalDraft(reviewDate=''){
+  try{
+    const dated = reviewDate ? localStorage.getItem(draftStorageKey(reviewDate)) : null;
+    const value = JSON.parse(dated || localStorage.getItem(STORAGE_CURRENT) || 'null');
+    if(!value || typeof value !== 'object' || !value.record || typeof value.record !== 'object') return null;
+    if(reviewDate && value.record.date !== reviewDate) return null;
+    return value;
+  }catch(error){
+    return null;
+  }
+}
+function readDraftConflict(reviewDate=''){
+  try{
+    const value = JSON.parse(localStorage.getItem(STORAGE_DRAFT_CONFLICT)||'null');
+    if(!value || typeof value !== 'object' || !value.reviewDate || !value.local?.record) return null;
+    if(reviewDate && value.reviewDate !== reviewDate) return null;
+    return value;
+  }catch(error){
+    return null;
+  }
+}
+function rememberDraftConflict(reviewDate,localEnvelope,cloudDraft){
+  autosaveConflict = true;
+  autosaveConflictCurrent = cloudDraft || null;
+  const conflict = {
+    schemaVersion:1,
+    reviewDate,
+    detectedAt:new Date().toISOString(),
+    local:localEnvelope,
+    cloud:cloudDraft || null
+  };
+  try{ localStorage.setItem(STORAGE_DRAFT_CONFLICT,JSON.stringify(conflict)); }catch(error){}
+  return conflict;
+}
+function clearDraftConflict(reviewDate=''){
+  const stored = readDraftConflict();
+  if(!stored || !reviewDate || stored.reviewDate === reviewDate){
+    try{ localStorage.removeItem(STORAGE_DRAFT_CONFLICT); }catch(error){}
+  }
+  autosaveConflict = false;
+  autosaveConflictCurrent = null;
+}
+function saveDraftLocally(record=collectStructured(),savedAt=new Date().toISOString(),options={}){
+  const reviewDate = record?.date || todayStr();
+  const currentBaseVersion = autosaveReviewDate === reviewDate
+    ? autosaveCloudVersion
+    : Number(options.baseCloudVersion || 0);
+  const baseCloudVersion = Number.isSafeInteger(Number(options.baseCloudVersion))
+    ? Number(options.baseCloudVersion)
+    : Number(currentBaseVersion || 0);
+  const envelope = {
+    version:5,
+    schemaVersion:5,
+    savedAt,
+    baseCloudVersion,
+    dirty:options.dirty === undefined ? isHostedReviewSite() : Boolean(options.dirty),
+    record,
+    legacy:collectLegacySnapshot()
+  };
+  localStorage.setItem(STORAGE_CURRENT, JSON.stringify(envelope));
+  localStorage.setItem(draftStorageKey(reviewDate), JSON.stringify(envelope));
+  return envelope;
+}
+function sameDraftRecord(left,right){
+  try{ return JSON.stringify(left) === JSON.stringify(right); }catch(error){ return false; }
+}
+function autosaveTimeLabel(value=new Date()){
+  return value.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false});
+}
+async function loadCloudDraft(reviewDate,localDraft=null){
+  autosaveReviewDate = reviewDate;
+  autosaveCloudVersion = 0;
+  autosaveCloudReady = !isHostedReviewSite();
+  const persistedConflict = readDraftConflict(reviewDate);
+  const conflictLocal = persistedConflict?.local?.record?.date === reviewDate ? persistedConflict.local : null;
+  const effectiveLocal = localDraft || conflictLocal;
+  autosaveConflict = Boolean(persistedConflict);
+  autosaveConflictCurrent = persistedConflict?.cloud || null;
+  if(!isHostedReviewSite()) return {restored:Boolean(localDraft),localNewer:false,cloudReady:true};
+  try{
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    const timeout = controller ? setTimeout(()=>controller.abort(),6000) : null;
+    let response;
+    try{
+      response = await fetch(`/api/review-draft?date=${encodeURIComponent(reviewDate)}`,{
+        credentials:'same-origin',
+        ...(controller ? {signal:controller.signal} : {})
+      });
+    }finally{
+      if(timeout) clearTimeout(timeout);
+    }
+    if(response.status === 404){
+      autosaveCloudReady = true;
+      if(persistedConflict){
+        if(effectiveLocal?.record?.date === reviewDate) applyStructured(effectiveLocal.record);
+        setAutosaveStatus('云端冲突仍待处理，本机草稿已保留；点击“立即保存草稿”手动保存并确认覆盖','error');
+        return {restored:Boolean(effectiveLocal),localNewer:false,conflict:true};
+      }
+      return {
+        restored:Boolean(effectiveLocal),
+        localNewer:Boolean(effectiveLocal && effectiveLocal.dirty !== false)
+      };
+    }
+    const data = await response.json();
+    if(!response.ok || !data.ok || !data.draft) throw new Error(data.error || '云端草稿读取失败');
+    const draft = data.draft;
+    autosaveCloudVersion = Number(draft.version || 0);
+    autosaveCloudReady = true;
+    if(persistedConflict){
+      autosaveConflictCurrent = draft;
+      rememberDraftConflict(reviewDate,effectiveLocal,draft);
+      if(effectiveLocal?.record?.date === reviewDate) applyStructured(effectiveLocal.record);
+      setAutosaveStatus('云端有更新版本，本机草稿已保留；点击“立即保存草稿”手动保存并确认覆盖','error');
+      return {restored:Boolean(effectiveLocal),localNewer:false,conflict:true};
+    }
+    const recordsMatch = sameDraftRecord(effectiveLocal?.record,draft.record);
+    if((!effectiveLocal || effectiveLocal.dirty === false || recordsMatch) && draft.record?.date === reviewDate){
+      applyStructured(draft.record);
+      clearDraftConflict(reviewDate);
+      const normalizedRecord = collectStructured();
+      normalizedRecord.date = reviewDate;
+      saveDraftLocally(normalizedRecord,draft.updatedAt,{baseCloudVersion:autosaveCloudVersion,dirty:false});
+      setAutosaveStatus(`已恢复云端草稿 · ${autosaveTimeLabel(new Date(draft.updatedAt))}`,'saved');
+      return {restored:true,localNewer:false};
+    }
+    const localBaseVersion = Number(effectiveLocal?.baseCloudVersion);
+    if(!Number.isSafeInteger(localBaseVersion) || localBaseVersion !== autosaveCloudVersion){
+      rememberDraftConflict(reviewDate,effectiveLocal,draft);
+      if(effectiveLocal?.record?.date === reviewDate) applyStructured(effectiveLocal.record);
+      setAutosaveStatus('云端有更新版本，本机草稿已保留；点击“立即保存草稿”手动保存并确认覆盖','error');
+      return {restored:Boolean(effectiveLocal),localNewer:false,conflict:true};
+    }
+    if(effectiveLocal?.record?.date === reviewDate) applyStructured(effectiveLocal.record);
+    setAutosaveStatus('发现尚未同步的本机草稿，正在安全写入云端','saving');
+    return {restored:true,localNewer:true};
+  }catch(error){
+    autosaveCloudReady = false;
+    setAutosaveStatus(`云端暂不可用，已保留本机草稿`,'error');
+    return {restored:Boolean(effectiveLocal),localNewer:false,cloudReady:false};
+  }
+}
+async function restoreDraftOnStartup(){
+  const reviewDate = document.getElementById('date')?.value || todayStr();
+  const stored = readLocalDraft();
+  const localDraft = readLocalDraft(reviewDate);
+  if(localDraft) applyStructured(localDraft.record);
+  const result = await loadCloudDraft(reviewDate,localDraft);
+  if(!isHostedReviewSite()){
+    if(localDraft){
+      setAutosaveStatus(`已恢复本机草稿 · ${autosaveTimeLabel(new Date(localDraft.savedAt))}`,'saved');
+    }else if(stored?.record?.date){
+      setAutosaveStatus(`检测到 ${stored.record.date} 草稿，今日将新建`,'idle');
+    }
+  }
+  return result;
+}
+async function performAutosave(envelope,options={}){
+  if(autosaveConflict){
+    if(!options.manual){
+      setAutosaveStatus('云端有更新版本，本机草稿已保留；点击“立即保存草稿”手动保存并确认覆盖','error');
+      return false;
+    }
+    if(!confirm('云端已有另一台设备保存的版本。确认用当前页面覆盖云端吗？本机冲突草稿会保留到保存成功。')){
+      setAutosaveStatus('已取消覆盖，云端版本和本机草稿均已保留','error');
+      return false;
+    }
+    autosaveCloudVersion = Number(autosaveConflictCurrent?.version || autosaveCloudVersion);
+  }
+  const reviewDate = envelope.record.date || todayStr();
+  const expectedVersion = autosaveReviewDate === reviewDate
+    ? autosaveCloudVersion
+    : Number(envelope.baseCloudVersion || 0);
+  try{
+    const response = await fetch('/api/review-draft',{
+      method:'PUT',
+      credentials:'same-origin',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        reviewDate,
+        expectedVersion,
+        record:envelope.record
+      })
+    });
+    const data = await response.json();
+    if(response.status === 409){
+      if(Number.isSafeInteger(Number(data.current?.version))) autosaveCloudVersion = Number(data.current.version);
+      rememberDraftConflict(reviewDate,envelope,data.current || null);
+      setAutosaveStatus('云端有更新版本，本机草稿已保留；点击“立即保存草稿”手动保存并确认覆盖','error');
+      return false;
+    }
+    if(!response.ok || !data.ok || !data.draft) throw new Error(data.error || '云端保存失败');
+    const savedVersion = Number(data.draft.version || expectedVersion + 1);
+    const currentLocal = readLocalDraft(reviewDate);
+    if(!currentLocal || sameDraftRecord(currentLocal.record,envelope.record)){
+      saveDraftLocally(envelope.record,data.draft.updatedAt,{baseCloudVersion:savedVersion,dirty:false});
+    }
+    if(autosaveReviewDate === reviewDate){
+      autosaveCloudVersion = savedVersion;
+      clearDraftConflict(reviewDate);
+      setAutosaveStatus(`已保存到云端 · ${autosaveTimeLabel(new Date(data.draft.updatedAt))}`,'saved');
+    }
+    return true;
+  }catch(error){
+    setAutosaveStatus('云端保存失败，本机草稿已保留','error');
+    return false;
+  }
+}
+function flushAutosave(options={}){
+  if(autosaveTimer){
+    clearTimeout(autosaveTimer);
+    autosaveTimer = null;
+  }
+  if(!autosaveReady && !options.manual) return Promise.resolve(false);
+  let envelope;
+  try{
+    envelope = saveDraftLocally(options.record || collectStructured());
+  }catch(error){
+    setAutosaveStatus('保存失败，请导出复盘备份','error');
+    return Promise.resolve(false);
+  }
+  if(!isHostedReviewSite()){
+    setAutosaveStatus(`已保存到本机 · ${autosaveTimeLabel()}`,'saved');
+    return Promise.resolve(true);
+  }
+  autosaveWriteTail = autosaveWriteTail.then(
+    ()=>performAutosave(envelope,options),
+    ()=>performAutosave(envelope,options)
+  );
+  return autosaveWriteTail;
+}
+function scheduleAutosave(){
+  if(!autosaveReady || autosaveSuppressed) return;
+  setAutosaveStatus('正在保存…','saving');
+  if(autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(()=>flushAutosave(),650);
+}
+function setWorkbenchBusy(busy){
+  const shell = document.querySelector('.shell');
+  if(!shell) return;
+  shell.inert = Boolean(busy);
+  if(busy){
+    shell.setAttribute('aria-busy','true');
+    shell.querySelectorAll('input,select,textarea,button').forEach(control=>{
+      if(!control.disabled){
+        control.dataset.busyDisabled = 'true';
+        control.disabled = true;
+      }
+    });
+  }else{
+    shell.removeAttribute('aria-busy');
+    shell.querySelectorAll('[data-busy-disabled="true"]').forEach(control=>{
+      control.disabled = false;
+      delete control.dataset.busyDisabled;
+    });
+  }
+}
+function emptyReviewRecord(reviewDate){
+  return {
+    date:reviewDate,
+    basic:{},
+    market:{},
+    trades:[],
+    holdings:[],
+    reflection:{},
+    plan:{},
+    stats:{}
+  };
+}
+function saveCurrentDraftBeforeHide(){
+  const record = collectStructured();
+  const reviewDate = record.date || todayStr();
+  const existing = readLocalDraft(reviewDate);
+  const changed = !existing || !sameDraftRecord(existing.record,record);
+  const dirty = changed || existing?.dirty !== false;
+  const baseCloudVersion = Number.isSafeInteger(Number(existing?.baseCloudVersion))
+    ? Number(existing.baseCloudVersion)
+    : (autosaveReviewDate === reviewDate ? autosaveCloudVersion : 0);
+  return saveDraftLocally(record,new Date().toISOString(),{baseCloudVersion,dirty});
+}
+async function switchReviewDate(reviewDate,previousReviewDate){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(reviewDate) || reviewDate === previousReviewDate) return {restored:true,localNewer:false,cloudReady:autosaveCloudReady};
+  const dateInput = document.getElementById('date');
+  let restored = {restored:false,localNewer:false};
+  autosaveSuppressed = true;
+  setWorkbenchBusy(true);
+  try{
+    if(autosaveTimer){
+      clearTimeout(autosaveTimer);
+      autosaveTimer = null;
+    }
+    dateInput.value = previousReviewDate;
+    const previousRecord = collectStructured();
+    previousRecord.date = previousReviewDate;
+    await flushAutosave({record:previousRecord});
+
+    dateInput.value = reviewDate;
+    const localDraft = readLocalDraft(reviewDate);
+    applyStructured(localDraft?.record || emptyReviewRecord(reviewDate));
+    restored = await loadCloudDraft(reviewDate,localDraft);
+    if(!restored.restored){
+      addTrade({time:'09:30',name:'',side:'买入'});
+      addTrade({time:'09:35',name:'',side:'卖出'});
+      setAutosaveStatus(isHostedReviewSite() ? `${reviewDate} 云端草稿将自动保存` : `${reviewDate} 本机草稿将自动保存`,'idle');
+    }
+    recalc();
+  }catch(error){
+    restored = {...restored,switchFailed:true};
+    setAutosaveStatus('日期切换失败，原日期草稿仍已保留','error');
+  }finally{
+    autosaveSuppressed = false;
+    setWorkbenchBusy(false);
+  }
+  if(restored.localNewer) scheduleAutosave();
+  return restored;
+}
+function queueReviewDateSwitch(reviewDate,previousReviewDate=''){
+  const run = () => {
+    const activeDate = document.getElementById('date')?.value || autosaveReviewDate || todayStr();
+    const sourceDate = previousReviewDate && activeDate === previousReviewDate ? previousReviewDate : activeDate;
+    if(reviewDate === activeDate && autosaveReviewDate === reviewDate){
+      return {restored:true,localNewer:false,cloudReady:autosaveCloudReady};
+    }
+    return switchReviewDate(reviewDate,sourceDate);
+  };
+  reviewDateSwitchTail = reviewDateSwitchTail.then(run,run);
+  return reviewDateSwitchTail;
+}
+function bindAutosave(){
+  const onEdit = event => {
+    const target = event.target;
+    if(!target?.closest?.('.shell') || target.type === 'file' || target.id === 'date') return;
+    scheduleAutosave();
+  };
+  document.addEventListener('input',onEdit,true);
+  document.addEventListener('change',onEdit,true);
+  document.getElementById('date')?.addEventListener('change',event=>{
+    if(!autosaveReady || autosaveSuppressed) return;
+    const requestedDate = event.target.value;
+    const previousReviewDate = autosaveReviewDate || todayStr();
+    if(!requestedDate || requestedDate === previousReviewDate) return;
+    event.target.value = previousReviewDate;
+    queueReviewDateSwitch(requestedDate,previousReviewDate);
+  });
+  if(typeof MutationObserver === 'function'){
+    const observer = new MutationObserver(()=>scheduleAutosave());
+    for(const id of ['tradeBody','holdingBody']){
+      const element = document.getElementById(id);
+      if(element) observer.observe(element,{childList:true});
+    }
+  }
+  window.addEventListener('pagehide',()=>{
+    if(!autosaveReady) return;
+    try{ saveCurrentDraftBeforeHide(); }catch(error){}
+  });
+  document.addEventListener('visibilitychange',()=>{
+    if(autosaveReady && document.visibilityState === 'hidden'){
+      try{ saveCurrentDraftBeforeHide(); }catch(error){}
+    }
+  });
+}
+document.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('date').value = todayStr();
   loadOcrPrefs();
   clearLegacyTzzbCloudCredentials();
   configureTzzbSurface();
   initDailyQuote();
-  addTrade({time:'09:30',name:'',side:'买入'});
-  addTrade({time:'09:35',name:'',side:'卖出'});
+  bindAutosave();
+  if(isHostedReviewSite()){
+    setAutosaveStatus('正在读取私人云端草稿…','saving');
+    setWorkbenchBusy(true);
+  }
+  const restored = await restoreDraftOnStartup();
+  if(!restored.restored){
+    addTrade({time:'09:30',name:'',side:'买入'});
+    addTrade({time:'09:35',name:'',side:'卖出'});
+  }
   recalc();
   renderHistoryPanel();
+  autosaveSuppressed = false;
+  autosaveReady = true;
+  if(restored.localNewer) scheduleAutosave();
+  else if(!restored.restored) setAutosaveStatus(isHostedReviewSite() ? '云端草稿将自动保存' : '本机草稿将自动保存','idle');
+  setWorkbenchBusy(false);
   checkTzzbHelperHealth();
   startTzzbAutoImport();
   startMarketAutoImport();
   window.addEventListener('focus', autoImportLatestTzzbData);
 });
 
-function scoreSelect(value=1){
-  return `<select onchange="recalc()" class="score">
+function scoreSelect(value=1,label='交易评分'){
+  return `<select onchange="recalc()" class="score" aria-label="${esc(label)}">
     <option value="0" ${value==0?'selected':''}>0</option>
     <option value="0.5" ${value==0.5?'selected':''}>0.5</option>
     <option value="1" ${value==1?'selected':''}>1</option>
@@ -1689,9 +2328,9 @@ function addTrade(data={}){
   const side = data.side === '卖出' ? '卖出' : '买入';
   const mode = data.mode || '趋势波段';
   tr.innerHTML=`
-    <td><input class="trade-time" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
-    <td><input class="trade-name" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
-    <td class="trade-execution-cell">
+    <td data-label="时间"><input class="trade-time" aria-label="交易时间" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
+    <td data-label="股票/ETF"><input class="trade-name" aria-label="股票或 ETF 名称" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
+    <td data-label="交易" class="trade-execution-cell">
       <div class="trade-primary-grid">
         <select class="trade-side" aria-label="买卖方向">
           <option ${side==='买入'?'selected':''}>买入</option>
@@ -1707,20 +2346,21 @@ function addTrade(data={}){
         </details>
       </div>
     </td>
-    <td>
-      <select class="trade-mode">
+    <td data-label="模式">
+      <select class="trade-mode" aria-label="交易模式">
         <option ${mode==='趋势波段'?'selected':''}>趋势波段</option><option ${mode==='强势股'?'selected':''}>强势股</option><option ${mode==='事件套利'?'selected':''}>事件套利</option>
         <option ${mode==='ETF主线'?'selected':''}>ETF主线</option><option ${mode==='止盈/止损'?'selected':''}>止盈/止损</option><option ${mode==='随手单'?'selected':''}>随手单</option>
       </select>
     </td>
-    <td><textarea class="trade-reason" placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
-    <td>${scoreSelect(data.planScore ?? 1)}</td>
-    <td>${scoreSelect(data.lineScore ?? 1)}</td>
-    <td>${scoreSelect(data.riskScore ?? 1)}</td>
-    <td><span class="rowScore">5.0</span></td>
-    <td><button class="btn-danger" onclick="this.closest('tr').remove();recalc()">删</button></td>`;
+    <td data-label="理由"><textarea class="trade-reason" aria-label="买卖理由" placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
+    <td data-label="计划性">${scoreSelect(data.planScore ?? 1,'计划性评分')}</td>
+    <td data-label="主线">${scoreSelect(data.lineScore ?? 1,'主线评分')}</td>
+    <td data-label="风控">${scoreSelect(data.riskScore ?? 1,'风控评分')}</td>
+    <td data-label="总分"><span class="rowScore">5.0</span></td>
+    <td data-label="操作"><button class="btn-danger" aria-label="删除此交易" onclick="this.closest('tr').remove();recalc();scheduleAutosave()">删</button></td>`;
   document.getElementById('tradeBody').appendChild(tr);
   recalc();
+  scheduleAutosave();
 }
 function calcAmount(el){
   const tr=el.closest('tr');
@@ -1754,15 +2394,16 @@ function clearTrades(){
   if(confirm('确定清空交易表吗？')){
     document.getElementById('tradeBody').innerHTML='';
     recalc();
+    scheduleAutosave();
   }
 }
 function holdingActionSelect(value='观察'){
   const options = ['持有','减仓','清仓','观察','加仓候选'];
-  return `<select class="holding-action">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
+  return `<select class="holding-action" aria-label="明日处理">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
 }
 function holdingCoreSelect(value='待判断'){
   const options = ['核心','非核心','待判断'];
-  return `<select class="holding-core">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
+  return `<select class="holding-core" aria-label="是否核心持仓">${options.map(option=>`<option ${value===option?'selected':''}>${option}</option>`).join('')}</select>`;
 }
 function removeHoldingEmpty(){
   document.querySelector('#holdingBody .holding-empty')?.remove();
@@ -1774,6 +2415,7 @@ function renderHoldingEmpty(){
   tr.className = 'holding-empty';
   tr.innerHTML = '<td colspan="7" class="muted">同步同花顺持仓后会自动生成。也可以手动补充需要跟踪的股票。</td>';
   body.appendChild(tr);
+  scheduleAutosave();
 }
 function addHoldingReviewRow(data={}){
   const body = document.getElementById('holdingBody');
@@ -1782,18 +2424,18 @@ function addHoldingReviewRow(data={}){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td>
-      <input class="holding-name" placeholder="股票/ETF" value="${esc(data.name||'')}">
-      <input class="holding-code" placeholder="代码" value="${esc(data.code||'')}" style="margin-top:8px">
+      <input class="holding-name" aria-label="持仓股票或 ETF 名称" placeholder="股票/ETF" value="${esc(data.name||'')}">
+      <input class="holding-code" aria-label="持仓证券代码" placeholder="代码" value="${esc(data.code||'')}" style="margin-top:8px">
     </td>
     <td>
-      <input class="holding-value" placeholder="市值" value="${esc(data.value||'')}">
-      <input class="holding-weight" placeholder="仓位占比" value="${esc(data.weight||'')}" style="margin-top:8px">
+      <input class="holding-value" aria-label="持仓市值" placeholder="市值" value="${esc(data.value||'')}">
+      <input class="holding-weight" aria-label="持仓占比" placeholder="仓位占比" value="${esc(data.weight||'')}" style="margin-top:8px">
     </td>
     <td>${holdingCoreSelect(data.isCore || '待判断')}</td>
-    <td><textarea class="holding-logic" placeholder="例如：仍是主线核心，承接未破坏。">${esc(data.logic||'')}</textarea></td>
+    <td><textarea class="holding-logic" aria-label="持仓逻辑" placeholder="例如：仍是主线核心，承接未破坏。">${esc(data.logic||'')}</textarea></td>
     <td>${holdingActionSelect(data.tomorrowAction || '观察')}</td>
-    <td><textarea class="holding-trigger" placeholder="例如：跌破5日线减仓；放量突破再加。">${esc(data.trigger||'')}</textarea></td>
-    <td><button class="btn-danger" onclick="this.closest('tr').remove();renderHoldingEmpty()">删</button></td>`;
+    <td><textarea class="holding-trigger" aria-label="持仓处理触发条件" placeholder="例如：跌破5日线减仓；放量突破再加。">${esc(data.trigger||'')}</textarea></td>
+    <td><button class="btn-danger" aria-label="删除此持仓复盘" onclick="this.closest('tr').remove();renderHoldingEmpty();scheduleAutosave()">删</button></td>`;
   body.appendChild(tr);
 }
 function clearHoldingPlans(){
@@ -1802,6 +2444,7 @@ function clearHoldingPlans(){
   }
   document.getElementById('holdingBody').innerHTML = '';
   renderHoldingEmpty();
+  scheduleAutosave();
 }
 function collectHoldingPlan(){
   return [...document.querySelectorAll('#holdingBody tr')]
@@ -2131,14 +2774,14 @@ function addOcrPreviewRow(data={}){
   const tr = document.createElement('tr');
   if(confidence === 'low') tr.className = 'low-confidence';
   tr.innerHTML = `
-    <td><input value="${esc(data.time||'')}" placeholder="09:30"></td>
-    <td><input value="${esc(data.name||'')}" placeholder="股票/ETF"></td>
-    <td><select><option ${data.side!=='卖出'?'selected':''}>买入</option><option ${data.side==='卖出'?'selected':''}>卖出</option></select></td>
-    <td><input type="number" step="0.001" value="${esc(data.price||'')}" placeholder="价格"></td>
-    <td><input type="number" value="${esc(data.qty||'')}" placeholder="数量"></td>
-    <td><input type="number" step="0.01" value="${esc(data.amount||'')}" placeholder="金额"></td>
+    <td><input aria-label="OCR 交易时间" value="${esc(data.time||'')}" placeholder="09:30"></td>
+    <td><input aria-label="OCR 股票或 ETF 名称" value="${esc(data.name||'')}" placeholder="股票/ETF"></td>
+    <td><select aria-label="OCR 买卖方向"><option ${data.side!=='卖出'?'selected':''}>买入</option><option ${data.side==='卖出'?'selected':''}>卖出</option></select></td>
+    <td><input aria-label="OCR 成交价格" type="number" step="0.001" value="${esc(data.price||'')}" placeholder="价格"></td>
+    <td><input aria-label="OCR 成交数量" type="number" value="${esc(data.qty||'')}" placeholder="数量"></td>
+    <td><input aria-label="OCR 成交金额" type="number" step="0.01" value="${esc(data.amount||'')}" placeholder="金额"></td>
     <td><span class="chip">${confidence === 'high' ? '高' : confidence === 'medium' ? '中' : confidence === 'low' ? '低' : '手动'}</span></td>
-    <td><button class="btn-danger" onclick="this.closest('tr').remove()">删</button></td>`;
+    <td><button class="btn-danger" aria-label="删除此 OCR 预览交易" onclick="this.closest('tr').remove()">删</button></td>`;
   body.appendChild(tr);
 }
 function collectOcrPreview(){
@@ -2183,6 +2826,7 @@ function applyOcrImport(){
   recalc();
   setOcrStep(3);
   closeOcrModal();
+  scheduleAutosave();
 }
 function getTradeRowsData(){
   return [...document.querySelectorAll('#tradeBody tr')].map(tr=>{
@@ -2599,6 +3243,7 @@ function readVerifiedEnvelope(data={}){
   const pendingAudit = pendingAttempt ? (pendingAttempt.audit || pendingAttempt) : null;
   const raw = data.raw || {};
   const capturedAt = audit.capturedAt || dailyReview?.capturedAt || raw.receivedAt || '';
+  const captureDate = audit.captureDate || dailyReview?.captureDate || raw.captureDate || '';
   const reviewDate = dailyReview?.reviewDate || dailyReview?.date || audit.reviewDate || raw.targetDate || '';
   const verifiedAt = audit.verifiedAt || dailyReview?.verifiedAt || raw.receivedAt || capturedAt;
   const displayAudit = pendingAudit || audit;
@@ -2611,9 +3256,28 @@ function readVerifiedEnvelope(data={}){
   const legacyVerified = Boolean(data.review && raw.readyForReview);
   const status = audit.status || audit.verdict || (dailyReview && (legacyVerified || !data.raw) ? 'verified' : 'unverified');
   return {
-    dailyReview, audit, pendingAttempt, raw, capturedAt, reviewDate, verifiedAt, reverseRepoValue, status,
+    dailyReview, audit, pendingAttempt, raw, capturedAt, captureDate, reviewDate, verifiedAt, reverseRepoValue, status,
     displayAudit, displayCapturedAt, displayReviewDate
   };
+}
+function autoImportMatchesActiveDate(envelope){
+  const reviewDate = String(envelope?.reviewDate || '');
+  const captureDate = String(envelope?.captureDate || '');
+  const activeDate = document.getElementById('date')?.value || todayStr();
+  const today = todayStr();
+  if(reviewDate === activeDate) return true;
+  if(activeDate !== today) return false;
+  if(captureDate === today) return true;
+  const parts = new Intl.DateTimeFormat('en-US',{
+    timeZone:'Asia/Shanghai',
+    weekday:'short',
+    hour:'2-digit',
+    hour12:false
+  }).formatToParts(new Date());
+  const weekday = parts.find(part=>part.type === 'weekday')?.value || '';
+  const hour = Number(parts.find(part=>part.type === 'hour')?.value || 0);
+  const weekdaySession = ['Mon','Tue','Wed','Thu','Fri'].includes(weekday);
+  return !(weekdaySession && hour >= 15 && reviewDate && reviewDate < today);
 }
 const TZZB_AUDIT_LABELS = {
   ACTIVE_ACCOUNTS_MISSING:'未识别到全部有效账户',
@@ -2622,12 +3286,14 @@ const TZZB_AUDIT_LABELS = {
   STOCK_POSITION_MISSING:'账户持仓数据缺失',
   ASSET_TREND_MISSING:'账户盈亏历史缺失',
   TRADE_HISTORY_INCOMPLETE:'成交明细或分页不完整',
+  TRADE_HISTORY_IDENTICAL_OCCURRENCES_PRESERVED:'已保留两个端点共同确认的同形成交',
   TRADE_RECONCILIATION_FAILED:'成交摘要与逐笔明细不一致',
   CAPITAL_IDENTITY_CONFLICT:'总资产、现金与持仓市值不一致',
   POSITION_RECONCILIATION_FAILED:'仓位比例交叉核验不一致',
   UNKNOWN_LIABILITY:'融资负债口径缺失',
   NONZERO_LIABILITY:'存在尚未确认口径的融资负债',
   MONTH_PNL_MISSING:'缺少权威盈亏历史',
+  MONTH_PNL_DERIVED_ZERO_BALANCE_ACCOUNT:'空账户已由资产与成交双重核验为零盈亏',
   PNL_RECONCILIATION_FAILED:'盈亏交叉核验不一致',
   EVIDENCE_CALCULATION_ERROR:'证据中存在无法计算的数值',
   DISPLAY_PNL_MISMATCH:'账本展示盈亏与历史权威值不一致',
@@ -2657,8 +3323,8 @@ function renderTzzbVerification(envelope={}){
   setText('tzzbReviewDate', envelope.displayReviewDate || envelope.reviewDate || '等待数据');
   setText('tzzbCapturedAt', formatSyncTime(envelope.displayCapturedAt || envelope.capturedAt));
   setText('tzzbVerificationState', pending
-    ? (verified ? '已核验 · 有新数据待对账' : '待对账')
-    : (verified ? '已核验' : '尚未核验'));
+    ? (verified ? '已保留旧版 · 新数据对账中' : '采集成功 · 对账中')
+    : (verified ? '已核验 · 可自动填写' : '等待收盘采集'));
   setText('tzzbReverseRepoValue', `¥${Number(envelope.reverseRepoValue || 0).toFixed(2)}`);
   const reasons = auditReasons(envelope.displayAudit || envelope.audit);
   setText('tzzbAuditReasons', reasons.length
@@ -2775,6 +3441,22 @@ function tzzbMissingMessage(data){
     ? `对账未通过：${missing.join('、')}。`
     : '尚未收到完整的收盘数据。';
 }
+async function prepareTzzbReviewDate(reviewDate){
+  const targetDate = String(reviewDate || '');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) return false;
+  const activeDate = document.getElementById('date')?.value || todayStr();
+  if(activeDate === targetDate && autosaveReviewDate === targetDate && autosaveCloudReady) return true;
+  if(activeDate === targetDate && autosaveReviewDate === targetDate){
+    const localDraft = readLocalDraft(targetDate);
+    const restored = await loadCloudDraft(targetDate,localDraft);
+    return restored.cloudReady !== false && !restored.switchFailed;
+  }
+  const restored = await queueReviewDateSwitch(targetDate,activeDate);
+  return document.getElementById('date')?.value === targetDate
+    && autosaveReviewDate === targetDate
+    && restored?.cloudReady !== false
+    && !restored?.switchFailed;
+}
 async function autoImportLatestTzzbData(options={}){
   if(tzzbAutoImportTimer){
     clearTimeout(tzzbAutoImportTimer);
@@ -2793,18 +3475,31 @@ async function autoImportLatestTzzbData(options={}){
     const envelope = readVerifiedEnvelope(latest.data);
     renderTzzbVerification(envelope);
     const importKey = `${envelope.reviewDate}|${envelope.verifiedAt}`;
-    if(envelope.dailyReview && envelope.status === 'verified' && options.apply !== false && importKey !== lastTzzbImportedAt){
-      applyTzzbReviewData(envelope.dailyReview, {...envelope.raw, audit:envelope.audit});
-      rememberTzzbImport(importKey);
+    const dateMatches = autoImportMatchesActiveDate(envelope);
+    let importDeferred = false;
+    if(envelope.dailyReview && envelope.status === 'verified' && dateMatches && options.apply !== false && importKey !== lastTzzbImportedAt){
+      const targetReady = await prepareTzzbReviewDate(envelope.reviewDate);
+      if(targetReady){
+        applyTzzbReviewData(envelope.dailyReview, {...envelope.raw, audit:envelope.audit});
+        rememberTzzbImport(importKey);
+      }else{
+        importDeferred = true;
+        setTzzbImportStatus(`${envelope.reviewDate} 云端草稿暂未读取成功，已保留当前内容，30 秒后重试导入。`);
+      }
     }
-    if(envelope.pendingAttempt){
+    const waitingForFreshClose = envelope.dailyReview && envelope.status === 'verified' && !dateMatches;
+    if(importDeferred){
+      setTzzbImportStatus(`${envelope.reviewDate} 云端草稿暂未读取成功，已保留当前内容，30 秒后重试导入。`);
+    }else if(waitingForFreshClose){
+      setTzzbImportStatus(`云端最近核验为 ${envelope.reviewDate}；正在等待当前复盘日的收盘数据，30 秒后自动检查。节假日可手动读取最近核验版本。`);
+    }else if(envelope.pendingAttempt){
       setTzzbImportStatus(envelope.dailyReview
-        ? `已保留 ${envelope.reviewDate} 已核验结果；较新数据正在对账，不会覆盖当前表单。`
-        : '已收到数据，正在对账，暂不写入表单。');
+        ? `已保留 ${envelope.reviewDate} 已核验结果；新数据已采集，正在对账，30 秒后自动重试。`
+        : '收盘数据已采集，正在对账；通过前不会写入表单，30 秒后自动重试。');
     }else if(envelope.dailyReview){
       setTzzbImportStatus(`已同步 ${envelope.reviewDate} 已核验同花顺数据。`);
     }
-    scheduleTzzbAutoImport({pending:Boolean(envelope.pendingAttempt)});
+    scheduleTzzbAutoImport({pending:Boolean(envelope.pendingAttempt) || waitingForFreshClose || importDeferred});
   }catch(error){
     renderTzzbVerification({status:'unverified', audit:{issueCodes:[error.message]}});
     scheduleTzzbAutoImport({retry:true});
@@ -2813,7 +3508,6 @@ async function autoImportLatestTzzbData(options={}){
 function scheduleTzzbAutoImport({pending=false,retry=false}={}){
   if(tzzbAutoImportTimer) clearTimeout(tzzbAutoImportTimer);
   if(isHostedReviewSite()){
-    if(!pending && !retry) return;
     tzzbAutoImportTimer = setTimeout(autoImportLatestTzzbData, 30000);
     return;
   }
@@ -2824,6 +3518,7 @@ function startTzzbAutoImport(){
   autoImportLatestTzzbData();
 }
 async function autoImportMarketSnapshot(){
+  if((document.getElementById('date')?.value || todayStr()) !== todayStr()) return false;
   const applied = await importMarketSnapshot({silent:true});
   if(applied) setTzzbImportStatus('已更新指数情况和市场强势方向。');
 }
@@ -2848,6 +3543,7 @@ function applyMarketSnapshot(market){
   set('mainLines', market.mainLines);
   set('marketOne', market.marketOne);
   lastMarketImportedAt = market.updatedAt || new Date().toISOString();
+  if(changed) scheduleAutosave();
   return changed;
 }
 async function importMarketSnapshot(options={}){
@@ -2890,6 +3586,7 @@ function applyTzzbReviewData(review, raw={}){
   if(ocrSummary) ocrSummary.textContent = summary;
   setTzzbImportAudit(formatTzzbAudit(raw, review.tzzb?.importAudit || raw.importAudit || {}));
   setTzzbImportStatus(`${summary} 当前持仓 ${review.tzzb?.holdingCount || 0} 条，补充持仓逻辑、买卖理由和评分即可。`);
+  scheduleAutosave();
 }
 async function importLatestTzzbData(){
   const syncConfig = getTzzbSyncConfig();
@@ -2907,6 +3604,8 @@ async function importLatestTzzbData(){
       scheduleTzzbAutoImport({pending:true});
       return;
     }
+    const targetReady = await prepareTzzbReviewDate(envelope.reviewDate);
+    if(!targetReady) throw new Error(`${envelope.reviewDate} 云端草稿暂未读取成功`);
     applyTzzbReviewData(envelope.dailyReview, {...envelope.raw, audit:envelope.audit});
     const marketImported = await importMarketSnapshot();
     rememberTzzbImport(`${envelope.reviewDate}|${envelope.verifiedAt}`);
@@ -2948,31 +3647,26 @@ async function showTzzbExtensionHelp(){
 }
 function saveLocal(){
   recalc();
-  localStorage.setItem(STORAGE_CURRENT, JSON.stringify({
-    version: 3,
-    savedAt: new Date().toISOString(),
-    record: collectStructured(),
-    legacy: collectLegacySnapshot()
-  }));
-  alert('已保存到本机浏览器。');
+  return flushAutosave({manual:true});
 }
 function loadLocal(){
-  const raw=localStorage.getItem(STORAGE_CURRENT);
-  if(raw){
-    const data=JSON.parse(raw);
+  const data=readLocalDraft(document.getElementById('date')?.value || todayStr());
+  if(data){
     applyStructured(data.record);
-    alert('已读取上次保存。');
+    setAutosaveStatus(`已读取 ${data.record?.date || '上次'} 本机草稿`,'saved');
+    scheduleAutosave();
     return;
   }
   const legacyRaw=localStorage.getItem('tradeReviewDataV2');
-  if(!legacyRaw){ alert('没有找到上次保存。'); return; }
-  const data=JSON.parse(legacyRaw);
+  if(!legacyRaw){ setAutosaveStatus('没有找到可读取的草稿','error'); return; }
+  const legacy=JSON.parse(legacyRaw);
   document.getElementById('tradeBody').innerHTML='';
-  for(let i=0;i<(data.tradeCount||0);i++) addTrade();
+  for(let i=0;i<(legacy.tradeCount||0);i++) addTrade();
   const els=[...document.querySelectorAll('input,select,textarea')];
-  els.forEach((el,i)=>{ if(data[i]!==undefined) el.value=data[i]; });
+  els.forEach((el,i)=>{ if(legacy[i]!==undefined) el.value=legacy[i]; });
   recalc();
-  alert('已读取上次保存。');
+  scheduleAutosave();
+  setAutosaveStatus('已恢复旧版草稿，正在迁移到新版','saving');
 }
 </script>
 </body>

@@ -201,8 +201,8 @@ test('trade scoring uses three core dimensions and one compact transaction colum
   assert.doesNotMatch(scriptMatch[1], /timingScore|sizeScore/, 'trade data should no longer depend on old score dimensions');
   assert.match(scriptMatch[1], /scoreFromCoreDimensions/, '10-point score should be derived from the three core dimensions');
   const tradeHead = html.match(/<table id="tradeTable">[\s\S]*?<thead>([\s\S]*?)<\/thead>/)?.[1] || '';
-  assert.match(tradeHead, /<th>交易<\/th>/, 'side, price, quantity and amount should share one table header');
-  assert.doesNotMatch(tradeHead, /<th>买\/卖<\/th>|<th>金额<\/th>|<th>明细<\/th>/, 'old transaction headers should be removed');
+  assert.match(tradeHead, /<th[^>]*>交易<\/th>/, 'side, price, quantity and amount should share one table header');
+  assert.doesNotMatch(tradeHead, /<th[^>]*>买\/卖<\/th>|<th[^>]*>金额<\/th>|<th[^>]*>明细<\/th>/, 'old transaction headers should be removed');
   const addTradeBody = scriptMatch[1].match(/function addTrade\(data=\{\}\)\{([\s\S]*?)\n\}\nfunction calcAmount/)?.[1] || '';
   assert.match(addTradeBody, /class="trade-execution-cell"/, 'transaction fields should share one table cell');
   assert.match(addTradeBody, /class="trade-primary-grid"[\s\S]*class="trade-side"[\s\S]*class="trade-price"/, 'side and price should remain visible');
@@ -356,7 +356,7 @@ test('pending attempt drives the status card while the form source remains lates
   context.renderTzzbVerification(envelope);
   assert.equal(statusElements.get('tzzbReviewDate').textContent, '2026-07-15');
   assert.match(statusElements.get('tzzbCapturedAt').textContent, /2026/);
-  assert.equal(statusElements.get('tzzbVerificationState').textContent, '已核验 · 有新数据待对账');
+  assert.equal(statusElements.get('tzzbVerificationState').textContent, '已保留旧版 · 新数据对账中');
   assert.equal(statusElements.get('tzzbAuditReasons').textContent, '成交明细或分页不完整');
   assert.equal(statusElements.get('tzzbVerificationCard').dataset.state, 'pending');
   assert.match(scriptMatch[1], /applyTzzbReviewData\(envelope\.dailyReview/, 'pending metadata must never be passed to the form importer');
@@ -372,6 +372,43 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(config.mode, 'cloud');
   assert.equal(config.baseUrl, 'https://review.example.com');
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
+});
+
+test('drafts autosave locally and use the private cloud on hosted pages', () => {
+  assert.match(html, /id="autosaveStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.equal(typeof context.scheduleAutosave, 'function');
+  assert.equal(typeof context.flushAutosave, 'function');
+  assert.equal(typeof context.restoreDraftOnStartup, 'function');
+  assert.equal(typeof context.loadCloudDraft, 'function');
+  assert.match(scriptMatch[1], /\/api\/review-draft/);
+  assert.match(scriptMatch[1], /addEventListener\(['"]pagehide['"]/);
+  assert.match(scriptMatch[1], /visibilitychange/);
+  assert.match(scriptMatch[1], /applyTzzbReviewData[\s\S]*scheduleAutosave\(\)/);
+});
+
+test('form controls and tables expose accessible names', () => {
+  for (const id of [
+    'date', 'capital', 'position', 'pnl', 'indexState', 'mood', 'actionEnv',
+    'mainLines', 'marketOne', 'newPlan', 'banRule', 'rightThing', 'bigMistake'
+  ]) {
+    assert.match(html, new RegExp(`<label\\s+for=["']${id}["']`), `${id} should have a connected label`);
+  }
+  const headers = [...html.matchAll(/<th\b([^>]*)>/g)];
+  assert.ok(headers.length > 0);
+  assert.ok(headers.every((match) => /\bscope=["']col["']/.test(match[1])), 'every column header should declare scope');
+  const addTradeBody = scriptMatch[1].match(/function addTrade\(data=\{\}\)\{([\s\S]*?)\n\}\nfunction calcAmount/)?.[1] || '';
+  for (const label of [
+    '交易时间', '股票或 ETF 名称', '买卖方向', '成交价格', '成交数量', '成交金额',
+    '交易模式', '买卖理由', '删除此交易'
+  ]) {
+    assert.match(addTradeBody, new RegExp(`aria-label=["']${label}["']`), `${label} should be exposed`);
+  }
+  for (const label of ['计划性评分', '主线评分', '风控评分']) {
+    assert.match(context.scoreSelect(1, label), new RegExp(`aria-label=["']${label}["']`));
+  }
+  for (const label of ['时间', '股票/ETF', '交易', '模式', '理由', '计划性', '主线', '风控', '总分', '操作']) {
+    assert.match(addTradeBody, new RegExp(`data-label=["']${label}["']`), `mobile trade card should label ${label}`);
+  }
 });
 
 test('market snapshot application requires complete cloud fields regardless of source quality', () => {

@@ -11,9 +11,10 @@ import {
 import { createDailyReviewSync } from '../tools/daily-review-sync.mjs';
 import { normalizeCaptureEvidence } from '../tools/tzzb-evidence-adapter.mjs';
 import { createDailyReviewStore } from './daily-review-store.mjs';
+import { createReviewDraftStore } from './review-draft-store.mjs';
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, X-TZZB-Sync-Key, OAI-Sites-Authorization'
 };
 
@@ -167,6 +168,55 @@ async function syncHealth(request, sync) {
   }, {}, request);
 }
 
+function requestedReviewDate(url) {
+  const value = String(url.searchParams.get('date') || '');
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+}
+
+async function readReviewDraft(request, url, store) {
+  const reviewDate = requestedReviewDate(url);
+  if (!reviewDate) return json(400, { ok: false, error: '请提供有效的复盘日期。' }, {}, request);
+  const draft = await store.read(reviewDate);
+  if (!draft) return json(404, { ok: false, error: '云端还没有这一天的草稿。' }, {}, request);
+  return json(200, { ok: true, draft }, {}, request);
+}
+
+async function saveReviewDraft(request, store, now) {
+  const payload = await readJson(request);
+  const reviewDate = String(payload?.reviewDate || '');
+  const expectedVersion = Number(payload?.expectedVersion);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(reviewDate)
+    || !payload?.record
+    || typeof payload.record !== 'object'
+    || Array.isArray(payload.record)
+    || String(payload.record.date || '') !== reviewDate
+    || !Number.isSafeInteger(expectedVersion)
+    || expectedVersion < 0
+  ) {
+    return json(400, { ok: false, error: '云端草稿格式无效。' }, {}, request);
+  }
+  try {
+    const draft = await store.save({
+      reviewDate,
+      record: payload.record,
+      expectedVersion,
+      updatedAt: now().toISOString()
+    });
+    return json(200, { ok: true, draft }, {}, request);
+  } catch (error) {
+    if (error?.code === 'DRAFT_VERSION_CONFLICT') {
+      return json(409, {
+        ok: false,
+        error: '云端已有更新的草稿。',
+        current: error.current || null
+      }, {}, request);
+    }
+    if (error instanceof TypeError) return json(400, { ok: false, error: error.message }, {}, request);
+    throw error;
+  }
+}
+
 function shanghaiDate(value) {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',
@@ -265,7 +315,8 @@ export function createCloudWorker({
   fetchImpl = globalThis.fetch,
   now = () => new Date(),
   dailyReviewStoreFactory = ({ db }) => createDailyReviewStore(db),
-  dailyReviewSyncFactory = ({ db }) => createDailyReviewSync({ store: dailyReviewStoreFactory({ db }), now })
+  dailyReviewSyncFactory = ({ db }) => createDailyReviewSync({ store: dailyReviewStoreFactory({ db }), now }),
+  reviewDraftStoreFactory = ({ db }) => createReviewDraftStore(db)
 } = {}) {
   return {
     async fetch(request, env = {}) {
@@ -277,6 +328,19 @@ export function createCloudWorker({
 
       if (url.pathname === '/api/market-snapshot' && request.method === 'GET') {
         return marketSnapshot(fetchImpl, env, url, now);
+      }
+
+      if (url.pathname === '/api/review-draft') {
+        const denied = authorizeRead(request, env);
+        if (denied) return denied;
+        try {
+          const store = reviewDraftStoreFactory({ db: env.DB, env });
+          if (request.method === 'GET') return await readReviewDraft(request, url, store);
+          if (request.method === 'PUT') return await saveReviewDraft(request, store, now);
+          return json(405, { ok: false, error: 'Method Not Allowed' }, {}, request);
+        } catch {
+          return json(503, { ok: false, error: '云端草稿存储暂不可用。' }, {}, request);
+        }
       }
 
       const syncRoute = url.pathname === '/api/sync/tzzb'
