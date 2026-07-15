@@ -167,9 +167,10 @@ test('market snapshots refresh independently from verified review polling', () =
   );
   assert.match(
     scriptMatch[1],
-    /const applied = await importMarketSnapshot\(\{silent:true\}\);[\s\S]*if\(applied\) setTzzbImportStatus/,
+    /const reviewDate = document\.getElementById\('date'\)[\s\S]*const applied = await importMarketSnapshot\(\{silent:true,reviewDate\}\);[\s\S]*if\(applied\) setTzzbImportStatus/,
     'market refresh should only announce snapshots that changed the form'
   );
+  assert.match(html, /id="marketSyncStatus"[\s\S]*role="status"/, 'market auto-fill should expose a dedicated synchronization status');
 });
 
 test('page exposes a holding review module for tomorrow planning', () => {
@@ -195,18 +196,27 @@ test('tomorrow planning is consolidated into the holding review module', () => {
   assert.doesNotMatch(scriptMatch[1], /八、明日操作计划/, 'text export should merge tomorrow fields into the holding section');
 });
 
-test('trade scoring uses three core dimensions and one compact transaction column', () => {
+test('trade scoring uses six compact user-facing columns', () => {
   assert.doesNotMatch(html, /<th>买卖点<\/th>/, 'trade table should remove the old timing score column');
   assert.doesNotMatch(html, /<th>仓位<\/th>/, 'trade table should remove the old size score column');
   assert.doesNotMatch(scriptMatch[1], /timingScore|sizeScore/, 'trade data should no longer depend on old score dimensions');
   assert.match(scriptMatch[1], /scoreFromCoreDimensions/, '10-point score should be derived from the three core dimensions');
   const tradeHead = html.match(/<table id="tradeTable">[\s\S]*?<thead>([\s\S]*?)<\/thead>/)?.[1] || '';
-  assert.match(tradeHead, /<th>交易<\/th>/, 'side, price, quantity and amount should share one table header');
-  assert.doesNotMatch(tradeHead, /<th>买\/卖<\/th>|<th>金额<\/th>|<th>明细<\/th>/, 'old transaction headers should be removed');
+  const headerLabels = [...tradeHead.matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)]
+    .map((match) => match[1].replace(/<[^>]+>/g, '').trim());
+  assert.deepEqual(
+    headerLabels,
+    ['时间', '股票/ETF', '成交', '复盘', '交易质量', '操作'],
+    'trade table should expose six compact semantic columns'
+  );
+  assert.match(tradeHead, /<th[^>]*>成交<\/th>/, 'side, price, quantity and amount should share one table header');
+  assert.doesNotMatch(tradeHead, /<th[^>]*>买\/卖<\/th>|<th[^>]*>金额<\/th>|<th[^>]*>明细<\/th>|<th[^>]*>模式<\/th>|<th[^>]*>理由<\/th>|<th[^>]*>计划性<\/th>|<th[^>]*>主线<\/th>|<th[^>]*>风控<\/th>|<th[^>]*>总分<\/th>/, 'details and score dimensions should not become separate wide columns');
   const addTradeBody = scriptMatch[1].match(/function addTrade\(data=\{\}\)\{([\s\S]*?)\n\}\nfunction calcAmount/)?.[1] || '';
   assert.match(addTradeBody, /class="trade-execution-cell"/, 'transaction fields should share one table cell');
+  assert.match(addTradeBody, /class="trade-review-cell"[\s\S]*class="trade-mode"[\s\S]*class="trade-reason"/, 'mode and reason should share one review cell');
+  assert.match(addTradeBody, /class="trade-quality-cell"[\s\S]*计划[\s\S]*主线[\s\S]*风控[\s\S]*class="rowScore"/, 'three score dimensions and total should share one quality cell');
   assert.match(addTradeBody, /class="trade-primary-grid"[\s\S]*class="trade-side"[\s\S]*class="trade-price"/, 'side and price should remain visible');
-  assert.match(addTradeBody, /<details class="trade-detail-toggle">[\s\S]*数量 \/ 金额[\s\S]*class="trade-qty"[\s\S]*class="trade-amount"[\s\S]*<\/details>/, 'quantity and amount should share one folded detail area');
+  assert.match(addTradeBody, /<details class="trade-detail-toggle">[\s\S]*aria-label="展开数量、金额和行为标记"[\s\S]*明细[\s\S]*class="trade-qty"[\s\S]*class="trade-amount"[\s\S]*class="trade-flag-grid"[\s\S]*<\/details>/, 'quantity, amount and explicit risk flags should share one compact folded detail area');
   assert.match(addTradeBody, /tr\.dataset\.accountRef/, 'trade rows should retain the account identity used for stable cloud revisions');
   assert.match(addTradeBody, /tr\.dataset\.sequenceId/, 'trade rows should retain the broker sequence id used for stable cloud revisions');
   assert.match(addTradeBody, /tr\.dataset\.code/, 'trade rows should retain the security code used by fallback matching');
@@ -214,6 +224,13 @@ test('trade scoring uses three core dimensions and one compact transaction colum
   assert.match(collectTradeBody, /accountRef:\s*tr\.dataset\.accountRef/, 'saved local drafts should carry account identity across imports');
   assert.match(collectTradeBody, /sequenceId:\s*tr\.dataset\.sequenceId/, 'saved local drafts should carry the broker sequence id across imports');
   assert.match(collectTradeBody, /code:\s*tr\.dataset\.code/, 'saved local drafts should carry the security code across imports');
+});
+
+test('generated review requests the seven user-specified analysis sections', () => {
+  const requestedStructure = '市场环境—每笔交易—模式分类—风险控制—明日计划—相见龙虎榜—明日早报持仓';
+  assert.match(html, new RegExp(requestedStructure), 'the on-page helper should preview the final review structure');
+  assert.match(scriptMatch[1], new RegExp(`严格按照“${requestedStructure}”七个部分进行复盘`), 'generated text should request the exact seven-part structure');
+  assert.doesNotMatch(scriptMatch[1], /按市场环境、每笔交易质量、模式分类、风险控制、历史进步\/退步、明日计划六个部分/, 'the old six-part instruction should be removed');
 });
 
 test('verified cloud revisions preserve local trade and holding review fields', () => {
@@ -231,7 +248,8 @@ test('verified cloud revisions preserve local trade and holding review fields', 
     {
       accountRef: 'account-a', sequenceId: 'trade-1', code: '000001', name: '平安银行',
       time: '09:59:00', side: '买入', price: '10.00', qty: '100', amount: '1000.00',
-      mode: 'ETF主线', reason: '突破后按计划加仓', planScore: 2, lineScore: 1.5, riskScore: 2
+      mode: 'ETF主线', reason: '突破后按计划加仓', planScore: 2, lineScore: 1.5, riskScore: 2,
+      downwardAverage: true, lossReentry: true
     },
     {
       code: '600000', name: '浦发银行', time: '14:31:08', side: '卖出',
@@ -244,6 +262,8 @@ test('verified cloud revisions preserve local trade and holding review fields', 
   assert.equal(mergedTrades[0].mode, 'ETF主线');
   assert.equal(mergedTrades[0].reason, '突破后按计划加仓');
   assert.equal(mergedTrades[0].planScore, 2);
+  assert.equal(mergedTrades[0].downwardAverage, true, 'explicit discipline flags should survive verified cloud revisions');
+  assert.equal(mergedTrades[0].lossReentry, true, 'loss re-entry review evidence should remain manual data');
   assert.equal(mergedTrades[1].reason, '跌破预案位', 'fallback trade identity should preserve manual fields');
 
   const mergedHoldings = context.mergeSyncedHoldings([
@@ -356,7 +376,7 @@ test('pending attempt drives the status card while the form source remains lates
   context.renderTzzbVerification(envelope);
   assert.equal(statusElements.get('tzzbReviewDate').textContent, '2026-07-15');
   assert.match(statusElements.get('tzzbCapturedAt').textContent, /2026/);
-  assert.equal(statusElements.get('tzzbVerificationState').textContent, '已核验 · 有新数据待对账');
+  assert.equal(statusElements.get('tzzbVerificationState').textContent, '已保留旧版 · 新数据对账中');
   assert.equal(statusElements.get('tzzbAuditReasons').textContent, '成交明细或分页不完整');
   assert.equal(statusElements.get('tzzbVerificationCard').dataset.state, 'pending');
   assert.match(scriptMatch[1], /applyTzzbReviewData\(envelope\.dailyReview/, 'pending metadata must never be passed to the form importer');
@@ -372,6 +392,43 @@ test('hosted page defaults to same-origin cloud sync', () => {
   assert.equal(config.mode, 'cloud');
   assert.equal(config.baseUrl, 'https://review.example.com');
   assert.equal(context.tzzbSyncSourceLabel(config), '云端同步');
+});
+
+test('drafts autosave locally and use the private cloud on hosted pages', () => {
+  assert.match(html, /id="autosaveStatus"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.equal(typeof context.scheduleAutosave, 'function');
+  assert.equal(typeof context.flushAutosave, 'function');
+  assert.equal(typeof context.restoreDraftOnStartup, 'function');
+  assert.equal(typeof context.loadCloudDraft, 'function');
+  assert.match(scriptMatch[1], /\/api\/review-draft/);
+  assert.match(scriptMatch[1], /addEventListener\(['"]pagehide['"]/);
+  assert.match(scriptMatch[1], /visibilitychange/);
+  assert.match(scriptMatch[1], /applyTzzbReviewData[\s\S]*scheduleAutosave\(\)/);
+});
+
+test('form controls and tables expose accessible names', () => {
+  for (const id of [
+    'date', 'capital', 'position', 'pnl', 'indexState', 'mood', 'actionEnv',
+    'mainLines', 'marketOne', 'newPlan', 'banRule', 'rightThing', 'bigMistake'
+  ]) {
+    assert.match(html, new RegExp(`<label\\s+for=["']${id}["']`), `${id} should have a connected label`);
+  }
+  const headers = [...html.matchAll(/<th\b([^>]*)>/g)];
+  assert.ok(headers.length > 0);
+  assert.ok(headers.every((match) => /\bscope=["']col["']/.test(match[1])), 'every column header should declare scope');
+  const addTradeBody = scriptMatch[1].match(/function addTrade\(data=\{\}\)\{([\s\S]*?)\n\}\nfunction calcAmount/)?.[1] || '';
+  for (const label of [
+    '交易时间', '股票或 ETF 名称', '买卖方向', '成交价格', '成交数量', '成交金额',
+    '交易模式', '买卖理由', '删除此交易'
+  ]) {
+    assert.match(addTradeBody, new RegExp(`aria-label=["']${label}["']`), `${label} should be exposed`);
+  }
+  for (const label of ['计划性评分', '主线评分', '风控评分']) {
+    assert.match(context.scoreSelect(1, label), new RegExp(`aria-label=["']${label}["']`));
+  }
+  for (const label of ['时间', '股票/ETF', '成交', '复盘', '交易质量', '操作']) {
+    assert.match(addTradeBody, new RegExp(`data-label=["']${label}["']`), `mobile trade card should label ${label}`);
+  }
 });
 
 test('market snapshot application requires complete cloud fields regardless of source quality', () => {

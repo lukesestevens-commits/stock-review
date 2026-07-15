@@ -48,6 +48,8 @@ await page.locator('summary', { hasText: '备用工具' }).click();
 await page.locator('button', { hasText: '截图智能导入' }).first().click();
 const modalBox = await page.locator('#ocrModal .modal').boundingBox();
 assert.ok(modalBox.width <= 390, `mobile modal should fit viewport, width=${modalBox.width}`);
+const modalCloseBox = await page.locator('#ocrModal .icon-btn').boundingBox();
+assert.ok(modalCloseBox.width >= 44 && modalCloseBox.height >= 44, 'mobile modal close control should be at least 44px square');
 
 await browser.close();
 console.log('PASS browser smoke');

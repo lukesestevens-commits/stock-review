@@ -241,13 +241,39 @@ function completeTradeRecords(records, accountRef, reviewDate) {
     && record.request?.startDate === reviewDate
     && record.request?.endDate === reviewDate
   ));
-  if (!matching.length) return { complete: false, trades: [] };
-  const maxPage = Math.max(...matching.map((record) => Number(record.payload?.maxPage || 1)));
-  const pages = new Set(matching.map((record) => Number(record.payload?.page || record.request?.page || 1)));
-  for (let page = 1; page <= maxPage; page += 1) {
-    if (!pages.has(page)) return { complete: false, trades: [] };
+  if (!matching.length) return { complete: false, trades: [], warnings: [] };
+  const pageSnapshots = new Map();
+  for (const [index, record] of matching.entries()) {
+    const page = Number(record.payload?.page || record.request?.page || 1);
+    if (!Number.isSafeInteger(page) || page < 1 || !Array.isArray(record.payload?.trades)) {
+      return { complete: false, trades: [], warnings: [] };
+    }
+    const candidate = { record, index, capturedAt: String(record.capturedAt || '') };
+    const existing = pageSnapshots.get(page);
+    if (
+      !existing
+      || candidate.capturedAt > existing.capturedAt
+      || (candidate.capturedAt === existing.capturedAt && candidate.index > existing.index)
+    ) {
+      pageSnapshots.set(page, candidate);
+    }
   }
-  const declaredTotals = matching
+  const selected = [...pageSnapshots.values()]
+    .map((snapshot) => snapshot.record)
+    .sort((left, right) => Number(left.payload.page) - Number(right.payload.page));
+  const maxPages = selected.map((record) => Number(record.payload?.maxPage));
+  if (
+    maxPages.some((value) => !Number.isSafeInteger(value) || value < 1)
+    || new Set(maxPages).size !== 1
+  ) {
+    return { complete: false, trades: [], warnings: [] };
+  }
+  const maxPage = maxPages[0];
+  const pages = new Set(selected.map((record) => Number(record.payload.page)));
+  for (let page = 1; page <= maxPage; page += 1) {
+    if (!pages.has(page)) return { complete: false, trades: [], warnings: [] };
+  }
+  const declaredTotals = selected
     .map((record) => record.payload?.total)
     .filter((value) => value !== undefined && value !== null && value !== '')
     .map(Number);
@@ -256,23 +282,71 @@ function completeTradeRecords(records, accountRef, reviewDate) {
     || declaredTotals.some((value) => !Number.isSafeInteger(value) || value < 0)
     || new Set(declaredTotals).size !== 1
   ) {
-    return { complete: false, trades: [] };
+    return { complete: false, trades: [], warnings: [] };
   }
-  const seen = new Set();
+  const seenSequences = new Set();
+  const noSequenceCounts = new Map();
   const trades = [];
-  for (const record of matching) {
+  for (const record of selected) {
     for (const trade of record.payload?.trades || []) {
       if (trade.date && trade.date !== reviewDate) continue;
-      const key = trade.sequenceId
-        ? `sequence:${trade.sequenceId}`
-        : JSON.stringify(stableValue(trade));
-      if (seen.has(key)) continue;
-      seen.add(key);
+      const sequenceId = String(trade.sequenceId || '').trim();
+      if (sequenceId) {
+        if (seenSequences.has(sequenceId)) continue;
+        seenSequences.add(sequenceId);
+      } else {
+        const occurrence = JSON.stringify(stableValue(trade));
+        noSequenceCounts.set(occurrence, (noSequenceCounts.get(occurrence) || 0) + 1);
+      }
       trades.push({ ...trade, accountRef });
     }
   }
-  if (trades.length !== declaredTotals[0]) return { complete: false, trades: [] };
-  return { complete: true, trades };
+  if (trades.length !== declaredTotals[0]) return { complete: false, trades: [], warnings: [] };
+  const identicalOccurrenceCount = [...noSequenceCounts.values()]
+    .reduce((total, count) => total + Math.max(0, count - 1), 0);
+  return {
+    complete: true,
+    trades,
+    warnings: identicalOccurrenceCount
+      ? [{
+          code: 'TRADE_HISTORY_IDENTICAL_OCCURRENCES_PRESERVED',
+          accountRef,
+          count: identicalOccurrenceCount
+        }]
+      : []
+  };
+}
+
+function previousAssetIsZero(rows, previousReviewDate) {
+  const row = datedRows(rows).find((candidate) => candidate.date === previousReviewDate);
+  const asset = String(row?.asset ?? '').trim();
+  return Boolean(asset) && moneyValue(asset) === 0n;
+}
+
+function confirmedZeroBalanceAccount({
+  position,
+  trend,
+  history,
+  tradeSummary,
+  previousReviewDate,
+  accountAsset,
+  accountLiability,
+  accountCash,
+  accountPositionValue,
+  declaredValueText
+}) {
+  return accountAsset === 0n
+    && accountLiability === 0n
+    && accountCash === 0n
+    && accountPositionValue === 0n
+    && Boolean(declaredValueText)
+    && moneyValue(declaredValueText) === 0n
+    && !(position.payload.positions || []).some(activePosition)
+    && history.complete
+    && history.trades.length === 0
+    && tradeSummary.matched
+    && tradeSummary.empty
+    && previousAssetIsZero(trend.payload.totalAssetHistory, previousReviewDate);
 }
 
 function tradeSide(value) {
@@ -376,6 +450,7 @@ function buildReview({ records, activeAccountRefs, reviewDate, previousReviewDat
     if (!trend) issues.push({ code: 'ASSET_TREND_MISSING', accountRef });
     if (!history.complete) issues.push({ code: 'TRADE_HISTORY_INCOMPLETE', accountRef, reviewDate });
     if (!position || !trend || !history.complete) continue;
+    warnings.push(...history.warnings);
 
     const tradeSummary = tradeSummaryResult(records, accountRef, reviewDate, history.trades, captureDate);
     if (tradeSummary.unavailable) {
@@ -460,13 +535,40 @@ function buildReview({ records, activeAccountRefs, reviewDate, previousReviewDat
       adjacentDifference(trend.payload.totalAssetHistory, reviewDate, previousReviewDate, 'profit'),
       netAssetDifference(trend.payload.totalAssetHistory, reviewDate, previousReviewDate)
     ].filter((value) => value !== null);
-    if (monthPnl === null) {
+    let accountPnl = monthPnl;
+    const zeroBalanceConfirmed = monthPnl === null && confirmedZeroBalanceAccount({
+      position,
+      trend,
+      history,
+      tradeSummary,
+      previousReviewDate,
+      accountAsset,
+      accountLiability,
+      accountCash,
+      accountPositionValue,
+      declaredValueText
+    });
+    const zeroBalanceCrossCheckConflict = zeroBalanceConfirmed
+      && crossChecks.some((value) => abs(value) > MONEY_TOLERANCE);
+    if (zeroBalanceConfirmed && zeroBalanceCrossCheckConflict) {
+      issues.push({
+        code: 'PNL_RECONCILIATION_FAILED',
+        accountRef,
+        reviewDate,
+        reason: 'ZERO_BALANCE_CROSS_CHECK_NONZERO'
+      });
+    } else if (zeroBalanceConfirmed) {
+      accountPnl = 0n;
+      warnings.push({ code: 'MONTH_PNL_DERIVED_ZERO_BALANCE_ACCOUNT', accountRef, reviewDate });
+    } else if (monthPnl === null) {
       issues.push({ code: 'MONTH_PNL_MISSING', accountRef, reviewDate });
     } else if (!crossChecks.some((value) => abs(value - monthPnl) <= MONEY_TOLERANCE)) {
       issues.push({ code: 'PNL_RECONCILIATION_FAILED', accountRef, reviewDate });
-    } else {
-      pnl += monthPnl;
     }
+    if (accountPnl !== null && !issues.some((issue) => (
+      issue.accountRef === accountRef
+      && ['MONTH_PNL_MISSING', 'PNL_RECONCILIATION_FAILED'].includes(issue.code)
+    ))) pnl += accountPnl;
 
     for (const trade of history.trades) {
       if (!reverseRepo(trade)) visibleTrades.push(visibleTrade(trade));
@@ -475,14 +577,14 @@ function buildReview({ records, activeAccountRefs, reviewDate, previousReviewDat
     for (const endpoint of ['time_share', 'stock_card']) {
       const display = latestRecord(records, endpoint, accountRef);
       const displayPnl = display?.payload?.displayPnl;
-      if (monthPnl !== null && displayPnl !== undefined && displayPnl !== '') {
+      if (accountPnl !== null && displayPnl !== undefined && displayPnl !== '') {
         const reported = moneyValue(displayPnl);
-        if (abs(reported - monthPnl) > MONEY_TOLERANCE) {
+        if (abs(reported - accountPnl) > MONEY_TOLERANCE) {
           warnings.push({
             code: 'DISPLAY_PNL_MISMATCH',
             accountRef,
             source: endpoint,
-            expected: formatMoney(monthPnl),
+            expected: formatMoney(accountPnl),
             actual: formatMoney(reported)
           });
         }

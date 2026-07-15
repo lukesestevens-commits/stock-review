@@ -10,7 +10,7 @@ import { createDailyReviewSync } from './daily-review-sync.mjs';
 import { normalizeCaptureEvidence } from './tzzb-evidence-adapter.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const helperVersion = '2026.07.15-daily-review-private-r11';
+const helperVersion = '2026.07.15-daily-review-private-r12';
 const dataDir = process.env.TZZB_DATA_DIR
   ? path.resolve(process.env.TZZB_DATA_DIR)
   : path.join(rootDir, 'data', 'tzzb');
