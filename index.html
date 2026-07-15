@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4f1ea">
 <title>A股每日复盘工作台</title>
 <meta name="description" content="私有的 A 股收盘复盘工作台，自动同步同花顺数据并保存云端草稿。">
 <style>
@@ -1759,6 +1760,359 @@
     .command-palette-backdrop{padding:8px}
     .command-palette{max-height:calc(100dvh - 16px);border-radius:14px}
   }
+
+  /* P2 responsive polish: distinct card depth, aligned mobile forms and holding cards. */
+  :root{
+    --surface-outer:#ece6db;
+    --surface-nested:#f5f1e9;
+    --surface-inner:#fffefa;
+    --border-outer:#c8beae;
+    --border-nested:#d4ccbf;
+    --border-inner:#ded7cb;
+    --overlay-theme:#6f6b64;
+  }
+  html{
+    -webkit-text-size-adjust:100%;
+    text-size-adjust:100%;
+  }
+  .section{
+    background:var(--surface-outer);
+    border-color:var(--border-outer);
+    box-shadow:0 12px 28px rgba(56,50,42,.085),inset 0 1px 0 rgba(255,255,255,.72);
+  }
+  .section-head{
+    border-bottom:1px solid rgba(200,190,174,.48);
+  }
+  .section-title h2{
+    font-size:clamp(18px,1.75vw,22px);
+    line-height:1.3;
+  }
+  .section-title p{
+    max-width:760px;
+    font-size:13px;
+    line-height:1.55;
+  }
+  .discipline-panel,.history-filter,.sync-proof{
+    background:var(--surface-nested);
+    border-color:var(--border-nested);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7);
+  }
+  .field,.panel,.quality-box,.score-item,.history-kpi,.history-list-card,.discipline-alert,.table-wrap{
+    background:var(--surface-inner);
+    border-color:var(--border-inner);
+    box-shadow:0 5px 14px rgba(61,55,47,.045),inset 0 1px 0 rgba(255,255,255,.88);
+  }
+  .field label{
+    color:#303b50;
+    font-size:13px;
+    line-height:1.4;
+  }
+  input,select,textarea{
+    min-width:0;
+    max-width:100%;
+    font-size:14px;
+    line-height:1.5;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),select{
+    min-height:44px;
+  }
+  textarea{min-height:88px}
+  .discipline-settings-grid{align-items:stretch}
+  .discipline-settings-grid .field{
+    display:grid;
+    grid-template-rows:minmax(36px,auto) 46px;
+    align-content:start;
+    gap:7px;
+  }
+  .discipline-settings-grid .field label{
+    align-items:flex-start;
+    margin:0;
+  }
+  .discipline-settings-grid input{
+    width:100%;
+    height:46px;
+    min-height:46px;
+  }
+
+  .holding-table-wrap{overflow:hidden}
+  #holdingTable{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    table-layout:fixed;
+  }
+  #holdingTable th:nth-child(n),#holdingTable td:nth-child(n){width:auto;min-width:0}
+  #holdingTable th:nth-child(1){width:15%}
+  #holdingTable th:nth-child(2){width:14%}
+  #holdingTable th:nth-child(3){width:11%}
+  #holdingTable th:nth-child(4){width:12%}
+  #holdingTable th:nth-child(5){width:20%}
+  #holdingTable th:nth-child(6){width:22%}
+  #holdingTable th:nth-child(7){width:6%}
+  #holdingTable th{padding:9px 7px}
+  #holdingTable td{padding:8px 7px;vertical-align:top}
+  #holdingTable td input,#holdingTable td select,#holdingTable td textarea{
+    width:100%;
+    max-width:100%;
+    font-size:13px;
+  }
+  #holdingTable td input,#holdingTable td select{height:44px;min-height:44px}
+  #holdingTable td textarea{min-height:96px;max-height:180px}
+  #holdingTable tbody tr:last-child td{border-bottom:0}
+  .holding-input-stack{display:grid;gap:8px;min-width:0}
+  .next-day-plan-grid{
+    margin-top:14px;
+    align-items:stretch;
+  }
+  .next-day-plan-grid .field{
+    display:flex;
+    min-width:0;
+    flex-direction:column;
+  }
+  .next-day-plan-grid textarea{
+    flex:1 1 auto;
+    min-height:118px;
+  }
+
+  .modal-backdrop,.command-palette-backdrop,.app-notice-backdrop{
+    inset:0;
+    width:100vw;
+    max-width:none;
+    height:100vh;
+    height:100dvh;
+    overscroll-behavior:contain;
+  }
+  .modal-backdrop{
+    z-index:120;
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      calc(18px + env(safe-area-inset-right))
+      calc(18px + env(safe-area-inset-bottom))
+      calc(18px + env(safe-area-inset-left));
+  }
+  .command-palette-backdrop{z-index:130}
+  .app-notice-backdrop{
+    position:fixed;
+    z-index:200;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:
+      calc(18px + env(safe-area-inset-top))
+      calc(18px + env(safe-area-inset-right))
+      calc(18px + env(safe-area-inset-bottom))
+      calc(18px + env(safe-area-inset-left));
+    background:rgba(25,24,22,.52);
+    backdrop-filter:blur(10px) saturate(92%);
+    -webkit-backdrop-filter:blur(10px) saturate(92%);
+  }
+  .app-notice-backdrop.show{display:flex}
+  .app-notice{
+    width:min(520px,100%);
+    max-height:min(76vh,520px);
+    max-height:min(76dvh,520px);
+    overflow:auto;
+    padding:22px;
+    border:1px solid rgba(255,255,255,.88);
+    border-radius:18px;
+    background:rgba(255,254,251,.97);
+    box-shadow:0 28px 80px rgba(35,32,28,.32);
+  }
+  .app-notice h2{margin:0;color:var(--text);font-size:19px;line-height:1.35}
+  .app-notice p{
+    margin:12px 0 0;
+    color:#46433d;
+    font-size:15px;
+    line-height:1.7;
+    white-space:pre-line;
+    overflow-wrap:anywhere;
+  }
+  .app-notice-actions{display:flex;justify-content:flex-end;margin-top:18px}
+  html.notice-open{overflow:hidden}
+  body.notice-open:not(.modal-open){
+    position:fixed;
+    top:var(--notice-scroll-offset,0px);
+    left:0;
+    right:0;
+    width:100%;
+    overflow:hidden;
+  }
+
+  @media(max-width:1119px){
+    .holding-table-wrap{
+      overflow:visible;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+    }
+    #holdingTable{
+      display:block;
+      width:100%;
+      min-width:0;
+      table-layout:auto;
+    }
+    #holdingTable thead{
+      position:absolute;
+      width:1px;
+      height:1px;
+      padding:0;
+      margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+    #holdingTable tbody{
+      display:grid;
+      gap:12px;
+      width:100%;
+      min-width:0;
+    }
+    #holdingTable tbody tr:not(.holding-empty){
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-areas:
+        "identity position"
+        "core action"
+        "logic trigger"
+        "delete delete";
+      gap:12px;
+      width:100%;
+      min-width:0;
+      padding:14px;
+      border:1px solid var(--border-inner);
+      border-radius:14px;
+      background:var(--surface-inner);
+      box-shadow:0 6px 18px rgba(61,55,47,.05);
+    }
+    #holdingTable .holding-identity-cell{grid-area:identity}
+    #holdingTable .holding-position-cell{grid-area:position}
+    #holdingTable .holding-core-cell{grid-area:core}
+    #holdingTable .holding-logic-cell{grid-area:logic}
+    #holdingTable .holding-action-cell{grid-area:action}
+    #holdingTable .holding-trigger-cell{grid-area:trigger}
+    #holdingTable .holding-delete-cell{grid-area:delete}
+    #holdingTable tbody tr:not(.holding-empty) td,
+    #holdingTable tbody tr:not(.holding-empty) td:nth-child(n){
+      display:block;
+      width:auto;
+      min-width:0;
+      padding:0;
+      border:0;
+    }
+    #holdingTable tbody tr:not(.holding-empty) td::before{
+      content:attr(data-label);
+      display:block;
+      margin-bottom:6px;
+      color:var(--text-muted);
+      font-size:12px;
+      font-weight:800;
+      line-height:1.3;
+    }
+    #holdingTable .holding-input-stack{grid-template-columns:repeat(2,minmax(0,1fr))}
+    #holdingTable .holding-delete-cell{text-align:right}
+    #holdingTable .holding-delete-cell::before{display:none}
+    #holdingTable .holding-delete-cell .btn-danger{width:auto;min-width:72px}
+    #holdingTable .holding-empty{
+      display:block;
+      width:100%;
+      min-width:0;
+      padding:16px;
+      border:1px dashed var(--border-inner);
+      border-radius:14px;
+      background:var(--surface-inner);
+    }
+    #holdingTable .holding-empty td{
+      display:block;
+      width:100%;
+      padding:0;
+      border:0;
+      overflow-wrap:anywhere;
+    }
+  }
+  @media(max-width:980px){
+    input:is([type="date"],[type="time"],[type="month"]){
+      appearance:none;
+      -webkit-appearance:none;
+      display:block;
+      inline-size:100%;
+      min-inline-size:0;
+      max-inline-size:100%;
+      overflow:hidden;
+    }
+    input:is([type="date"],[type="time"],[type="month"])::-webkit-date-and-time-value{
+      min-width:0;
+      text-align:left;
+    }
+    body input:not([type="checkbox"]):not([type="radio"]),body select,body textarea{
+      font-size:16px!important;
+    }
+  }
+  @media(max-width:620px){
+    .section{border-radius:16px}
+    .section-head{
+      display:grid;
+      grid-template-columns:minmax(0,1fr);
+      gap:12px;
+      padding:14px 12px 11px;
+    }
+    .section-title{
+      width:100%;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .section-num{flex:0 0 34px;width:34px;height:34px}
+    .section-title h2{font-size:19px}
+    .section-title p{font-size:13px;line-height:1.55}
+    .section-body{padding:12px}
+    .section-head + .section-body{padding-top:12px}
+    .section-head > .toolbar{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      width:100%;
+      gap:8px;
+    }
+    .section-head > .toolbar button{width:100%;min-width:0;padding-inline:10px}
+    .discipline-panel{padding:13px}
+    .discipline-alerts{overflow:visible;max-height:none;padding-right:0}
+    .discipline-settings-grid{gap:10px}
+    .discipline-settings-grid .field{grid-template-rows:auto 46px}
+    #holdingTable tbody tr:not(.holding-empty){
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      grid-template-areas:
+        "identity identity"
+        "position position"
+        "core action"
+        "logic logic"
+        "trigger trigger"
+        "delete delete";
+      gap:11px 8px;
+      padding:12px;
+    }
+    #holdingTable td textarea{min-height:100px}
+    #holdingTable .holding-delete-cell .btn-danger{width:100%;min-width:0}
+    .next-day-plan-grid{gap:10px}
+    .next-day-plan-grid .field{padding:12px}
+    .next-day-plan-grid textarea{min-height:116px}
+    .app-notice-backdrop{
+      padding:
+        calc(12px + env(safe-area-inset-top))
+        calc(12px + env(safe-area-inset-right))
+        calc(12px + env(safe-area-inset-bottom))
+        calc(12px + env(safe-area-inset-left));
+    }
+    .app-notice{padding:20px;border-radius:16px}
+    .app-notice-actions .btn-red{width:100%}
+  }
+  @media(max-width:360px){
+    .shell{
+      padding-left:calc(6px + env(safe-area-inset-left));
+      padding-right:calc(6px + env(safe-area-inset-right));
+    }
+    .section-head > .toolbar{grid-template-columns:1fr}
+    #holdingTable tbody tr:not(.holding-empty){padding:10px}
+  }
   @media(prefers-reduced-motion:reduce){
     *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
   }
@@ -2014,7 +2368,7 @@
         </div>
       </div>
       <div class="section-body">
-        <div class="table-wrap">
+        <div class="table-wrap holding-table-wrap">
           <table id="holdingTable" class="holding-table">
             <caption class="sr-only">当前持仓复盘与明日计划</caption>
             <thead>
@@ -2022,8 +2376,8 @@
                 <th scope="col">股票/ETF</th>
                 <th scope="col">市值 / 仓位</th>
                 <th scope="col">是否核心</th>
-                <th scope="col">持仓逻辑是否成立</th>
                 <th scope="col">明日处理</th>
+                <th scope="col">持仓逻辑是否成立</th>
                 <th scope="col">触发条件</th>
                 <th scope="col"><span class="sr-only">操作</span></th>
               </tr>
@@ -2033,9 +2387,9 @@
             </tbody>
           </table>
         </div>
-        <div class="grid g2" style="margin-top:14px">
+        <div class="grid g2 next-day-plan-grid">
           <div class="field"><label for="newPlan">明日允许新开的仓位 / 方向</label><textarea id="newPlan" placeholder="例如：只允许做一只盘前计划内主线核心，仓位不超过1成。"></textarea></div>
-          <div class="field"><label for="banRule">明日禁令</label><input id="banRule" value="开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。"></div>
+          <div class="field"><label for="banRule">明日禁令</label><textarea id="banRule">开盘前30分钟不新增陌生票；单只股票一手金额超过账户15%，不得作为开盘试错单。</textarea></div>
         </div>
       </div>
     </section>
@@ -2249,6 +2603,16 @@
     </div>
   </div>
 
+  <div class="app-notice-backdrop" id="appNoticeBackdrop" aria-hidden="true" onclick="handleNoticeBackdropClick(event)">
+    <section class="app-notice" role="alertdialog" aria-modal="true" aria-labelledby="appNoticeTitle" aria-describedby="appNoticeMessage">
+      <h2 id="appNoticeTitle">提示</h2>
+      <p id="appNoticeMessage"></p>
+      <div class="app-notice-actions">
+        <button type="button" class="btn-red" id="appNoticeClose" onclick="closeNotice()">关闭</button>
+      </div>
+    </section>
+  </div>
+
   <div class="floating">
     <button type="button" class="fab" aria-label="回到顶部" title="回到顶部" onclick="scrollReviewToTop()">↑</button>
   </div>
@@ -2257,6 +2621,100 @@
 function scrollReviewToTop(){
   const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   window.scrollTo({top:0,behavior:reduced ? 'auto' : 'smooth'});
+}
+
+const BASE_THEME_COLOR = '#f4f1ea';
+const OVERLAY_THEME_COLOR = '#6f6b64';
+let noticePageScrollY = 0;
+let noticeTriggerElement = null;
+let noticeOwnsScrollLock = false;
+function refreshBrowserChromeTheme(){
+  const overlayOpen = ['ocrModal','commandPaletteBackdrop','appNoticeBackdrop']
+    .some(id=>document.getElementById(id)?.classList.contains('show'));
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content', overlayOpen ? OVERLAY_THEME_COLOR : BASE_THEME_COLOR);
+}
+function getNoticeFocusableElements(){
+  const backdrop = document.getElementById('appNoticeBackdrop');
+  return backdrop
+    ? [...backdrop.querySelectorAll('button,[href],[tabindex]:not([tabindex="-1"])')]
+      .filter(element=>!element.disabled && element.getClientRects().length)
+    : [];
+}
+function handleNoticeKeydown(event){
+  const backdrop = document.getElementById('appNoticeBackdrop');
+  if(!backdrop?.classList.contains('show')) return;
+  if(event.key === 'Escape'){
+    event.preventDefault();
+    closeNotice();
+    return;
+  }
+  if(event.key !== 'Tab') return;
+  const focusable = getNoticeFocusableElements();
+  if(!focusable.length){
+    event.preventDefault();
+    return;
+  }
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if(event.shiftKey && (document.activeElement === first || !backdrop.contains(document.activeElement))){
+    event.preventDefault();
+    last.focus();
+  }else if(!event.shiftKey && (document.activeElement === last || !backdrop.contains(document.activeElement))){
+    event.preventDefault();
+    first.focus();
+  }
+}
+function showNotice(message, options={}){
+  const backdrop = document.getElementById('appNoticeBackdrop');
+  if(!backdrop){
+    console.warn(String(message || ''));
+    return;
+  }
+  if(document.getElementById('commandPaletteBackdrop')?.classList.contains('show')){
+    closeCommandPalette({restoreFocus:false});
+  }
+  const wasOpen = backdrop.classList.contains('show');
+  if(!wasOpen){
+    const active = document.activeElement;
+    noticeTriggerElement = active && typeof active.focus === 'function' ? active : null;
+    noticePageScrollY = window.scrollY;
+    noticeOwnsScrollLock = !document.body.classList.contains('modal-open');
+    if(noticeOwnsScrollLock){
+      document.body.style.setProperty('--notice-scroll-offset', `-${noticePageScrollY}px`);
+    }
+    document.documentElement.classList.add('notice-open');
+    document.body.classList.add('notice-open');
+  }
+  const title = document.getElementById('appNoticeTitle');
+  const messageElement = document.getElementById('appNoticeMessage');
+  if(title) title.textContent = options.title || '提示';
+  if(messageElement) messageElement.textContent = String(message || '');
+  backdrop.classList.add('show');
+  backdrop.setAttribute('aria-hidden','false');
+  document.addEventListener('keydown',handleNoticeKeydown);
+  refreshBrowserChromeTheme();
+  document.getElementById('appNoticeClose')?.focus();
+}
+function closeNotice(){
+  const backdrop = document.getElementById('appNoticeBackdrop');
+  if(!backdrop?.classList.contains('show')) return;
+  backdrop.classList.remove('show');
+  backdrop.setAttribute('aria-hidden','true');
+  document.removeEventListener('keydown',handleNoticeKeydown);
+  document.documentElement.classList.remove('notice-open');
+  document.body.classList.remove('notice-open');
+  if(noticeOwnsScrollLock){
+    document.body.style.removeProperty('--notice-scroll-offset');
+  }
+  noticeOwnsScrollLock = false;
+  refreshBrowserChromeTheme();
+  noticeTriggerElement?.focus?.({preventScroll:true});
+  window.scrollTo(0,noticePageScrollY);
+  noticeTriggerElement = null;
+}
+function handleNoticeBackdropClick(event){
+  if(event.target?.id === 'appNoticeBackdrop') closeNotice();
 }
 
 const QUOTES = [
@@ -2903,19 +3361,23 @@ function addHoldingReviewRow(data={}){
   removeHoldingEmpty();
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td>
-      <input class="holding-name" aria-label="持仓股票或 ETF 名称" placeholder="股票/ETF" value="${esc(data.name||'')}">
-      <input class="holding-code" aria-label="持仓证券代码" placeholder="代码" value="${esc(data.code||'')}" style="margin-top:8px">
+    <td class="holding-identity-cell" data-label="股票/ETF">
+      <div class="holding-input-stack">
+        <input class="holding-name" aria-label="持仓股票或 ETF 名称" placeholder="股票/ETF" value="${esc(data.name||'')}">
+        <input class="holding-code" aria-label="持仓证券代码" placeholder="代码" value="${esc(data.code||'')}">
+      </div>
     </td>
-    <td>
-      <input class="holding-value" aria-label="持仓市值" placeholder="市值" value="${esc(data.value||'')}">
-      <input class="holding-weight" aria-label="持仓占比" placeholder="仓位占比" value="${esc(data.weight||'')}" style="margin-top:8px">
+    <td class="holding-position-cell" data-label="市值 / 仓位">
+      <div class="holding-input-stack">
+        <input class="holding-value" aria-label="持仓市值" placeholder="市值" value="${esc(data.value||'')}">
+        <input class="holding-weight" aria-label="持仓占比" placeholder="仓位占比" value="${esc(data.weight||'')}">
+      </div>
     </td>
-    <td>${holdingCoreSelect(data.isCore || '待判断')}</td>
-    <td><textarea class="holding-logic" aria-label="持仓逻辑" placeholder="例如：仍是主线核心，承接未破坏。">${esc(data.logic||'')}</textarea></td>
-    <td>${holdingActionSelect(data.tomorrowAction || '观察')}</td>
-    <td><textarea class="holding-trigger" aria-label="持仓处理触发条件" placeholder="例如：跌破5日线减仓；放量突破再加。">${esc(data.trigger||'')}</textarea></td>
-    <td><button class="btn-danger" aria-label="删除此持仓复盘" onclick="this.closest('tr').remove();renderHoldingEmpty();scheduleAutosave()">删</button></td>`;
+    <td class="holding-core-cell" data-label="是否核心">${holdingCoreSelect(data.isCore || '待判断')}</td>
+    <td class="holding-action-cell" data-label="明日处理">${holdingActionSelect(data.tomorrowAction || '观察')}</td>
+    <td class="holding-logic-cell" data-label="持仓逻辑"><textarea class="holding-logic" aria-label="持仓逻辑" placeholder="例如：仍是主线核心，承接未破坏。">${esc(data.logic||'')}</textarea></td>
+    <td class="holding-trigger-cell" data-label="触发条件"><textarea class="holding-trigger" aria-label="持仓处理触发条件" placeholder="例如：跌破5日线减仓；放量突破再加。">${esc(data.trigger||'')}</textarea></td>
+    <td class="holding-delete-cell" data-label="操作"><button class="btn-danger" aria-label="删除此持仓复盘" onclick="this.closest('tr').remove();renderHoldingEmpty();scheduleAutosave()">删除</button></td>`;
   body.appendChild(tr);
 }
 function clearHoldingPlans(){
@@ -3091,6 +3553,7 @@ function getOcrModalFocusableElements(modal){
 function handleOcrModalKeydown(event){
   const modal = document.getElementById('ocrModal');
   if(!modal?.classList.contains('show')) return;
+  if(document.getElementById('appNoticeBackdrop')?.classList.contains('show')) return;
   if(event.key === 'Escape'){
     event.preventDefault();
     closeOcrModal();
@@ -3126,6 +3589,7 @@ function openOcrModal(trigger){
   modal.classList.add('show');
   modal.setAttribute('aria-hidden','false');
   document.addEventListener('keydown', handleOcrModalKeydown);
+  refreshBrowserChromeTheme();
   setOcrStep(1);
   modal.querySelector('[aria-label="关闭截图导入"]')?.focus();
 }
@@ -3141,6 +3605,7 @@ function closeOcrModal(){
     document.body.classList.remove('modal-open');
     document.body.style.removeProperty('--modal-scroll-offset');
     window.scrollTo(0, modalPageScrollY);
+    refreshBrowserChromeTheme();
     modalTriggerElement?.focus();
     modalTriggerElement = null;
   }
@@ -3291,7 +3756,7 @@ function collectOcrPreview(){
 function applyOcrImport(){
   const data = collectOcrPreview();
   if(!data.trades.length && !data.asset.capital && !data.asset.pnl && !data.asset.position){
-    alert('没有可写入的数据，请先识别或手动补充。');
+    showNotice('没有可写入的数据，请先识别或手动补充。');
     return;
   }
   if(data.asset.capital) document.getElementById('capital').value = data.asset.capital;
@@ -3945,6 +4410,7 @@ function openCommandPalette(trigger){
   backdrop.classList.add('show');
   backdrop.setAttribute('aria-hidden','false');
   document.documentElement.classList.add('command-open');
+  refreshBrowserChromeTheme();
   const input = document.getElementById('commandSearch');
   if(input){
     input.value = '';
@@ -3959,6 +4425,7 @@ function closeCommandPalette(options={}){
   backdrop.classList.remove('show');
   backdrop.setAttribute('aria-hidden','true');
   document.documentElement.classList.remove('command-open');
+  refreshBrowserChromeTheme();
   const input = document.getElementById('commandSearch');
   input?.setAttribute('aria-expanded','false');
   input?.setAttribute('aria-activedescendant','');
@@ -4020,10 +4487,10 @@ async function saveTodayToHistory(){
   if(isHostedReviewSite()){
     const saved = await flushAutosave({manual:true,record});
     await loadMonthlyHistory({force:true});
-    alert(saved ? '今日复盘已保存到云端，并生成本机备份。' : '云端暂未保存成功，本机备份已保留。');
+    showNotice(saved ? '今日复盘已保存到云端，并生成本机备份。' : '云端暂未保存成功，本机备份已保留。');
   }else{
     await loadMonthlyHistory();
-    alert('今日复盘已保存到本机历史。');
+    showNotice('今日复盘已保存到本机历史。');
   }
 }
 function exportHistoryJson(){
@@ -4048,9 +4515,9 @@ function importHistoryJson(input){
       localStorage.setItem(STORAGE_HISTORY, JSON.stringify(merged));
       renderHistoryPanel();
       if(!isHostedReviewSite()) loadMonthlyHistory();
-      alert('历史记录已导入。');
+      showNotice('历史记录已导入。');
     }catch(e){
-      alert('导入失败，请确认 JSON 文件格式正确。');
+      showNotice('导入失败，请确认 JSON 文件格式正确。');
     }finally{
       input.value = '';
     }
@@ -4150,9 +4617,9 @@ async function copyText(){
   const text=document.getElementById('output').textContent;
   try{
     await navigator.clipboard.writeText(text);
-    alert('已复制，可以直接发给 ChatGPT。');
+    showNotice('已复制，可以直接发给 ChatGPT。');
   }catch(e){
-    alert('复制失败，请手动长按/选择复制。');
+    showNotice('复制失败，请手动长按/选择复制。');
   }
 }
 function downloadText(){
@@ -4665,7 +5132,7 @@ async function showTzzbExtensionHelp(){
       '',
       '扩展安装后不需要再点书签；刷新、重新登录或重开浏览器后都会自动捕获。'
     ].join('\n');
-    alert(message);
+    showNotice(message,{title:'扩展安装说明'});
     setTzzbImportStatus(`扩展文件夹：${data.extensionDir}。安装后打开同花顺投资账本，数据会自动同步到本地助手。`);
   }catch(error){
     setTzzbImportStatus(`无法读取扩展安装信息：${error.message} 请先双击“启动复盘助手.command”。`);

@@ -120,6 +120,8 @@ const stockResults = context.buildCommandResults({ query: '甲', currentRecord: 
 assert.ok(stockResults.some((item) => item.group === '当前交易' && item.label.includes('甲')));
 
 assert.match(html, /id="commandPalette"[^>]*role="dialog"[^>]*aria-modal="true"/);
+assert.match(html, /id="appNoticeBackdrop"[^>]*aria-hidden="true"/);
+assert.doesNotMatch(script, /\balert\s*\(/, 'app feedback should use the full-viewport notice overlay instead of native alerts');
 assert.match(html, /id="disciplineAlerts"/);
 assert.match(html, /id="historyMonth"/);
 
