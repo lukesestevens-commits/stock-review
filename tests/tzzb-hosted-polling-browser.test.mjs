@@ -41,6 +41,8 @@ try {
   });
   let latestRequests = 0;
   let marketRequests = 0;
+  const marketRequestDates = [];
+  const savedDrafts = [];
   await page.route('https://review.example.com/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -49,6 +51,20 @@ try {
       return;
     }
     if (url.pathname === '/api/review-draft') {
+      if (request.method() === 'PUT') {
+        const payload = request.postDataJSON();
+        savedDrafts.push(payload);
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          ok: true,
+          draft: {
+            reviewDate: payload.reviewDate,
+            version: Number(payload.expectedVersion || 0) + 1,
+            updatedAt: new Date().toISOString(),
+            record: payload.record
+          }
+        }) });
+        return;
+      }
       await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ ok: false }) });
       return;
     }
@@ -62,14 +78,18 @@ try {
     }
     if (url.pathname === '/api/market-snapshot') {
       marketRequests += 1;
+      const requestedDate = url.searchParams.get('date');
+      marketRequestDates.push(requestedDate);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
         ok: true,
         market: {
           indexState: '指数强',
           mood: '分化',
           actionEnv: '只做核心',
-          mainLines: '今日市场主线',
-          marketOne: '今日市场判断',
+          mainLines: `${requestedDate}市场主线`,
+          marketOne: `${requestedDate}市场判断`,
+          tradeDate: requestedDate,
+          finalized: true,
           updatedAt: `2026-07-15T07:20:${String(marketRequests).padStart(2, '0')}.000Z`
         }
       }) });
@@ -88,14 +108,32 @@ try {
   await page.waitForFunction(() => document.getElementById('rightThing')?.value === '今日已核验', null, { timeout: 2500 });
   assert.ok(latestRequests >= 2, 'hosted stable state must keep polling for a later verified close');
 
+  const preservedDiscipline = await page.evaluate(() => {
+    document.getElementById('unplannedDailyLimit').value = '5';
+    disciplineAcknowledgements = { 'manual-confirmation': '2026-07-15T08:00:00.000Z' };
+    applyTzzbReviewData({
+      reviewDate: '2026-07-15',
+      basic: {}, market: {}, trades: [], holdings: [], reflection: { rightThing: '刷新后的同花顺数据' }, plan: {}
+    }, { importAudit: { status: 'verified', reviewDate: '2026-07-15' } });
+    return collectStructured().discipline;
+  });
+  assert.equal(preservedDiscipline.settings.unplannedTradeDailyLimit, 5, 'verified imports must preserve personal rule thresholds');
+  assert.equal(preservedDiscipline.acknowledged['manual-confirmation'], '2026-07-15T08:00:00.000Z', 'verified imports must preserve acknowledgements');
+  await page.waitForFunction(() => document.getElementById('autosaveStatus')?.textContent.includes('已保存到云端'));
+  assert.ok(savedDrafts.some((payload) => (
+    payload.record?.discipline?.settings?.unplannedTradeDailyLimit === 5
+    && payload.record?.discipline?.acknowledged?.['manual-confirmation']
+  )), 'the preserved discipline state must be written back to the cloud draft');
+
   await page.locator('#date').fill('2026-07-14');
   await page.locator('#date').press('Tab');
   await page.waitForFunction(() => document.getElementById('date')?.value === '2026-07-14');
-  assert.equal(await page.locator('#mainLines').inputValue(), '');
-  await page.evaluate(() => autoImportMarketSnapshot());
-  assert.equal(await page.locator('#mainLines').inputValue(), '', 'today\'s market snapshot must not contaminate a historical review');
+  await page.waitForFunction(() => document.getElementById('mainLines')?.value === '2026-07-14市场主线');
+  assert.ok(marketRequestDates.includes('2026-07-15'));
+  assert.ok(marketRequestDates.includes('2026-07-14'));
+  assert.equal(await page.locator('#marketOne').inputValue(), '2026-07-14市场判断', 'a historical review must only apply its exact-date cloud snapshot');
 } finally {
   await browser.close();
 }
 
-console.log('PASS hosted polling skips stale data and imports the later verified close');
+console.log('PASS hosted polling skips stale data and keeps market snapshots date-scoped');

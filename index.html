@@ -965,6 +965,37 @@
     height:40px;
     min-height:40px;
   }
+  #tradeTable .trade-flag-grid{
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:6px;
+    padding-top:4px;
+  }
+  #tradeTable .trade-flag-grid label{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    min-width:0;
+    min-height:36px;
+    padding:6px 8px;
+    border-radius:9px;
+    background:#f4f1ea;
+    color:#4d4b45;
+    font-size:11px;
+    font-weight:750;
+    overflow-wrap:anywhere;
+  }
+  #tradeTable .trade-flag-grid input[type="checkbox"]{
+    width:18px;
+    min-width:18px;
+    max-width:18px;
+    height:18px;
+    min-height:18px;
+    margin:0;
+    padding:0;
+    accent-color:var(--primary);
+  }
   .out{
     min-height:220px;
     max-height:460px;
@@ -1107,6 +1138,8 @@
         calc(8px + env(safe-area-inset-left));
     }
     .hero{padding:13px}
+    .workbench-state{display:grid;grid-template-columns:1fr}
+    .autosave-status,.privacy-status{justify-content:center}
     .dashboard,.g2,.g3,.g4,.scorebar,.history-kpis,.quality-grid{grid-template-columns:1fr}
     .section-head{padding:12px 12px 8px}
     .section-body{padding:0 12px 12px}
@@ -1203,6 +1236,33 @@
   }
   .autosave-status[data-state="saved"]::before{background:#5373ce}
   .autosave-status[data-state="error"]::before{background:var(--danger)}
+  .market-sync-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    width:100%;
+    min-width:0;
+    margin-top:14px;
+    padding:10px 12px;
+    border:1px solid rgba(49,88,211,.18);
+    border-radius:12px;
+    background:#f6f8ff;
+    color:#3f4755;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.55;
+    overflow-wrap:anywhere;
+  }
+  .market-sync-status::before{
+    content:"";
+    width:8px;
+    height:8px;
+    flex:0 0 8px;
+    border-radius:50%;
+    background:var(--primary);
+  }
+  .market-sync-status[data-state="synced"]::before{background:#5373ce}
+  .market-sync-status[data-state="error"]::before{background:var(--warning)}
   .hero-tag,.btn-hero,.secondary-tools,.modal,.fab{
     backdrop-filter:blur(12px) saturate(120%);
     -webkit-backdrop-filter:blur(12px) saturate(120%);
@@ -1275,11 +1335,100 @@
     color:#5b5953;
     background:#f3efe7;
   }
-  #tradeTable{width:100%;min-width:1160px}
-  #tradeTable th:nth-child(2),#tradeTable td:nth-child(2){width:134px}
-  #tradeTable th:nth-child(3),#tradeTable td:nth-child(3){width:228px}
-  #tradeTable th:nth-child(4),#tradeTable td:nth-child(4){width:130px}
-  #tradeTable th:nth-child(5),#tradeTable td:nth-child(5){width:164px}
+  .trade-table-wrap{overflow:hidden}
+  #tradeTable{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    table-layout:fixed;
+  }
+  #tradeTable .col-time{width:84px}
+  #tradeTable .col-name{width:140px}
+  #tradeTable .col-execution{width:240px}
+  #tradeTable .col-review{width:auto}
+  #tradeTable .col-quality{width:244px}
+  #tradeTable .col-action{width:56px}
+  #tradeTable th:nth-child(n),
+  #tradeTable td:nth-child(n){
+    width:auto;
+    min-width:0;
+  }
+  #tradeTable th{padding:9px 7px}
+  #tradeTable td{padding:7px 6px}
+  #tradeTable td input,
+  #tradeTable td select,
+  #tradeTable td textarea,
+  #tradeTable .trade-detail-toggle summary{
+    height:44px;
+    min-height:44px;
+  }
+  #tradeTable .trade-primary-grid{
+    width:100%;
+    min-width:0;
+    grid-template-columns:64px minmax(80px,1fr) 54px;
+    gap:6px;
+  }
+  #tradeTable .trade-primary-grid > *{min-width:0}
+  #tradeTable .trade-detail-toggle summary{
+    padding:0 4px;
+    font-size:11px;
+  }
+  #tradeTable .trade-review-grid{
+    display:grid;
+    grid-template-columns:108px minmax(0,1fr);
+    gap:6px;
+    min-width:0;
+  }
+  #tradeTable .trade-review-grid > *{min-width:0}
+  #tradeTable .trade-reason{
+    height:44px;
+    min-height:44px;
+    padding:8px;
+    line-height:1.35;
+    resize:none;
+    overflow:auto;
+  }
+  #tradeTable .trade-quality-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 48px;
+    align-items:end;
+    gap:6px;
+    min-width:0;
+  }
+  #tradeTable .trade-score-grid{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:4px;
+    min-width:0;
+  }
+  #tradeTable .trade-score-grid label{
+    display:grid;
+    gap:3px;
+    min-width:0;
+    color:var(--text-muted);
+    font-size:10px;
+    font-weight:800;
+    line-height:1;
+  }
+  #tradeTable .trade-score-grid select{
+    min-width:0;
+    padding:6px 20px 6px 7px;
+    font-size:12px;
+  }
+  #tradeTable .trade-total{
+    display:flex;
+    align-items:flex-end;
+    min-width:0;
+  }
+  #tradeTable .rowScore{
+    width:100%;
+    min-width:44px;
+    height:44px;
+    padding:0 5px;
+    border-radius:10px;
+  }
+  #tradeTable .trade-action-cell{text-align:center}
+  #tradeTable .trade-action-cell .btn-danger{padding:8px}
   .sync-proof-grid{background:transparent}
   .sync-proof{background:#f8f5ef}
   .table-wrap{overflow:auto}
@@ -1301,16 +1450,22 @@
   .modal-head{background:rgba(255,254,251,.88);border-color:var(--border)}
   .fab{background:rgba(49,88,211,.84);color:#fff}
 
-  @media(max-width:620px){
-    .workbench-state{display:grid;grid-template-columns:1fr}
-    .autosave-status,.privacy-status{justify-content:center}
-    .trade-table-wrap{overflow:visible}
+  @media(max-width:1119px){
+    .trade-table-wrap{
+      overflow:visible;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      box-shadow:none;
+    }
     #tradeTable{
       display:block;
       width:100%;
+      max-width:100%;
       min-width:0;
       table-layout:auto;
     }
+    #tradeTable colgroup{display:none}
     #tradeTable thead{
       position:absolute;
       width:1px;
@@ -1324,39 +1479,285 @@
     }
     #tradeTable tbody{
       display:grid;
-      gap:12px;
+      gap:10px;
       width:100%;
     }
     #tradeTable tbody tr{
-      display:block;
+      display:grid;
+      grid-template-columns:84px minmax(130px,.7fr) minmax(260px,1.5fr) 52px;
+      grid-template-areas:
+        "time name review action"
+        "execution execution quality quality";
+      gap:8px;
       width:100%;
-      padding:12px;
+      min-width:0;
+      padding:10px;
       border:1px solid var(--border);
       border-radius:14px;
       background:var(--surface);
     }
+    #tradeTable .trade-time-cell{grid-area:time}
+    #tradeTable .trade-name-cell{grid-area:name}
+    #tradeTable .trade-execution-cell{grid-area:execution}
+    #tradeTable .trade-review-cell{grid-area:review}
+    #tradeTable .trade-quality-cell{grid-area:quality}
+    #tradeTable .trade-action-cell{grid-area:action}
     #tradeTable td,
     #tradeTable td:nth-child(n){
-      display:grid;
-      grid-template-columns:76px minmax(0,1fr);
-      align-items:center;
-      gap:8px;
+      display:block;
       width:auto!important;
       min-width:0;
-      padding:6px 0;
+      padding:0;
       border:0;
     }
     #tradeTable td::before{
       content:attr(data-label);
+      display:block;
+      min-height:13px;
+      margin-bottom:4px;
       color:var(--text-muted);
-      font-size:12px;
+      font-size:11px;
       font-weight:800;
+      line-height:1.2;
     }
-    #tradeTable .trade-primary-grid{width:100%;grid-template-columns:1fr 1fr}
-    #tradeTable .trade-detail-toggle{grid-column:1 / -1}
-    #tradeTable .trade-reason{min-height:72px;height:auto}
-    #tradeTable .rowScore{justify-self:start}
-    #tradeTable td:last-child .btn-danger{justify-self:start}
+    #tradeTable .trade-action-cell{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+    }
+    #tradeTable .trade-action-cell::before{align-self:flex-start}
+    #tradeTable .trade-action-cell .btn-danger{width:44px}
+  }
+  @media(max-width:899px){
+    #tradeTable tbody tr{
+      grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) 52px;
+      grid-template-areas:
+        "time name action"
+        "execution execution execution"
+        "review review review"
+        "quality quality quality";
+    }
+    #tradeTable .trade-action-cell{
+      flex-direction:column;
+      align-items:flex-end;
+      justify-content:flex-end;
+    }
+    #tradeTable .trade-action-cell::before{display:none}
+  }
+  @media(max-width:480px){
+    #tradeTable tbody tr{padding:9px}
+  }
+
+  /* P2: command search, discipline feedback and cloud-backed monthly review. */
+  .shell,.section,.section-body,.section-head,.section-title,.toolbar,.panel,.field,.quality-box,.history-kpi{
+    min-width:0;
+  }
+  .section-title h2,.section-title p,.quality-box p,.discipline-alert p,.history-record-item{
+    overflow-wrap:anywhere;
+  }
+  .toolbar > *{max-width:100%}
+  details:not([open]) > :not(summary){display:none!important}
+  .command-trigger{
+    font:inherit;
+    min-height:44px;
+    padding:10px 14px;
+  }
+  .discipline-panel{
+    margin-top:14px;
+    padding:16px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:#faf8f3;
+  }
+  .discipline-head,.history-filter{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .discipline-head h3,.history-list-card h3{margin:0;font-size:16px}
+  .discipline-status{
+    display:inline-flex;
+    align-items:center;
+    min-height:34px;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#edf1ff;
+    color:#2748b3;
+    font-size:12px;
+    font-weight:800;
+  }
+  .discipline-alerts{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+    margin-top:12px;
+  }
+  .discipline-alert{
+    min-width:0;
+    padding:13px 13px 13px 16px;
+    border:1px solid var(--border);
+    border-left:4px solid var(--warning);
+    border-radius:12px;
+    background:var(--surface);
+  }
+  .discipline-alert[data-severity="critical"]{border-left-color:var(--danger)}
+  .discipline-alert[data-severity="info"]{border-left-color:var(--primary)}
+  .discipline-alert[data-acknowledged="true"]{opacity:.72;border-left-color:#8d8a82}
+  .discipline-alert-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .discipline-alert h4{margin:0;font-size:14px}
+  .discipline-alert p{margin:7px 0 0;color:var(--text-muted);font-size:12px;line-height:1.55}
+  .discipline-alert .required{color:#393832;font-weight:700}
+  .discipline-alert button{margin-top:10px;min-height:36px;padding:7px 11px;font-size:12px}
+  .discipline-settings{margin-top:12px}
+  .discipline-settings summary{cursor:pointer;min-height:44px;padding:11px 0;font-size:13px;font-weight:800;color:#4b4a45}
+  .discipline-settings-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+  }
+  .discipline-settings-grid .field{padding:10px}
+  .discipline-settings-grid input{min-width:0}
+  .history-filter{
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:#faf8f3;
+  }
+  .history-month-field{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    min-width:0;
+    font-size:13px;
+    font-weight:800;
+  }
+  .history-month-field input{width:auto;min-width:148px}
+  .history-cloud-status{font-size:12px;color:var(--text-muted);overflow-wrap:anywhere}
+  .history-kpis.monthly{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    margin-top:12px;
+  }
+  .history-kpis.monthly .history-kpi{padding:12px}
+  .history-kpis.monthly .history-kpi .v{font-size:20px}
+  .history-lists{
+    display:grid;
+    grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+    gap:12px;
+    margin-top:12px;
+  }
+  .history-list-card{
+    min-width:0;
+    padding:14px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--surface);
+  }
+  .history-record-list,.history-discipline-list{display:grid;gap:8px;margin:10px 0 0;padding:0;list-style:none}
+  .history-record-item,.history-discipline-item{
+    min-width:0;
+    padding:10px;
+    border-radius:10px;
+    background:#f7f4ed;
+    color:#45433e;
+    font-size:12px;
+    line-height:1.55;
+  }
+  .history-record-item button{
+    width:100%;
+    padding:0;
+    min-height:0;
+    border-radius:0;
+    background:transparent;
+    color:inherit;
+    text-align:left;
+    font:inherit;
+  }
+  .legacy-history-summary{display:none}
+  .history-backup-tools{margin-top:12px}
+  .history-backup-tools summary{cursor:pointer;min-height:44px;padding:11px 0;font-size:13px;font-weight:800}
+
+  .command-palette-backdrop{
+    position:fixed;
+    inset:0;
+    z-index:80;
+    display:none;
+    align-items:flex-start;
+    justify-content:center;
+    padding:clamp(18px,9vh,84px) 14px 18px;
+    background:rgba(24,24,23,.38);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+  .command-palette-backdrop.show{display:flex}
+  .command-palette{
+    width:min(720px,100%);
+    max-height:min(76vh,680px);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.88);
+    border-radius:18px;
+    background:rgba(255,254,251,.96);
+    box-shadow:0 28px 80px rgba(38,36,31,.28);
+  }
+  .command-search-row{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 44px;
+    gap:8px;
+    padding:12px;
+    border-bottom:1px solid var(--border);
+  }
+  .command-search-row input{min-width:0;font-size:16px}
+  .command-search-row button{width:44px;padding:0;border-radius:12px}
+  .command-hint{padding:9px 14px;color:var(--text-muted);font-size:11px;border-bottom:1px solid #ece8df}
+  .command-results{min-height:88px;overflow:auto;padding:8px}
+  .command-empty{padding:22px 14px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6}
+  .command-group-title{padding:8px 9px 5px;color:var(--text-muted);font-size:11px;font-weight:900;letter-spacing:.04em}
+  .command-result{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;
+    width:100%;
+    min-height:48px;
+    padding:9px 10px;
+    border-radius:11px;
+    background:transparent;
+    color:var(--text);
+    text-align:left;
+  }
+  .command-result:hover,.command-result[aria-selected="true"]{background:#edf1ff}
+  .command-result-main{min-width:0}
+  .command-result-label{display:block;font-size:13px;font-weight:850;overflow-wrap:anywhere}
+  .command-result-description{display:block;margin-top:3px;color:var(--text-muted);font-size:11px;overflow-wrap:anywhere}
+  .command-result-key{align-self:center;color:#77736b;font-size:11px}
+  html.command-open{overflow:hidden}
+
+  @media(max-width:1040px){
+    .history-kpis.monthly{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .discipline-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:1279px){.floating{display:none}}
+  @media(max-width:720px){
+    .discipline-alerts,.history-lists{grid-template-columns:1fr}
+    .discipline-alerts{max-height:720px;overflow:auto;padding-right:2px}
+    .history-filter{align-items:flex-start}
+    .history-filter .toolbar{width:100%}
+    .history-filter .toolbar button{flex:1 1 140px}
+  }
+  @media(max-width:540px){
+    .history-kpis.monthly{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .discipline-settings-grid{grid-template-columns:1fr}
+    .history-month-field{width:100%;justify-content:space-between}
+    .history-month-field input{width:min(170px,56%)}
+    .command-palette-backdrop{padding:8px}
+    .command-palette{max-height:calc(100dvh - 16px);border-radius:14px}
   }
   @media(prefers-reduced-motion:reduce){
     *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}
@@ -1376,6 +1777,7 @@
           </div>
         </div>
         <div class="tag-group">
+          <button type="button" class="hero-tag command-trigger" aria-haspopup="dialog" aria-controls="commandPalette" onclick="openCommandPalette(this)">搜索 / 快捷操作&nbsp; ⌘K</button>
           <div class="hero-tag">趋势波段</div>
           <div class="hero-tag">强势股</div>
           <div class="hero-tag">计划交易</div>
@@ -1466,6 +1868,8 @@
           </div>
         </div>
 
+        <div id="marketSyncStatus" class="market-sync-status" data-state="loading" role="status" aria-live="polite" aria-atomic="true">正在等待当前复盘日的市场快照…</div>
+
         <div class="grid g3" style="margin-top:14px">
           <div class="field"><label for="indexState">今日指数状态</label>
             <select id="indexState">
@@ -1517,18 +1921,22 @@
         <div class="table-wrap trade-table-wrap">
           <table id="tradeTable">
             <caption class="sr-only">今日成交记录与评分</caption>
+            <colgroup>
+              <col class="col-time">
+              <col class="col-name">
+              <col class="col-execution">
+              <col class="col-review">
+              <col class="col-quality">
+              <col class="col-action">
+            </colgroup>
             <thead>
               <tr>
                 <th scope="col">时间</th>
                 <th scope="col">股票/ETF</th>
-                <th scope="col">交易</th>
-                <th scope="col">模式</th>
-                <th scope="col">理由</th>
-                <th scope="col">计划性</th>
-                <th scope="col">主线</th>
-                <th scope="col">风控</th>
-                <th scope="col">总分</th>
-                <th scope="col"><span class="sr-only">操作</span></th>
+                <th scope="col">成交</th>
+                <th scope="col">复盘</th>
+                <th scope="col">交易质量</th>
+                <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody id="tradeBody"></tbody>
@@ -1567,6 +1975,26 @@
             <h3>需要禁止重复</h3>
             <p id="banAdvice">暂无。</p>
           </div>
+        </div>
+
+        <div class="discipline-panel" aria-labelledby="disciplineTitle">
+          <div class="discipline-head">
+            <div>
+              <h3 id="disciplineTitle">今日纪律提醒</h3>
+              <div class="muted" style="margin-top:4px">只根据你记录的事实触发，不生成买卖建议。严重提醒确认后仍会保留审计状态。</div>
+            </div>
+            <span id="disciplineStatus" class="discipline-status">正在检查</span>
+          </div>
+          <div id="disciplineAlerts" class="discipline-alerts" aria-live="polite"></div>
+          <details class="discipline-settings">
+            <summary>个人纪律阈值</summary>
+            <div class="discipline-settings-grid">
+              <div class="field"><label for="openingWindowStart">开盘窗口开始</label><input id="openingWindowStart" type="time" value="09:30" onchange="refreshQualityPanel();scheduleAutosave()"></div>
+              <div class="field"><label for="openingWindowEnd">开盘窗口结束</label><input id="openingWindowEnd" type="time" value="10:00" onchange="refreshQualityPanel();scheduleAutosave()"></div>
+              <div class="field"><label for="openingAmountRatio">单笔金额提醒（%）</label><input id="openingAmountRatio" type="number" min="1" max="100" step="1" value="15" onchange="refreshQualityPanel();scheduleAutosave()"></div>
+              <div class="field"><label for="unplannedDailyLimit">计划外交易上限</label><input id="unplannedDailyLimit" type="number" min="1" max="20" step="1" value="2" onchange="refreshQualityPanel();scheduleAutosave()"></div>
+            </div>
+          </details>
         </div>
       </div>
     </section>
@@ -1643,35 +2071,50 @@
             <p>把每天的复盘变成可对比的数据，重点看纪律是否越来越稳定。</p>
           </div>
         </div>
-        <div class="toolbar">
-          <button class="btn-red" onclick="saveTodayToHistory()">保存今日复盘</button>
-          <button class="btn-soft" onclick="exportHistoryJson()">导出历史 JSON</button>
-          <button class="btn-light" onclick="document.getElementById('historyImportFile').click()">导入历史 JSON</button>
-          <button class="btn-danger" onclick="clearHistory()">清空历史</button>
-          <input id="historyImportFile" class="hidden-file" type="file" accept="application/json,.json" onchange="importHistoryJson(this)">
-        </div>
       </div>
       <div class="section-body">
-        <div class="history-kpis">
-          <div class="history-kpi"><div class="k">累计复盘</div><div class="v" id="historyCount">0</div></div>
-          <div class="history-kpi"><div class="k">近 7 次平均分</div><div class="v" id="historyAvg7">0</div></div>
-          <div class="history-kpi"><div class="k">近 30 次低质量交易</div><div class="v" id="historyLow30">0</div></div>
-          <div class="history-kpi"><div class="k">盈利天数</div><div class="v" id="historyWinDays">0</div></div>
+        <div class="history-filter">
+          <label class="history-month-field" for="historyMonth">诊断月份 <input id="historyMonth" type="month" onchange="loadMonthlyHistory()"></label>
+          <div class="toolbar">
+            <button class="btn-dark" onclick="loadMonthlyHistory({force:true})">读取云端记录</button>
+            <button class="btn-soft" onclick="flushAutosave({manual:true}).then(()=>loadMonthlyHistory({force:true}))">同步今日并刷新</button>
+            <button class="btn-light" onclick="saveTodayToHistory()">保存今日复盘</button>
+          </div>
+          <div id="historyCloudStatus" class="history-cloud-status" role="status" aria-live="polite">正在准备月度诊断…</div>
         </div>
-        <div class="quality-grid">
-          <div class="quality-box">
-            <h3>近 7 次纪律趋势</h3>
-            <p id="historyTrend7">还没有历史记录。</p>
+        <div class="history-kpis monthly">
+          <div class="history-kpi"><div class="k">复盘天数</div><div class="v" id="monthReviewDays">0</div></div>
+          <div class="history-kpi"><div class="k">交易笔数</div><div class="v" id="monthTradeCount">0</div></div>
+          <div class="history-kpi"><div class="k">已记录盈亏</div><div class="v" id="monthTotalPnl">—</div></div>
+          <div class="history-kpi"><div class="k">平均交易分</div><div class="v" id="monthAvgScore">—</div></div>
+          <div class="history-kpi"><div class="k">低质量交易</div><div class="v" id="monthLowQuality">0</div></div>
+          <div class="history-kpi"><div class="k">计划外交易</div><div class="v" id="monthUnplanned">0</div></div>
+        </div>
+        <div class="history-lists">
+          <div class="history-list-card">
+            <h3>当月复盘记录</h3>
+            <ul id="historyRecordList" class="history-record-list"><li class="history-record-item">该月暂无云端复盘。</li></ul>
           </div>
-          <div class="quality-box">
-            <h3>最近一次复盘</h3>
-            <p id="lastReviewSummary">保存今日复盘后显示。</p>
-          </div>
-          <div class="quality-box">
-            <h3>导入识别摘要</h3>
-            <p id="ocrImportSummary">尚未导入截图。</p>
+          <div class="history-list-card">
+            <h3>高频纪律问题</h3>
+            <ul id="historyDisciplineList" class="history-discipline-list"><li class="history-discipline-item">该月暂无纪律提醒。</li></ul>
           </div>
         </div>
+        <details class="history-backup-tools">
+          <summary>本机备份与导入导出</summary>
+          <div class="toolbar">
+            <button class="btn-soft" onclick="saveTodayToHistory()">更新本机备份</button>
+            <button class="btn-soft" onclick="exportHistoryJson()">导出历史 JSON</button>
+            <button class="btn-light" onclick="document.getElementById('historyImportFile').click()">导入历史 JSON</button>
+            <button class="btn-danger" onclick="clearHistory()">清空本机备份</button>
+            <input id="historyImportFile" class="hidden-file" type="file" accept="application/json,.json" onchange="importHistoryJson(this)">
+          </div>
+        </details>
+        <div class="legacy-history-summary" aria-hidden="true">
+          <span id="historyCount">0</span><span id="historyAvg7">0</span><span id="historyLow30">0</span><span id="historyWinDays">0</span>
+          <span id="historyTrend7">还没有历史记录。</span><span id="lastReviewSummary">保存今日复盘后显示。</span>
+        </div>
+        <p id="ocrImportSummary" class="muted" style="margin:10px 0 0">尚未导入截图。</p>
       </div>
     </section>
 
@@ -1703,6 +2146,18 @@
     <div class="footer-note">
       这不是一个普通表格，而是一套帮你沉淀交易框架的记录系统。<br>
       一天进步一点点，久了就不是靠情绪交易，而是靠方法赚钱。
+    </div>
+  </div>
+
+  <div class="command-palette-backdrop" id="commandPaletteBackdrop" aria-hidden="true" onclick="handleCommandBackdropClick(event)">
+    <div id="commandPalette" class="command-palette" role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle">
+      <h2 id="commandPaletteTitle" class="sr-only">搜索复盘与快捷操作</h2>
+      <div class="command-search-row">
+        <input id="commandSearch" type="search" autocomplete="off" placeholder="搜索股票、日期、纪律问题，或输入“越跌越买”…" aria-label="搜索复盘与快捷操作" role="combobox" aria-autocomplete="list" aria-controls="commandResults" aria-expanded="false" aria-activedescendant="" oninput="renderCommandPaletteResults()">
+        <button type="button" class="btn-light" aria-label="关闭快捷搜索" onclick="closeCommandPalette()">×</button>
+      </div>
+      <div class="command-hint">↑↓ 选择 · Enter 打开 · Esc 关闭 · 支持“开盘冲动、摊低成本、亏了又买”等口语搜索</div>
+      <div id="commandResults" class="command-results" role="listbox" aria-label="搜索结果"></div>
     </div>
   </div>
 
@@ -1852,6 +2307,12 @@ let autosaveConflict = false;
 let autosaveConflictCurrent = null;
 let autosaveWriteTail = Promise.resolve();
 let reviewDateSwitchTail = Promise.resolve();
+let disciplineAcknowledgements = {};
+let monthlyHistoryRecords = [];
+let monthlyHistoryRequestSequence = 0;
+let commandPaletteResults = [];
+let commandPaletteIndex = 0;
+let commandPaletteTrigger = null;
 
 function shuffle(arr){
   const a=[...arr];
@@ -2226,6 +2687,7 @@ async function switchReviewDate(reviewDate,previousReviewDate){
     setWorkbenchBusy(false);
   }
   if(restored.localNewer) scheduleAutosave();
+  if(autosaveReady) void autoImportMarketSnapshot();
   return restored;
 }
 function queueReviewDateSwitch(reviewDate,previousReviewDate=''){
@@ -2275,11 +2737,14 @@ function bindAutosave(){
 }
 document.addEventListener('DOMContentLoaded',async()=>{
   document.getElementById('date').value = todayStr();
+  const historyMonth = document.getElementById('historyMonth');
+  if(historyMonth) historyMonth.value = todayStr().slice(0,7);
   loadOcrPrefs();
   clearLegacyTzzbCloudCredentials();
   configureTzzbSurface();
   initDailyQuote();
   bindAutosave();
+  bindCommandPalette();
   if(isHostedReviewSite()){
     setAutosaveStatus('正在读取私人云端草稿…','saving');
     setWorkbenchBusy(true);
@@ -2291,6 +2756,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   }
   recalc();
   renderHistoryPanel();
+  loadMonthlyHistory();
   autosaveSuppressed = false;
   autosaveReady = true;
   if(restored.localNewer) scheduleAutosave();
@@ -2328,9 +2794,9 @@ function addTrade(data={}){
   const side = data.side === '卖出' ? '卖出' : '买入';
   const mode = data.mode || '趋势波段';
   tr.innerHTML=`
-    <td data-label="时间"><input class="trade-time" aria-label="交易时间" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
-    <td data-label="股票/ETF"><input class="trade-name" aria-label="股票或 ETF 名称" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
-    <td data-label="交易" class="trade-execution-cell">
+    <td data-label="时间" class="trade-time-cell"><input class="trade-time" aria-label="交易时间" placeholder="09:30" value="${esc(data.time||'')}" oninput="refreshQualityPanel()"></td>
+    <td data-label="股票/ETF" class="trade-name-cell"><input class="trade-name" aria-label="股票或 ETF 名称" placeholder="江波龙" value="${esc(data.name||'')}" oninput="refreshQualityPanel()"></td>
+    <td data-label="成交" class="trade-execution-cell">
       <div class="trade-primary-grid">
         <select class="trade-side" aria-label="买卖方向">
           <option ${side==='买入'?'selected':''}>买入</option>
@@ -2338,26 +2804,40 @@ function addTrade(data={}){
         </select>
         <input class="trade-price" type="number" step="0.001" aria-label="成交价格" placeholder="价格" value="${esc(data.price||'')}" oninput="calcAmount(this)">
         <details class="trade-detail-toggle">
-          <summary>数量 / 金额</summary>
+          <summary aria-label="展开数量、金额和行为标记">明细</summary>
           <div class="trade-detail-grid">
             <input class="trade-qty" type="number" aria-label="成交数量" placeholder="成交数量" value="${esc(data.qty||'')}" oninput="calcAmount(this)">
             <input class="trade-amount" type="number" step="0.01" aria-label="成交金额" placeholder="成交金额" value="${esc(data.amount||'')}" oninput="refreshQualityPanel()">
+            <div class="trade-flag-grid" aria-label="交易行为标记">
+              <label><input class="flag-downward-average" type="checkbox" ${data.downwardAverage || data.isDownwardAverage ? 'checked' : ''} onchange="refreshQualityPanel();scheduleAutosave()">向下加仓</label>
+              <label><input class="flag-loss-reentry" type="checkbox" ${data.lossReentry || data.isLossReentry ? 'checked' : ''} onchange="refreshQualityPanel();scheduleAutosave()">亏损后重做</label>
+              <label><input class="flag-time-stop" type="checkbox" ${data.timeStopExceeded || data.isTimeStopExceeded ? 'checked' : ''} onchange="refreshQualityPanel();scheduleAutosave()">超过计划持有</label>
+              <label><input class="flag-moved-stop" type="checkbox" ${data.movedStop || data.movedStopAgainstRisk ? 'checked' : ''} onchange="refreshQualityPanel();scheduleAutosave()">扩大止损风险</label>
+            </div>
           </div>
         </details>
       </div>
     </td>
-    <td data-label="模式">
-      <select class="trade-mode" aria-label="交易模式">
-        <option ${mode==='趋势波段'?'selected':''}>趋势波段</option><option ${mode==='强势股'?'selected':''}>强势股</option><option ${mode==='事件套利'?'selected':''}>事件套利</option>
-        <option ${mode==='ETF主线'?'selected':''}>ETF主线</option><option ${mode==='止盈/止损'?'selected':''}>止盈/止损</option><option ${mode==='随手单'?'selected':''}>随手单</option>
-      </select>
+    <td data-label="复盘" class="trade-review-cell">
+      <div class="trade-review-grid">
+        <select class="trade-mode" aria-label="交易模式">
+          <option ${mode==='趋势波段'?'selected':''}>趋势波段</option><option ${mode==='强势股'?'selected':''}>强势股</option><option ${mode==='事件套利'?'selected':''}>事件套利</option>
+          <option ${mode==='ETF主线'?'selected':''}>ETF主线</option><option ${mode==='止盈/止损'?'selected':''}>止盈/止损</option><option ${mode==='随手单'?'selected':''}>随手单</option>
+        </select>
+        <textarea class="trade-reason" aria-label="买卖理由" placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea>
+      </div>
     </td>
-    <td data-label="理由"><textarea class="trade-reason" aria-label="买卖理由" placeholder="买/卖理由" oninput="refreshQualityPanel()">${esc(data.reason||'')}</textarea></td>
-    <td data-label="计划性">${scoreSelect(data.planScore ?? 1,'计划性评分')}</td>
-    <td data-label="主线">${scoreSelect(data.lineScore ?? 1,'主线评分')}</td>
-    <td data-label="风控">${scoreSelect(data.riskScore ?? 1,'风控评分')}</td>
-    <td data-label="总分"><span class="rowScore">5.0</span></td>
-    <td data-label="操作"><button class="btn-danger" aria-label="删除此交易" onclick="this.closest('tr').remove();recalc();scheduleAutosave()">删</button></td>`;
+    <td data-label="交易质量" class="trade-quality-cell">
+      <div class="trade-quality-layout">
+        <div class="trade-score-grid">
+          <label><span>计划</span>${scoreSelect(data.planScore ?? 1,'计划性评分')}</label>
+          <label><span>主线</span>${scoreSelect(data.lineScore ?? 1,'主线评分')}</label>
+          <label><span>风控</span>${scoreSelect(data.riskScore ?? 1,'风控评分')}</label>
+        </div>
+        <div class="trade-total"><span class="sr-only">总分</span><span class="rowScore">5.0</span></div>
+      </div>
+    </td>
+    <td data-label="操作" class="trade-action-cell"><button class="btn-danger" aria-label="删除此交易" onclick="this.closest('tr').remove();recalc();scheduleAutosave()">删</button></td>`;
   document.getElementById('tradeBody').appendChild(tr);
   recalc();
   scheduleAutosave();
@@ -2634,6 +3114,7 @@ function handleOcrModalKeydown(event){
   }
 }
 function openOcrModal(trigger){
+  if(document.getElementById('commandPaletteBackdrop')?.classList.contains('show')) closeCommandPalette({restoreFocus:false});
   const modal = document.getElementById('ocrModal');
   if(!modal || modal.classList.contains('show')) return;
   const active = document.activeElement;
@@ -2846,11 +3327,18 @@ function getTradeRowsData(){
       planScore: scores[0] || 0,
       lineScore: scores[1] || 0,
       riskScore: scores[2] || 0,
-      score: scoreFromCoreDimensions(scores)
+      score: scoreFromCoreDimensions(scores),
+      downwardAverage:Boolean(tr.querySelector('.flag-downward-average')?.checked),
+      lossReentry:Boolean(tr.querySelector('.flag-loss-reentry')?.checked),
+      timeStopExceeded:Boolean(tr.querySelector('.flag-time-stop')?.checked),
+      movedStop:Boolean(tr.querySelector('.flag-moved-stop')?.checked)
     };
   });
 }
-const TZZB_TRADE_MANUAL_FIELDS = ['mode','reason','planScore','lineScore','riskScore'];
+const TZZB_TRADE_MANUAL_FIELDS = [
+  'mode','reason','planScore','lineScore','riskScore',
+  'downwardAverage','lossReentry','timeStopExceeded','movedStop'
+];
 const TZZB_HOLDING_MANUAL_FIELDS = ['isCore','logic','tomorrowAction','trigger'];
 function syncText(value){
   return String(value ?? '').trim();
@@ -2971,6 +3459,176 @@ function buildQualityInsights(input){
       : '暂无必须禁止的行为，保持记录完整度。';
   return {stats,warnings,riskPoint,discipline,banned};
 }
+const DEFAULT_DISCIPLINE_SETTINGS = Object.freeze({
+  openingWindowStart:'09:30',
+  openingWindowEnd:'10:00',
+  openingWindowAmountRatio:.15,
+  unplannedTradeDailyLimit:2,
+  highPositionLevels:['8成','满仓']
+});
+function disciplineSettingsFromDom(){
+  const percent = parseFloat(document.getElementById('openingAmountRatio')?.value || '15');
+  const unplannedLimit = parseInt(document.getElementById('unplannedDailyLimit')?.value || '2',10);
+  return {
+    openingWindowStart:document.getElementById('openingWindowStart')?.value || DEFAULT_DISCIPLINE_SETTINGS.openingWindowStart,
+    openingWindowEnd:document.getElementById('openingWindowEnd')?.value || DEFAULT_DISCIPLINE_SETTINGS.openingWindowEnd,
+    openingWindowAmountRatio:Number.isFinite(percent) ? Math.min(1,Math.max(.01,percent/100)) : DEFAULT_DISCIPLINE_SETTINGS.openingWindowAmountRatio,
+    unplannedTradeDailyLimit:Number.isSafeInteger(unplannedLimit) ? Math.min(20,Math.max(1,unplannedLimit)) : DEFAULT_DISCIPLINE_SETTINGS.unplannedTradeDailyLimit,
+    highPositionLevels:[...DEFAULT_DISCIPLINE_SETTINGS.highPositionLevels]
+  };
+}
+function normalizeDisciplineSettings(settings={}){
+  const openingRatio = Number(settings.openingWindowAmountRatio ?? settings.openingWindowMaxPositionRatio ?? .15);
+  const unplannedLimit = Number(settings.unplannedTradeDailyLimit ?? 2);
+  return {
+    openingWindowStart:/^\d{2}:\d{2}$/.test(String(settings.openingWindowStart || '')) ? String(settings.openingWindowStart) : '09:30',
+    openingWindowEnd:/^\d{2}:\d{2}$/.test(String(settings.openingWindowEnd || '')) ? String(settings.openingWindowEnd) : '10:00',
+    openingWindowAmountRatio:Number.isFinite(openingRatio) ? Math.min(1,Math.max(.01,openingRatio)) : .15,
+    unplannedTradeDailyLimit:Number.isFinite(unplannedLimit) ? Math.min(20,Math.max(1,Math.round(unplannedLimit))) : 2,
+    highPositionLevels:Array.isArray(settings.highPositionLevels) && settings.highPositionLevels.length
+      ? settings.highPositionLevels.map(String)
+      : ['8成','满仓']
+  };
+}
+function numericReviewValue(value){
+  if(value === undefined || value === null || String(value).trim() === '') return null;
+  const parsed = parseFloat(normalizeNumber(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+function disciplineAlertId(date,ruleKey,key='day'){
+  return `${date || 'undated'}:${ruleKey}:${String(key || 'day')}`;
+}
+function stableEvidenceHash(value){
+  let hash = 2166136261;
+  for(const char of String(value || '')){
+    hash ^= char.codePointAt(0);
+    hash = Math.imul(hash,16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+function disciplineEvidenceKey(trades=[],fallback='day'){
+  const identities = (Array.isArray(trades) ? trades : []).map((trade,index)=>{
+    const primary = tradePrimaryIdentity(trade);
+    const secondary = tradeFallbackIdentity(trade);
+    return [
+      primary,secondary,trade.name,trade.code,trade.time,trade.side,trade.amount,trade.planScore,
+      trade.downwardAverage,trade.lossReentry,trade.timeStopExceeded,trade.movedStop,index
+    ].map(value=>String(value ?? '')).join('|');
+  }).sort();
+  return stableEvidenceHash(`${fallback}::${identities.join('||')}`);
+}
+function evaluateDiscipline(record={},settings={}){
+  const config = normalizeDisciplineSettings(settings);
+  const trades = Array.isArray(record.trades) ? record.trades : [];
+  const date = String(record.date || '');
+  const capital = numericReviewValue(record.basic?.capital) || 0;
+  const alerts = [];
+  const add = (ruleKey,title,severity,evidence,requiredAction,prohibitedAction='',key='day') => {
+    alerts.push({
+      id:disciplineAlertId(date,ruleKey,key),ruleKey,title,severity,
+      triggeredAt:date,evidence:Array.isArray(evidence) ? evidence : [String(evidence || '')],
+      requiredAction,prohibitedAction
+    });
+  };
+  const openingTrades = trades.filter(trade=>{
+    const time = String(trade.time || '').slice(0,5);
+    const amount = numericReviewValue(trade.amount);
+    return normalizeSide(trade.side) === '买入'
+      && /^\d{2}:\d{2}$/.test(time)
+      && time >= config.openingWindowStart
+      && time <= config.openingWindowEnd
+      && capital > 0
+      && amount !== null
+      && amount / capital >= config.openingWindowAmountRatio;
+  });
+  if(openingTrades.length){
+    add(
+      'opening-window-large-position','开盘窗口大额买入','warning',
+      openingTrades.map(trade=>`${trade.time || '开盘'} ${trade.name || trade.code || '未命名标的'}，金额占账户约 ${Math.round((numericReviewValue(trade.amount) || 0)/capital*100)}%`),
+      '复核入场条件、失效条件和计划仓位；确认后再把这笔交易列入可复制样本。',
+      '不要用开盘波动替代确认。',
+      disciplineEvidenceKey(openingTrades,`opening|capital:${capital}|ratio:${config.openingWindowAmountRatio}|window:${config.openingWindowStart}-${config.openingWindowEnd}`)
+    );
+  }
+  const unplanned = trades.filter(trade=>(Number(trade.planScore) || 0) < 1);
+  if(unplanned.length >= config.unplannedTradeDailyLimit){
+    add(
+      'unplanned-daily-limit','计划外交易达到上限','critical',
+      [`当天共 ${unplanned.length} 笔计划性低于 1 分的交易，上限为 ${config.unplannedTradeDailyLimit} 笔。`],
+      '停止新增计划外交易，只记录已发生交易并完成复盘。',
+      '禁止用“想扳回来”作为再次出手理由。',
+      disciplineEvidenceKey(unplanned,`unplanned|limit:${config.unplannedTradeDailyLimit}`)
+    );
+  }
+  const downward = trades.filter(trade=>Boolean(trade.downwardAverage || trade.isDownwardAverage));
+  if(downward.length){
+    add(
+      'downward-average','向下加仓','critical',
+      downward.map(trade=>`${trade.name || trade.code || '未命名标的'} 已明确标记为向下加仓。`),
+      '重新填写逻辑强化证据、失效位和加仓后的总风险。',
+      '禁止仅因价格变低继续摊低成本。',
+      disciplineEvidenceKey(downward,'downward')
+    );
+  }
+  const lossReentry = trades.filter(trade=>Boolean(trade.lossReentry || trade.isLossReentry));
+  if(lossReentry.length){
+    add('loss-reentry','亏损后短期重做','warning',lossReentry.map(trade=>`${trade.name || trade.code || '未命名标的'} 被标记为亏损后重做。`),'重新写入场、失效和仓位条件。','禁止沿用上一笔亏损交易的理由。',disciplineEvidenceKey(lossReentry,'reentry'));
+  }
+  const timeStop = trades.filter(trade=>Boolean(trade.timeStopExceeded || trade.isTimeStopExceeded));
+  if(timeStop.length){
+    add('time-stop','持仓时间超过计划','warning',timeStop.map(trade=>`${trade.name || trade.code || '未命名标的'} 已超过计划持有时间。`),'记录当前是否仍符合原预期，并写明新的失效条件。','不要把短线交易无条件拖成长线。',disciplineEvidenceKey(timeStop,'time-stop'));
+  }
+  const movedStop = trades.filter(trade=>Boolean(trade.movedStop || trade.movedStopAgainstRisk));
+  if(movedStop.length){
+    add('moved-stop','扩大亏损方向移动止损','critical',movedStop.map(trade=>`${trade.name || trade.code || '未命名标的'} 已标记为扩大风险方向移动止损。`),'保留修改前后位置并记录原因。','禁止为避免认错而放宽失效条件。',disciplineEvidenceKey(movedStop,'moved-stop'));
+  }
+  if(config.highPositionLevels.includes(String(record.basic?.position || ''))){
+    add('high-total-position','收盘总仓位偏高','warning',[`当前收盘总仓位为 ${record.basic.position}。`],'结合市场环境检查次日总仓位上限。','不要因为当日盈亏忽略组合风险。',stableEvidenceHash(record.basic.position));
+  }
+  const rank = {critical:0,warning:1,info:2};
+  alerts.sort((left,right)=>(rank[left.severity] ?? 9)-(rank[right.severity] ?? 9) || left.ruleKey.localeCompare(right.ruleKey));
+  return {
+    alerts,
+    status:alerts.some(alert=>alert.severity === 'critical') ? 'critical' : (alerts.length ? 'warning' : 'clear')
+  };
+}
+function currentDisciplineRecord(){
+  return {
+    date:document.getElementById('date')?.value || todayStr(),
+    basic:{capital:document.getElementById('capital')?.value || '',position:document.getElementById('position')?.value || ''},
+    trades:getTradeRowsData()
+  };
+}
+function renderDisciplineAlerts(record=currentDisciplineRecord()){
+  const container = document.getElementById('disciplineAlerts');
+  const status = document.getElementById('disciplineStatus');
+  if(!container || !status) return;
+  const result = evaluateDiscipline(record,disciplineSettingsFromDom());
+  if(!result.alerts.length){
+    status.textContent = '今日未触发';
+    container.innerHTML = '<div class="discipline-alert" data-severity="info"><div class="discipline-alert-head"><h4>纪律状态清晰</h4></div><p>当前结构化记录没有触发已配置的风险规则。继续把理由和评分补充完整。</p></div>';
+    return;
+  }
+  const unacknowledged = result.alerts.filter(alert=>!disciplineAcknowledgements[alert.id]);
+  status.textContent = unacknowledged.length ? `${unacknowledged.length} 项待处理` : '已全部确认';
+  container.innerHTML = result.alerts.map(alert=>{
+    const acknowledged = Boolean(disciplineAcknowledgements[alert.id]);
+    const evidence = alert.evidence.filter(Boolean).join('；');
+    return `<article class="discipline-alert" data-severity="${esc(alert.severity)}" data-acknowledged="${acknowledged}">
+      <div class="discipline-alert-head"><h4>${esc(alert.title)}</h4><span class="muted">${alert.severity === 'critical' ? '高风险' : '提醒'}</span></div>
+      <p>${esc(evidence)}</p>
+      <p class="required">必须执行：${esc(alert.requiredAction)}</p>
+      ${alert.prohibitedAction ? `<p>禁止事项：${esc(alert.prohibitedAction)}</p>` : ''}
+      <button type="button" class="${acknowledged ? 'btn-light' : 'btn-soft'}" onclick="acknowledgeDisciplineAlert('${esc(alert.id)}')">${acknowledged ? '已确认' : '确认并记录'}</button>
+    </article>`;
+  }).join('');
+}
+function acknowledgeDisciplineAlert(alertId){
+  if(!alertId) return;
+  disciplineAcknowledgements[alertId] = new Date().toISOString();
+  renderDisciplineAlerts();
+  scheduleAutosave();
+}
 function refreshQualityPanel(){
   const riskEl = document.getElementById('riskPoint');
   if(!riskEl) return;
@@ -2982,6 +3640,7 @@ function refreshQualityPanel(){
   riskEl.textContent = insights.riskPoint;
   document.getElementById('disciplineAdvice').textContent = insights.discipline;
   document.getElementById('banAdvice').textContent = insights.banned;
+  renderDisciplineAlerts();
 }
 function summarizeHistory(records){
   const sorted = [...records].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
@@ -2997,6 +3656,320 @@ function summarizeHistory(records){
     pnlPositiveDays: sorted.filter(item=>(parseFloat(normalizeNumber(item.basic?.pnl))||0)>0).length,
     last: sorted[sorted.length-1] || null
   };
+}
+function summarizeMonth(records,month,settings={}){
+  const selected = (Array.isArray(records) ? records : [])
+    .filter(record=>String(record?.date || '').startsWith(`${month}-`))
+    .sort((left,right)=>String(right.date).localeCompare(String(left.date)));
+  const trades = selected.flatMap(record=>Array.isArray(record.trades) ? record.trades : []);
+  const pnlValues = selected
+    .map(record=>numericReviewValue(record.basic?.pnl))
+    .filter(value=>value !== null);
+  const scores = trades.map(trade=>numericReviewValue(trade.score)).filter(value=>value !== null);
+  const issueCounts = new Map();
+  for(const record of selected){
+    for(const alert of evaluateDiscipline(record,record.discipline?.settings || settings).alerts){
+      const current = issueCounts.get(alert.ruleKey) || {ruleKey:alert.ruleKey,title:alert.title,count:0,severity:alert.severity};
+      current.count += 1;
+      if(alert.severity === 'critical') current.severity = 'critical';
+      issueCounts.set(alert.ruleKey,current);
+    }
+  }
+  return {
+    reviewDays:new Set(selected.map(record=>record.date)).size,
+    tradeCount:trades.length,
+    pnlSamples:pnlValues.length,
+    totalPnl:pnlValues.reduce((sum,value)=>sum+value,0),
+    avgScore:scores.length ? scores.reduce((sum,value)=>sum+value,0)/scores.length : null,
+    lowQualityCount:trades.filter(trade=>{
+      const score = numericReviewValue(trade.score);
+      return score !== null && score < 5;
+    }).length,
+    unplannedCount:trades.filter(trade=>(Number(trade.planScore) || 0) < 1).length,
+    issues:[...issueCounts.values()].sort((left,right)=>right.count-left.count || left.title.localeCompare(right.title)),
+    records:selected
+  };
+}
+function monthDateRange(month){
+  const match = String(month || '').match(/^(\d{4})-(\d{2})$/);
+  if(!match) return null;
+  const year = Number(match[1]);
+  const monthNumber = Number(match[2]);
+  if(monthNumber < 1 || monthNumber > 12) return null;
+  const lastDay = new Date(year,monthNumber,0).getDate();
+  return {from:`${match[1]}-${match[2]}-01`,to:`${match[1]}-${match[2]}-${String(lastDay).padStart(2,'0')}`};
+}
+function formatSignedAmount(value){
+  const amount = Number(value) || 0;
+  return `${amount > 0 ? '+' : ''}${amount.toLocaleString('zh-CN',{maximumFractionDigits:2})}`;
+}
+function renderMonthlyHistory(records=monthlyHistoryRecords,month=document.getElementById('historyMonth')?.value || todayStr().slice(0,7)){
+  const summary = summarizeMonth(records,month,disciplineSettingsFromDom());
+  const setText = (id,value) => { const element=document.getElementById(id); if(element) element.textContent=String(value); };
+  setText('monthReviewDays',summary.reviewDays);
+  setText('monthTradeCount',summary.tradeCount);
+  setText('monthTotalPnl',summary.pnlSamples ? formatSignedAmount(summary.totalPnl) : '—');
+  setText('monthAvgScore',summary.avgScore === null ? '—' : summary.avgScore.toFixed(1));
+  setText('monthLowQuality',summary.lowQualityCount);
+  setText('monthUnplanned',summary.unplannedCount);
+  const recordList = document.getElementById('historyRecordList');
+  if(recordList){
+    const visibleRecords = summary.records.slice(0,8);
+    recordList.innerHTML = summary.records.length
+      ? `${visibleRecords.map(record=>{
+          const names = [...new Set((record.trades || []).map(trade=>trade.name || trade.code).filter(Boolean))];
+          const scoreValues = (record.trades || []).map(trade=>numericReviewValue(trade.score)).filter(value=>value !== null);
+          const avg = scoreValues.length ? (scoreValues.reduce((sum,value)=>sum+value,0)/scoreValues.length).toFixed(1) : '—';
+          return `<li class="history-record-item"><button type="button" onclick="openHistoryRecord('${esc(record.date)}')"><strong>${esc(record.date)}</strong> · ${record.trades?.length || 0} 笔 · 均分 ${avg}<br>${esc(names.join('、') || '未记录交易标的')}</button></li>`;
+        }).join('')}${summary.records.length > visibleRecords.length ? `<li class="history-record-item">另有 ${summary.records.length-visibleRecords.length} 天记录，可用 ⌘/Ctrl+K 按日期或股票搜索。</li>` : ''}`
+      : '<li class="history-record-item">该月暂无云端复盘。</li>';
+  }
+  const issueList = document.getElementById('historyDisciplineList');
+  if(issueList){
+    issueList.innerHTML = summary.issues.length
+      ? summary.issues.map(issue=>`<li class="history-discipline-item"><strong>${esc(issue.title)}</strong> · ${issue.count} 天触发</li>`).join('')
+      : '<li class="history-discipline-item">该月暂无纪律提醒。</li>';
+  }
+  return summary;
+}
+function openHistoryRecord(reviewDate){
+  closeCommandPalette({restoreFocus:false});
+  const dateInput = document.getElementById('date');
+  const previous = dateInput?.value || autosaveReviewDate || todayStr();
+  queueReviewDateSwitch(reviewDate,previous).then(()=>{
+    const target = document.getElementById('date');
+    target?.scrollIntoView?.({behavior:'smooth',block:'center'});
+    target?.focus?.();
+  });
+}
+async function loadMonthlyHistory(options={}){
+  const monthInput = document.getElementById('historyMonth');
+  const status = document.getElementById('historyCloudStatus');
+  if(!monthInput) return [];
+  const month = monthInput.value || todayStr().slice(0,7);
+  const requestSequence = ++monthlyHistoryRequestSequence;
+  monthInput.value = month;
+  const range = monthDateRange(month);
+  if(!range) return [];
+  if(status) status.textContent = isHostedReviewSite() ? `正在读取 ${month} 云端复盘…` : `正在读取 ${month} 本机备份…`;
+  try{
+    if(isHostedReviewSite()){
+      const response = await fetch(`/api/review-drafts?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}&limit=62`,{credentials:'same-origin'});
+      const data = await response.json();
+      if(!response.ok || !data.ok || !Array.isArray(data.drafts)) throw new Error(data.error || '云端历史读取失败');
+      if(requestSequence !== monthlyHistoryRequestSequence || monthInput.value !== month) return [];
+      monthlyHistoryRecords = data.drafts.map(draft=>draft.record).filter(record=>record && record.date);
+      if(status) status.textContent = `已读取 ${monthlyHistoryRecords.length} 天云端复盘 · 与自动保存使用同一数据源`;
+    }else{
+      if(requestSequence !== monthlyHistoryRequestSequence || monthInput.value !== month) return [];
+      monthlyHistoryRecords = getHistoryRecords().filter(record=>String(record.date || '').startsWith(`${month}-`));
+      if(status) status.textContent = `已读取 ${monthlyHistoryRecords.length} 天本机备份`;
+    }
+  }catch(error){
+    if(requestSequence !== monthlyHistoryRequestSequence || monthInput.value !== month) return [];
+    monthlyHistoryRecords = getHistoryRecords().filter(record=>String(record.date || '').startsWith(`${month}-`));
+    if(status) status.textContent = `云端历史暂不可用，显示 ${monthlyHistoryRecords.length} 天本机备份`;
+  }
+  if(requestSequence !== monthlyHistoryRequestSequence || monthInput.value !== month) return [];
+  renderMonthlyHistory(monthlyHistoryRecords,month);
+  if(document.getElementById('commandPaletteBackdrop')?.classList.contains('show')) renderCommandPaletteResults();
+  return monthlyHistoryRecords;
+}
+function normalizeCommandQuery(value){
+  return String(value || '').trim().toLocaleLowerCase('zh-CN').replace(/\s+/g,'');
+}
+function buildCommandResults({query='',currentRecord={},historyRecords=[],alerts=[]}={}){
+  const needle = normalizeCommandQuery(query);
+  const results = [];
+  const push = item => {
+    if(!results.some(existing=>existing.id === item.id)) results.push(item);
+  };
+  const matches = (...values) => !needle || values.some(value=>normalizeCommandQuery(value).includes(needle));
+  const quickActions = [
+    {id:'quick-market',group:'快速操作',label:'同步当前复盘日市场数据',description:'自动填写指数、情绪、主线和一句话判断',kind:'sync-market',aliases:'市场主线自动填写'},
+    {id:'quick-tzzb',group:'快速操作',label:'读取最新同花顺数据',description:'同步已核验账户、成交和持仓',kind:'sync-tzzb',aliases:'成交持仓资金'},
+    {id:'quick-save',group:'快速操作',label:'立即保存到云端',description:'保存当前复盘草稿',kind:'save',aliases:'保存同步'},
+    {id:'quick-history',group:'快速操作',label:'打开月度诊断',description:'查看本月复盘、纪律和交易质量',kind:'scroll',value:'#historyMonth',aliases:'历史月度统计'},
+    {id:'quick-discipline',group:'快速操作',label:'查看今日纪律提醒',description:'打开风险规则与确认状态',kind:'scroll',value:'#disciplineAlerts',aliases:'风控风险纪律'}
+  ];
+  for(const action of quickActions){
+    if(matches(action.label,action.description,action.aliases)) push(action);
+  }
+  const aliasGroups = [
+    {ruleKey:'downward-average',label:'向下加仓',aliases:['补仓','摊低成本','越跌越买','越跌越补']},
+    {ruleKey:'opening-window-large-position',label:'开盘窗口大额买入',aliases:['开盘冲动','一开盘就买','开盘重仓']},
+    {ruleKey:'loss-reentry',label:'亏损后短期重做',aliases:['亏了又买回来','想扳回来','亏损重做']},
+    {ruleKey:'time-stop',label:'持仓时间超过计划',aliases:['短线拿成长线','一直等回本','时间止损']}
+  ];
+  for(const alias of aliasGroups){
+    if(matches(alias.label,...alias.aliases)){
+      push({id:`alias-${alias.ruleKey}`,group:'纪律问题',label:alias.label,description:'查看对应纪律规则和当日触发证据',kind:'discipline',value:alias.ruleKey});
+    }
+  }
+  for(const alert of Array.isArray(alerts) ? alerts : []){
+    if(matches(alert.title,alert.ruleKey,...(alert.evidence || []))){
+      push({id:`alert-${alert.id}`,group:'纪律问题',label:alert.title,description:(alert.evidence || []).join('；'),kind:'discipline',value:alert.ruleKey});
+    }
+  }
+  for(const [index,trade] of (Array.isArray(currentRecord.trades) ? currentRecord.trades : []).entries()){
+    if(matches(trade.name,trade.code,trade.reason,trade.mode)){
+      push({
+        id:`current-${trade.accountRef || ''}-${trade.sequenceId || index}`,
+        group:'当前交易',
+        label:`${trade.name || trade.code || '未命名交易'} · ${trade.side || ''}`,
+        description:`${trade.time || '时间未填'} · ${trade.mode || '模式未填'} · ${trade.reason || '理由未填'}`,
+        kind:'trade',value:trade.accountRef && trade.sequenceId ? `${trade.accountRef}|${trade.sequenceId}` : String(index)
+      });
+    }
+  }
+  for(const record of Array.isArray(historyRecords) ? historyRecords : []){
+    const recordTrades = Array.isArray(record.trades) ? record.trades : [];
+    const names = recordTrades.map(trade=>trade.name || trade.code).filter(Boolean).join('、');
+    const reasons = recordTrades.map(trade=>trade.reason).filter(Boolean).join(' ');
+    if(matches(record.date,names,reasons,record.market?.mainLines)){
+      push({id:`history-${record.date}`,group:'复盘记录',label:record.date || '未标日期',description:names || record.market?.mainLines || '查看当日复盘',kind:'history',value:record.date});
+    }
+  }
+  return results.slice(0,60);
+}
+function commandCurrentAlerts(){
+  const record = currentDisciplineRecord();
+  return evaluateDiscipline(record,disciplineSettingsFromDom()).alerts;
+}
+function renderCommandPaletteResults(){
+  const input = document.getElementById('commandSearch');
+  const container = document.getElementById('commandResults');
+  if(!input || !container) return;
+  commandPaletteResults = buildCommandResults({
+    query:input.value,
+    currentRecord:collectStructured(),
+    historyRecords:monthlyHistoryRecords.length ? monthlyHistoryRecords : getHistoryRecords(),
+    alerts:commandCurrentAlerts()
+  });
+  commandPaletteIndex = Math.min(commandPaletteIndex,Math.max(0,commandPaletteResults.length-1));
+  if(!commandPaletteResults.length){
+    input.setAttribute('aria-activedescendant','');
+    container.innerHTML = '<div class="command-empty">没有找到结果。可尝试“江波龙”“开盘冲动”“越跌越买”，或清空搜索查看快捷操作。</div>';
+    return;
+  }
+  const groups = [];
+  for(const result of commandPaletteResults){
+    let group = groups.find(entry=>entry.name === result.group);
+    if(!group){ group={name:result.group,items:[]}; groups.push(group); }
+    group.items.push(result);
+  }
+  let renderedIndex = 0;
+  container.innerHTML = groups.map(group=>`<div class="command-group">
+    <div class="command-group-title">${esc(group.name)}</div>
+    ${group.items.map(item=>{
+      const index = renderedIndex++;
+      return `<button id="command-option-${index}" type="button" class="command-result" role="option" aria-selected="${index === commandPaletteIndex}" data-command-index="${index}" onmouseenter="selectCommandResult(${index})" onclick="executeCommandResult(${index})">
+        <span class="command-result-main"><span class="command-result-label">${esc(item.label)}</span><span class="command-result-description">${esc(item.description || '')}</span></span>
+        <span class="command-result-key">↵</span>
+      </button>`;
+    }).join('')}
+  </div>`).join('');
+  input.setAttribute('aria-activedescendant',`command-option-${commandPaletteIndex}`);
+}
+function selectCommandResult(index){
+  if(!commandPaletteResults.length) return;
+  commandPaletteIndex = Math.max(0,Math.min(commandPaletteResults.length-1,index));
+  document.querySelectorAll('#commandResults .command-result').forEach((button,buttonIndex)=>button.setAttribute('aria-selected',String(buttonIndex === commandPaletteIndex)));
+  document.getElementById('commandSearch')?.setAttribute('aria-activedescendant',`command-option-${commandPaletteIndex}`);
+  document.querySelector(`#commandResults [data-command-index="${commandPaletteIndex}"]`)?.scrollIntoView?.({block:'nearest'});
+}
+function focusCommandTarget(target){
+  if(!target) return;
+  if(!target.matches?.('input,select,textarea,button,a[href],[tabindex]')) target.setAttribute?.('tabindex','-1');
+  target.scrollIntoView?.({behavior:'smooth',block:'center'});
+  target.focus?.({preventScroll:true});
+}
+function executeCommandResult(index=commandPaletteIndex){
+  const item = commandPaletteResults[index];
+  if(!item) return;
+  const navigation = ['history','scroll','discipline','trade'].includes(item.kind);
+  closeCommandPalette({restoreFocus:!navigation});
+  if(item.kind === 'sync-market') autoImportMarketSnapshot();
+  else if(item.kind === 'sync-tzzb') importLatestTzzbData();
+  else if(item.kind === 'save') flushAutosave({manual:true});
+  else if(item.kind === 'history') openHistoryRecord(item.value);
+  else if(item.kind === 'scroll') focusCommandTarget(document.querySelector(item.value));
+  else if(item.kind === 'discipline') focusCommandTarget(document.getElementById('disciplineAlerts'));
+  else if(item.kind === 'trade'){
+    const rows = [...document.querySelectorAll('#tradeBody tr')];
+    const row = rows.find((candidate,rowIndex)=>tradePrimaryIdentity(getTradeRowsData()[rowIndex]) === item.value || String(rowIndex) === item.value);
+    row?.scrollIntoView?.({behavior:'smooth',block:'center'});
+    row?.querySelector('.trade-reason')?.focus?.();
+  }
+}
+function commandFocusable(){
+  const palette = document.getElementById('commandPalette');
+  return palette ? [...palette.querySelectorAll('input,button,[tabindex]:not([tabindex="-1"])')].filter(element=>!element.disabled && element.getClientRects().length) : [];
+}
+function handleCommandPaletteKeydown(event){
+  const open = document.getElementById('commandPaletteBackdrop')?.classList.contains('show');
+  if((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k'){
+    event.preventDefault();
+    if(document.getElementById('ocrModal')?.classList.contains('show')){
+      event.stopImmediatePropagation();
+      return;
+    }
+    open ? closeCommandPalette() : openCommandPalette(document.activeElement);
+    return;
+  }
+  if(!open) return;
+  if(event.key === 'Escape'){
+    event.preventDefault();
+    closeCommandPalette();
+  }else if(event.key === 'ArrowDown' || event.key === 'ArrowUp'){
+    event.preventDefault();
+    const delta = event.key === 'ArrowDown' ? 1 : -1;
+    selectCommandResult((commandPaletteIndex + delta + commandPaletteResults.length) % Math.max(1,commandPaletteResults.length));
+  }else if(event.key === 'Enter' && document.activeElement?.id === 'commandSearch'){
+    event.preventDefault();
+    executeCommandResult();
+  }else if(event.key === 'Tab'){
+    const focusable = commandFocusable();
+    if(!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length-1];
+    if(event.shiftKey && document.activeElement === first){ event.preventDefault(); last.focus(); }
+    else if(!event.shiftKey && document.activeElement === last){ event.preventDefault(); first.focus(); }
+  }
+}
+function openCommandPalette(trigger){
+  const backdrop = document.getElementById('commandPaletteBackdrop');
+  if(!backdrop || backdrop.classList.contains('show') || document.getElementById('ocrModal')?.classList.contains('show')) return;
+  commandPaletteTrigger = trigger && typeof trigger.focus === 'function' ? trigger : document.activeElement;
+  commandPaletteIndex = 0;
+  backdrop.classList.add('show');
+  backdrop.setAttribute('aria-hidden','false');
+  document.documentElement.classList.add('command-open');
+  const input = document.getElementById('commandSearch');
+  if(input){
+    input.value = '';
+    input.setAttribute('aria-expanded','true');
+  }
+  renderCommandPaletteResults();
+  setTimeout(()=>input?.focus?.(),0);
+}
+function closeCommandPalette(options={}){
+  const backdrop = document.getElementById('commandPaletteBackdrop');
+  if(!backdrop?.classList.contains('show')) return;
+  backdrop.classList.remove('show');
+  backdrop.setAttribute('aria-hidden','true');
+  document.documentElement.classList.remove('command-open');
+  const input = document.getElementById('commandSearch');
+  input?.setAttribute('aria-expanded','false');
+  input?.setAttribute('aria-activedescendant','');
+  if(options.restoreFocus !== false) commandPaletteTrigger?.focus?.();
+  commandPaletteTrigger = null;
+}
+function handleCommandBackdropClick(event){
+  if(event.target?.id === 'commandPaletteBackdrop') closeCommandPalette();
+}
+function bindCommandPalette(){
+  document.addEventListener('keydown',handleCommandPaletteKeydown);
 }
 function getHistoryObject(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_HISTORY)||'{}') || {}; }catch(e){ return {}; }
@@ -3031,11 +4004,12 @@ function collectStructured(){
     holdings: collectHoldingPlan(),
     reflection:{rightThing: val('rightThing'), bigMistake: val('bigMistake')},
     plan:{newPlan: val('newPlan'), banRule: val('banRule')},
+    discipline:{settings:disciplineSettingsFromDom(),acknowledged:{...disciplineAcknowledgements}},
     stats: insights.stats,
     quality: insights
   };
 }
-function saveTodayToHistory(){
+async function saveTodayToHistory(){
   recalc();
   const record = collectStructured();
   const history = getHistoryObject();
@@ -3043,7 +4017,14 @@ function saveTodayToHistory(){
   history[record.date] = record;
   localStorage.setItem(STORAGE_HISTORY, JSON.stringify(history));
   renderHistoryPanel();
-  alert('今日复盘已保存到历史记录。');
+  if(isHostedReviewSite()){
+    const saved = await flushAutosave({manual:true,record});
+    await loadMonthlyHistory({force:true});
+    alert(saved ? '今日复盘已保存到云端，并生成本机备份。' : '云端暂未保存成功，本机备份已保留。');
+  }else{
+    await loadMonthlyHistory();
+    alert('今日复盘已保存到本机历史。');
+  }
 }
 function exportHistoryJson(){
   const payload = {exportedAt: new Date().toISOString(), records: getHistoryObject()};
@@ -3066,6 +4047,7 @@ function importHistoryJson(input){
       const merged = {...getHistoryObject(), ...incoming};
       localStorage.setItem(STORAGE_HISTORY, JSON.stringify(merged));
       renderHistoryPanel();
+      if(!isHostedReviewSite()) loadMonthlyHistory();
       alert('历史记录已导入。');
     }catch(e){
       alert('导入失败，请确认 JSON 文件格式正确。');
@@ -3079,6 +4061,7 @@ function clearHistory(){
   if(confirm('确定清空全部历史复盘记录吗？此操作不可恢复。')){
     localStorage.removeItem(STORAGE_HISTORY);
     renderHistoryPanel();
+    if(!isHostedReviewSite()) loadMonthlyHistory();
   }
 }
 function formatQualityText(insights){
@@ -3193,6 +4176,7 @@ function applyStructured(record){
   const market = record.market || {};
   const reflection = record.reflection || {};
   const plan = record.plan || {};
+  const discipline = record.discipline || {};
   const set = (id,value) => {
     const el = document.getElementById(id);
     if(el && value !== undefined) el.value = value;
@@ -3210,10 +4194,19 @@ function applyStructured(record){
   set('bigMistake', reflection.bigMistake || '');
   set('newPlan', plan.newPlan || '');
   set('banRule', plan.banRule || '');
+  const settings = normalizeDisciplineSettings(discipline.settings || {});
+  set('openingWindowStart',settings.openingWindowStart);
+  set('openingWindowEnd',settings.openingWindowEnd);
+  set('openingAmountRatio',String(Math.round(settings.openingWindowAmountRatio*100)));
+  set('unplannedDailyLimit',String(settings.unplannedTradeDailyLimit));
+  disciplineAcknowledgements = discipline.acknowledged && typeof discipline.acknowledged === 'object'
+    ? {...discipline.acknowledged}
+    : {};
   document.getElementById('tradeBody').innerHTML='';
   (record.trades || []).forEach(trade=>addTrade(trade));
   applyHoldingPlans(record.holdings || []);
   recalc();
+  renderDisciplineAlerts();
 }
 function setTzzbImportStatus(message){
   const el = document.getElementById('tzzbImportStatus');
@@ -3388,7 +4381,7 @@ function tzzbSyncSourceLabel(config=getTzzbSyncConfig()){
 function mapTzzbCloudPath(path){
   if(path === '/api/tzzb-latest') return '/api/sync/latest';
   if(path === '/api/tzzb-health') return '/api/sync/health';
-  if(path === '/api/market-snapshot') return '/api/market-snapshot';
+  if(path === '/api/market-snapshot' || path.startsWith('/api/market-snapshot?')) return path;
   return '';
 }
 function clearLegacyTzzbCloudCredentials(){
@@ -3518,14 +4511,31 @@ function startTzzbAutoImport(){
   autoImportLatestTzzbData();
 }
 async function autoImportMarketSnapshot(){
-  if((document.getElementById('date')?.value || todayStr()) !== todayStr()) return false;
-  const applied = await importMarketSnapshot({silent:true});
+  const reviewDate = document.getElementById('date')?.value || todayStr();
+  const applied = await importMarketSnapshot({silent:true,reviewDate});
   if(applied) setTzzbImportStatus('已更新指数情况和市场强势方向。');
 }
 function startMarketAutoImport(){
   if(marketAutoImportTimer) clearInterval(marketAutoImportTimer);
   autoImportMarketSnapshot();
   marketAutoImportTimer = setInterval(autoImportMarketSnapshot, 60000);
+}
+function setMarketSyncStatus(message,state='loading'){
+  const element = document.getElementById('marketSyncStatus');
+  if(!element) return;
+  element.textContent = message;
+  element.dataset.state = state;
+}
+function marketSnapshotReviewDate(market={}){
+  const explicit = String(market.tradeDate || '');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(explicit)) return explicit;
+  const requiredCodes = ['000001','399001','399006'];
+  const rows = Array.isArray(market.indices) ? market.indices : [];
+  const dates = requiredCodes.map(code=>{
+    const quote = rows.find(row=>String(row?.code || '') === code);
+    return String(quote?.quoteTime || '').match(/^(\d{4}-\d{2}-\d{2})[ T]/)?.[1] || '';
+  });
+  return dates.every(Boolean) && new Set(dates).size === 1 ? dates[0] : '';
 }
 function applyMarketSnapshot(market){
   if(!market || !String(market.mainLines || '').trim() || !String(market.marketOne || '').trim()) return false;
@@ -3548,12 +4558,27 @@ function applyMarketSnapshot(market){
 }
 async function importMarketSnapshot(options={}){
   const silent = Boolean(options.silent);
+  const reviewDate = String(options.reviewDate || document.getElementById('date')?.value || todayStr());
+  setMarketSyncStatus(`正在读取 ${reviewDate} 市场快照…`,'loading');
   try{
-    const {res, data} = await fetchTzzbApi('/api/market-snapshot');
+    const {res, data} = await fetchTzzbApi(`/api/market-snapshot?date=${encodeURIComponent(reviewDate)}`);
     if(!res.ok || !data.ok || !data.market) throw new Error(data.error || '公开市场数据暂不可用');
-    if(data.market.updatedAt && data.market.updatedAt === lastMarketImportedAt) return false;
-    return applyMarketSnapshot(data.market);
+    if((document.getElementById('date')?.value || todayStr()) !== reviewDate) return false;
+    const tradeDate = marketSnapshotReviewDate(data.market);
+    if(tradeDate !== reviewDate){
+      setMarketSyncStatus(`${reviewDate} 与市场快照日期不一致，已保留当前内容`,'error');
+      return false;
+    }
+    const applied = applyMarketSnapshot(data.market);
+    setMarketSyncStatus(
+      data.market.finalized
+        ? `${reviewDate} 收盘快照已固化并自动填写`
+        : `${reviewDate} 市场快照已自动填写`,
+      'synced'
+    );
+    return applied;
   }catch(error){
+    setMarketSyncStatus(`${reviewDate} 市场快照暂未同步：${error.message}`,'error');
     if(!silent) setTzzbImportStatus(`同花顺数据已保留，但指数和强势方向读取失败：${error.message}`);
     return false;
   }
@@ -3577,6 +4602,7 @@ function applyTzzbReviewData(review, raw={}){
     market: preserveLocalDraft ? mergeSyncedSection(cloudMarket, current.market) : cloudMarket,
     reflection: preserveLocalDraft ? mergeSyncedSection(cloudReflection, current.reflection) : cloudReflection,
     plan: preserveLocalDraft ? mergeSyncedSection(cloudPlan, current.plan) : cloudPlan,
+    discipline: preserveLocalDraft ? current.discipline : {},
     holdings: preserveLocalDraft ? mergeSyncedHoldings(cloudHoldings, current.holdings) : cloudHoldings,
     trades: preserveLocalDraft ? mergeSyncedTrades(cloudTrades, current.trades) : cloudTrades
   };

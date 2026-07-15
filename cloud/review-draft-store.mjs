@@ -11,6 +11,13 @@ SELECT review_date, version, updated_at, record_json
 FROM review_drafts
 WHERE review_date = ?`;
 
+const LIST_SQL = `
+SELECT review_date, version, updated_at, record_json
+FROM review_drafts
+WHERE review_date >= ? AND review_date <= ?
+ORDER BY review_date DESC
+LIMIT ?`;
+
 const INSERT_SQL = `
 INSERT INTO review_drafts (review_date, version, updated_at, record_json)
 VALUES (?, 1, ?, ?)`;
@@ -26,6 +33,14 @@ function validReviewDate(value) {
   const text = String(value || '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) throw new TypeError('reviewDate must use YYYY-MM-DD');
   return text;
+}
+
+function validListLimit(value) {
+  const limit = Number(value);
+  if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100) {
+    throw new TypeError('limit must be an integer between 1 and 100');
+  }
+  return limit;
 }
 
 function draftFromRow(row) {
@@ -62,6 +77,15 @@ export function createReviewDraftStore(db) {
     await ensureSchema();
     const row = await db.prepare(READ_SQL).bind(validReviewDate(reviewDate)).first();
     return draftFromRow(row);
+  }
+
+  async function list({ from, to, limit = 62 } = {}) {
+    await ensureSchema();
+    const start = validReviewDate(from);
+    const end = validReviewDate(to);
+    if (start > end) throw new TypeError('date range must be ascending');
+    const result = await db.prepare(LIST_SQL).bind(start, end, validListLimit(limit)).all();
+    return (result?.results || []).map(draftFromRow);
   }
 
   async function save({ reviewDate, record, expectedVersion, updatedAt }) {
@@ -102,5 +126,5 @@ export function createReviewDraftStore(db) {
     };
   }
 
-  return { read, save };
+  return { read, list, save };
 }

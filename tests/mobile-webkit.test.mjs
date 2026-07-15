@@ -54,7 +54,8 @@ try {
 
   await page.evaluate(() => window.scrollTo(0, 700));
   assert.ok(await page.evaluate(() => window.scrollY) > 0);
-  await page.getByRole('button', { name: '回到顶部' }).click();
+  assert.equal(await page.locator('.fab').isVisible(), false, 'mobile fixed FAB should stay hidden so it cannot overlap trade controls');
+  await page.evaluate(() => scrollReviewToTop());
   await page.waitForFunction(() => window.scrollY === 0);
 
   await page.evaluate(() => {

@@ -6,10 +6,20 @@ const { chromium } = require('/Users/ruiqiwang/.cache/codex-runtimes/codex-prima
 
 const pageUrl = new URL('../index.html', import.meta.url).href;
 const viewports = [
+  { name: 'wide desktop', width: 1920, height: 1080 },
+  { name: 'large desktop', width: 1440, height: 900 },
   { name: 'desktop', width: 1366, height: 900 },
+  { name: 'compact table boundary', width: 1120, height: 820 },
+  { name: 'card boundary', width: 1119, height: 820 },
+  { name: 'compact desktop card', width: 1024, height: 768 },
+  { name: 'wide card boundary', width: 900, height: 760 },
+  { name: 'narrow card boundary', width: 899, height: 760 },
   { name: 'mobile portrait', width: 390, height: 844 },
   { name: 'mobile landscape', width: 844, height: 390 },
-  { name: 'tablet', width: 768, height: 1024 }
+  { name: 'tablet', width: 768, height: 1024 },
+  { name: 'legacy breakpoint edge', width: 621, height: 900 },
+  { name: 'small phone', width: 360, height: 800 },
+  { name: 'minimum phone', width: 320, height: 720 }
 ];
 
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -25,7 +35,7 @@ await page.route('http://127.0.0.1:8787/**', async (route) => {
 
 for (const viewport of viewports) {
   const isDesktop = viewport.width >= 981;
-  const usesTradeCards = viewport.width <= 620;
+  const usesTradeCards = viewport.width <= 1119;
   await page.setViewportSize({ width: viewport.width, height: viewport.height });
   await page.goto(pageUrl);
   await page.locator('text=今日复盘工作台').waitFor();
@@ -51,7 +61,12 @@ for (const viewport of viewports) {
   assert.ok(scrolled.windowY > scrollability.initialWindowY, `${viewport.name} browser viewport should scroll vertically`);
   assert.equal(scrolled.shellY, scrollability.initialShellY, `${viewport.name} shell should not own vertical scrolling`);
 
-  await page.locator('.fab').click();
+  if (viewport.width >= 1280) {
+    await page.locator('.fab').click();
+  } else {
+    assert.equal(await page.locator('.fab').isVisible(), false, `${viewport.name} fixed FAB should stay hidden so it cannot cover review controls`);
+    await page.evaluate(() => scrollReviewToTop());
+  }
   await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 1500 });
 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -98,15 +113,15 @@ for (const viewport of viewports) {
     const table = document.querySelector('#tradeTable');
     const wrap = table.closest('.table-wrap');
     const pageOverflow = wrap.getBoundingClientRect().right - document.documentElement.getBoundingClientRect().right;
-    const wrapOverflow = table.scrollWidth > wrap.clientWidth;
-    return { pageOverflow, wrapOverflow };
+    const wrapOverflow = wrap.scrollWidth - wrap.clientWidth;
+    const tableBox = table.getBoundingClientRect();
+    const wrapBox = wrap.getBoundingClientRect();
+    const tableWithinWrap = tableBox.left >= wrapBox.left - 1 && tableBox.right <= wrapBox.right + 1;
+    return { pageOverflow, wrapOverflow, tableWithinWrap };
   });
   assert.ok(tableCheck.pageOverflow <= 4, `${viewport.name} table wrapper should contain table`);
-  assert.equal(
-    tableCheck.wrapOverflow,
-    !isDesktop && !usesTradeCards,
-    `${viewport.name} trade cards should fit phones while the table scrolls only on intermediate widths`
-  );
+  assert.ok(tableCheck.wrapOverflow <= 1, `${viewport.name} trade table should never require horizontal scrolling, overflow=${tableCheck.wrapOverflow}`);
+  assert.equal(tableCheck.tableWithinWrap, true, `${viewport.name} trade table should stay inside its wrapper`);
 
   const tradeControlMetrics = await page.evaluate(() => {
     const table = document.querySelector('#tradeTable');
@@ -140,21 +155,64 @@ for (const viewport of viewports) {
     const details = firstRow.querySelector('.trade-detail-toggle');
     const foldedFields = [...firstRow.querySelectorAll('.trade-qty,.trade-amount')]
       .map((el) => el.getBoundingClientRect().height);
-    return { available: true, headers, controls, scoreWidths, scoreHeaderWidths, detailsOpen: details.open, foldedFields };
+    const visibleControls = [...firstRow.querySelectorAll('input,select,textarea,summary,button')]
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        return box.width > 0 && box.height > 0;
+      });
+    const escapedControls = visibleControls.filter((element) => {
+      const cell = element.closest('td');
+      if (!cell) return false;
+      const box = element.getBoundingClientRect();
+      const boundary = cell.getBoundingClientRect();
+      return box.left < boundary.left - 1 || box.right > boundary.right + 1
+        || box.top < boundary.top - 1 || box.bottom > boundary.bottom + 1;
+    }).map((element) => element.className || element.tagName);
+    const overlaps = [];
+    for (let i = 0; i < visibleControls.length; i += 1) {
+      for (let j = i + 1; j < visibleControls.length; j += 1) {
+        const a = visibleControls[i];
+        const b = visibleControls[j];
+        if (a.contains(b) || b.contains(a)) continue;
+        const ar = a.getBoundingClientRect();
+        const br = b.getBoundingClientRect();
+        const overlapWidth = Math.min(ar.right, br.right) - Math.max(ar.left, br.left);
+        const overlapHeight = Math.min(ar.bottom, br.bottom) - Math.max(ar.top, br.top);
+        if (overlapWidth > 1 && overlapHeight > 1) {
+          overlaps.push(`${a.className || a.tagName} / ${b.className || b.tagName}`);
+        }
+      }
+    }
+    return {
+      available: true,
+      headers,
+      controls,
+      scoreWidths,
+      scoreHeaderWidths,
+      detailsOpen: details.open,
+      foldedFields,
+      escapedControls,
+      overlaps,
+      rowHeight: firstRow.getBoundingClientRect().height
+    };
   });
   assert.equal(tradeControlMetrics.available, true, `${viewport.name} trade table should have initial rows`);
+  assert.deepEqual(tradeControlMetrics.escapedControls, [], `${viewport.name} trade controls should stay inside their cells`);
+  assert.deepEqual(tradeControlMetrics.overlaps, [], `${viewport.name} trade controls should never overlap`);
   if (!usesTradeCards) {
-    const maxScoreHeader = Math.max(...tradeControlMetrics.scoreHeaderWidths);
-    const minScoreHeader = Math.min(...tradeControlMetrics.scoreHeaderWidths);
-    assert.ok(maxScoreHeader - minScoreHeader <= 2, `${viewport.name} score columns should use equal widths`);
-    assert.ok(maxScoreHeader <= 132, `${viewport.name} score columns should not be stretched, width=${maxScoreHeader}`);
+    assert.deepEqual(
+      tradeControlMetrics.headers.map((header) => header.text),
+      ['时间', '股票/ETF', '成交', '复盘', '交易质量', '操作'],
+      `${viewport.name} should expose the compact six-column header`
+    );
     const controlHeights = tradeControlMetrics.controls.map((item) => item.height);
     assert.ok(
-      Math.max(...controlHeights) - Math.min(...controlHeights) <= 4,
+      Math.max(...controlHeights) - Math.min(...controlHeights) <= 8,
       `${viewport.name} trade controls should align to one height: ${JSON.stringify(tradeControlMetrics.controls)}`
     );
-    const transactionHeader = tradeControlMetrics.headers.find((header) => header.text === '交易');
-    assert.ok(transactionHeader && transactionHeader.width >= 200, `${viewport.name} transaction column should fit side and visible price`);
+    const transactionHeader = tradeControlMetrics.headers.find((header) => header.text === '成交');
+    assert.ok(transactionHeader && transactionHeader.width >= 220, `${viewport.name} transaction column should fit side, price and compact details`);
+    assert.ok(tradeControlMetrics.rowHeight <= 88, `${viewport.name} collapsed trade rows should stay compact, height=${tradeControlMetrics.rowHeight}`);
   } else {
     const card = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => {
       const style = getComputedStyle(row);
@@ -162,12 +220,15 @@ for (const viewport of viewports) {
       const controls = [...row.querySelectorAll('input,select,textarea,summary,button')]
         .map((element) => element.getBoundingClientRect().height)
         .filter((height) => height > 0);
-      return { display: style.display, backgroundColor: style.backgroundColor, labels, controls };
+      return { display: style.display, backgroundColor: style.backgroundColor, labels, controls, height: row.getBoundingClientRect().height };
     });
-    assert.equal(card.display, 'block', `${viewport.name} should render each trade as a card`);
+    assert.equal(card.display, 'grid', `${viewport.name} should render each trade as a grid card`);
     assert.notEqual(card.backgroundColor, 'rgba(0, 0, 0, 0)', `${viewport.name} trade cards should be opaque`);
-    assert.deepEqual(card.labels, ['时间','股票/ETF','交易','模式','理由','计划性','主线','风控','总分','操作']);
+    assert.deepEqual(card.labels, ['时间','股票/ETF','成交','复盘','交易质量','操作']);
     assert.ok(card.controls.every((height) => height >= 44), `${viewport.name} visible card controls should be at least 44px high`);
+    if (viewport.width <= 480) {
+      assert.ok(card.height <= 360, `${viewport.name} trade cards should stay compact, height=${card.height}`);
+    }
   }
   assert.equal(tradeControlMetrics.detailsOpen, false, `${viewport.name} quantity and amount should be folded by default`);
   assert.ok(tradeControlMetrics.foldedFields.every((height) => height === 0), `${viewport.name} folded quantity and amount should not consume row height`);
@@ -180,6 +241,28 @@ for (const viewport of viewports) {
     })
   ));
   assert.ok(expandedFields.every((field) => field.width > 0 && field.height >= 40), `${viewport.name} quantity and amount should be editable when expanded`);
+  const expandedGeometry = await page.locator('#tradeTable tbody tr:first-child').evaluate((row) => {
+    const wrap = row.closest('.trade-table-wrap');
+    const rowBox = row.getBoundingClientRect();
+    const wrapBox = wrap.getBoundingClientRect();
+    const escaped = [...row.querySelectorAll('input,select,textarea,summary,button')]
+      .filter((element) => {
+        const box = element.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0) return false;
+        return box.left < rowBox.left - 1 || box.right > rowBox.right + 1;
+      }).map((element) => element.className || element.tagName);
+    const nextRow = row.nextElementSibling;
+    return {
+      escaped,
+      wrapOverflow: wrap.scrollWidth - wrap.clientWidth,
+      rowWithinWrap: rowBox.left >= wrapBox.left - 1 && rowBox.right <= wrapBox.right + 1,
+      nextRowSeparated: !nextRow || rowBox.bottom <= nextRow.getBoundingClientRect().top + 1
+    };
+  });
+  assert.deepEqual(expandedGeometry.escaped, [], `${viewport.name} expanded trade controls should stay inside the row`);
+  assert.ok(expandedGeometry.wrapOverflow <= 1, `${viewport.name} expanded trade details should not create horizontal scrolling`);
+  assert.equal(expandedGeometry.rowWithinWrap, true, `${viewport.name} expanded row should stay inside the wrapper`);
+  assert.equal(expandedGeometry.nextRowSeparated, true, `${viewport.name} expanded row should not overlap the next trade`);
 
   const liquidGlass = await page.evaluate(() => {
     const bodyBefore = getComputedStyle(document.body, '::before');

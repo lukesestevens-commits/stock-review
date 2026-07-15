@@ -167,4 +167,21 @@ assert.doesNotMatch(upgraded.body.market.mainLines, /传媒|非银金融|机械�
 assert.equal(upgraded.body.cache.finalized, true);
 assert.equal(upgradeState.tencentCalls, 1, 'old finalized cache should be rebuilt once');
 
+const mismatchedDb = new FakeD1();
+const mismatchedState = { fail: false, quoteStamp: '20260715150030', tencentCalls: 0 };
+const mismatchedApp = createCloudWorker({
+  fetchImpl: createMarketFetch(mismatchedState),
+  now: () => new Date('2026-07-15T07:10:00.000Z')
+});
+const mismatchedResponse = await mismatchedApp.fetch(
+  new Request('https://review.example.com/api/market-snapshot?date=2026-07-14'),
+  { DB: mismatchedDb }
+);
+const mismatchedBody = await mismatchedResponse.json();
+assert.equal(mismatchedResponse.status, 404, 'an exact-date request must not return a snapshot from another trading day');
+assert.equal(mismatchedBody.ok, false);
+assert.equal(mismatchedBody.requestedDate, '2026-07-14');
+assert.equal(mismatchedBody.availableTradeDate, '2026-07-15');
+assert.ok(mismatchedDb.marketRows.has('2026-07-15'), 'the valid upstream snapshot should still be cached under its real trade date');
+
 console.log('PASS cloud market snapshot');

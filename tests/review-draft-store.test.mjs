@@ -20,6 +20,17 @@ class MemoryD1 {
         if (/FROM review_drafts/.test(sql)) return structuredClone(db.rows.get(values[0]) || null);
         throw new Error(`Unexpected first SQL: ${sql}`);
       },
+      async all() {
+        if (!/FROM review_drafts/.test(sql) || !/ORDER BY review_date DESC/.test(sql)) {
+          throw new Error(`Unexpected all SQL: ${sql}`);
+        }
+        const [from, to, limit] = values;
+        const results = [...db.rows.values()]
+          .filter((row) => row.review_date >= from && row.review_date <= to)
+          .sort((left, right) => right.review_date.localeCompare(left.review_date))
+          .slice(0, limit);
+        return { results: structuredClone(results) };
+      },
       async run() {
         if (/CREATE TABLE IF NOT EXISTS review_drafts/.test(sql)) {
           db.schemaReady = true;
@@ -75,6 +86,25 @@ const second = await store.save({
   record: { date: '2026-07-15', plan: { banRule: '开盘不冲动' } }
 });
 assert.equal(second.version, 2);
+
+await store.save({
+  reviewDate: '2026-07-14',
+  expectedVersion: 0,
+  updatedAt: '2026-07-14T08:00:00.000Z',
+  record: { date: '2026-07-14', basic: { pnl: '+100' } }
+});
+await store.save({
+  reviewDate: '2026-06-30',
+  expectedVersion: 0,
+  updatedAt: '2026-06-30T08:00:00.000Z',
+  record: { date: '2026-06-30', basic: { pnl: '-50' } }
+});
+
+const listed = await store.list({ from: '2026-07-01', to: '2026-07-31', limit: 20 });
+assert.deepEqual(listed.map((draft) => draft.reviewDate), ['2026-07-15', '2026-07-14']);
+assert.equal(listed[0].record.plan.banRule, '开盘不冲动');
+await assert.rejects(() => store.list({ from: '2026-07-31', to: '2026-07-01', limit: 20 }), /date range/);
+await assert.rejects(() => store.list({ from: '2026-07-01', to: '2026-07-31', limit: 101 }), /limit/);
 
 await assert.rejects(
   store.save({

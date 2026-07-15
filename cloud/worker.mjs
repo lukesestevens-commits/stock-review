@@ -181,6 +181,25 @@ async function readReviewDraft(request, url, store) {
   return json(200, { ok: true, draft }, {}, request);
 }
 
+async function readReviewDrafts(request, url, store) {
+  const from = String(url.searchParams.get('from') || '');
+  const to = String(url.searchParams.get('to') || '');
+  const limitText = String(url.searchParams.get('limit') || '62');
+  const limit = Number(limitText);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(from)
+    || !/^\d{4}-\d{2}-\d{2}$/.test(to)
+    || from > to
+    || !Number.isSafeInteger(limit)
+    || limit < 1
+    || limit > 100
+  ) {
+    return json(400, { ok: false, error: '历史草稿查询范围无效。' }, {}, request);
+  }
+  const drafts = await store.list({ from, to, limit });
+  return json(200, { ok: true, from, to, drafts }, {}, request);
+}
+
 async function saveReviewDraft(request, store, now) {
   const payload = await readJson(request);
   const reviewDate = String(payload?.reviewDate || '');
@@ -300,6 +319,14 @@ async function marketSnapshot(fetchImpl, env, url, now) {
       { tradeDate, updatedAt, finalizedAt, market },
       { force: forceVersionUpgrade }
     );
+    if (stored.tradeDate !== requestedDate) {
+      return json(404, {
+        ok: false,
+        error: '该复盘日还没有可用的市场快照。',
+        requestedDate,
+        availableTradeDate: stored.tradeDate
+      });
+    }
     return marketRecordResponse(stored, { source: 'upstream' });
   } catch (error) {
     if (cached) return marketRecordResponse(cached, {
@@ -340,6 +367,18 @@ export function createCloudWorker({
           return json(405, { ok: false, error: 'Method Not Allowed' }, {}, request);
         } catch {
           return json(503, { ok: false, error: '云端草稿存储暂不可用。' }, {}, request);
+        }
+      }
+
+      if (url.pathname === '/api/review-drafts') {
+        const denied = authorizeRead(request, env);
+        if (denied) return denied;
+        if (request.method !== 'GET') return json(405, { ok: false, error: 'Method Not Allowed' }, {}, request);
+        try {
+          const store = reviewDraftStoreFactory({ db: env.DB, env });
+          return await readReviewDrafts(request, url, store);
+        } catch {
+          return json(503, { ok: false, error: '历史草稿暂不可用。' }, {}, request);
         }
       }
 

@@ -112,6 +112,14 @@ class MemoryDraftStore {
     this.drafts.set(reviewDate, draft);
     return structuredClone(draft);
   }
+
+  async list({ from, to, limit }) {
+    return [...this.drafts.values()]
+      .filter((draft) => draft.reviewDate >= from && draft.reviewDate <= to)
+      .sort((left, right) => right.reviewDate.localeCompare(left.reviewDate))
+      .slice(0, limit)
+      .map((draft) => structuredClone(draft));
+  }
 }
 
 const draftStore = new MemoryDraftStore();
@@ -170,6 +178,20 @@ const readDraftResponse = await app.fetch(request('/api/review-draft?date=2026-0
 const readDraft = await readDraftResponse.json();
 assert.equal(readDraftResponse.status, 200);
 assert.equal(readDraft.draft.record.reflection.rightThing, '按计划执行');
+
+assert.equal((await app.fetch(request('/api/review-drafts?from=2026-07-01&to=2026-07-31'), env)).status, 401);
+assert.equal((await app.fetch(request('/api/review-drafts?from=2026-07-01&to=2026-07-31', {
+  headers: { 'oai-authenticated-user-email': 'other@example.com' }
+}), env)).status, 403);
+const listedDraftsResponse = await app.fetch(request('/api/review-drafts?from=2026-07-01&to=2026-07-31&limit=20', {
+  headers: ownerHeaders
+}), env);
+const listedDrafts = await listedDraftsResponse.json();
+assert.equal(listedDraftsResponse.status, 200);
+assert.equal(listedDrafts.drafts.length, 1);
+assert.equal(listedDrafts.drafts[0].reviewDate, '2026-07-14');
+assert.equal((await app.fetch(request('/api/review-drafts?from=bad&to=2026-07-31', { headers: ownerHeaders }), env)).status, 400);
+assert.equal((await app.fetch(request('/api/review-drafts?from=2026-08-01&to=2026-07-31', { headers: ownerHeaders }), env)).status, 400);
 
 const conflictedDraftResponse = await app.fetch(request('/api/review-draft', {
   method: 'PUT',
